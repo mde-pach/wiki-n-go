@@ -51,6 +51,9 @@ export default {
       if (request.method === "GET" && url.pathname === "/latest") {
         return json(await latestSha(env), 200, headers);
       }
+      if (request.method === "GET" && url.pathname === "/pages") {
+        return json(await listPages(env), 200, headers);
+      }
       if (request.method === "POST" && url.pathname === "/edit") {
         const body = (await request.json()) as EditBody;
         return json(await proposeEdit(env, request, body), 200, headers);
@@ -99,6 +102,32 @@ async function latestSha(env: Env): Promise<{ sha: string }> {
   if (env.RATE_LIMIT)
     await env.RATE_LIMIT.put(key, JSON.stringify({ sha, ts: Date.now() }));
   return { sha };
+}
+
+// All page slugs under content/, briefly KV-cached so it's fresh without rebuilds.
+async function listPages(env: Env): Promise<{ pages: string[] }> {
+  const key = "meta:pages";
+  if (env.RATE_LIMIT) {
+    const raw = await env.RATE_LIMIT.get(key);
+    if (raw) {
+      const cached = JSON.parse(raw) as { pages: string[]; ts: number };
+      if (Date.now() - cached.ts < 60_000) return { pages: cached.pages };
+    }
+  }
+  const tree = await gh<{ tree: { path: string; type: string }[] }>(
+    env,
+    `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/git/trees/${env.BRANCH}?recursive=1`,
+  );
+  const prefix = `${env.CONTENT_DIR}/`;
+  const pages = tree.tree
+    .filter(
+      (n) => n.type === "blob" && n.path.startsWith(prefix) && n.path.endsWith(".md"),
+    )
+    .map((n) => n.path.slice(prefix.length, -3));
+  if (env.RATE_LIMIT) {
+    await env.RATE_LIMIT.put(key, JSON.stringify({ pages, ts: Date.now() }));
+  }
+  return { pages };
 }
 
 async function proposeEdit(env: Env, request: Request, body: EditBody) {

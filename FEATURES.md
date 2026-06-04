@@ -86,7 +86,8 @@ Priority: **P0** core wiki feel · **P1** important · **P2** nice-to-have.
 
 ## Suggested build order
 
-1. **Foundation:** Tailwind + theme tokens (§6 P0), page **manifest** (§5 P0).
+1. **Foundation ✅:** Tailwind v4 + centralized theme tokens (light/dark, `src/styles/theme.css`),
+   page **manifest** (Worker `/pages` + `src/lib/manifest.ts`).
 2. **Reading core:** headings/anchors, **TOC**, wikilinks + red links, "last edited"
    metadata, tab bar (§1–2 P0).
 3. **History (cheap wins):** revision list + diff view + permalinks (§3 P0–P1).

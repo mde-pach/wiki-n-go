@@ -1,12 +1,3 @@
-:root {
-  --maxw: 48rem;
-  --fg: #1a1a1a;
-  --muted: #6b6b70;
-  --accent: #2b6cb0;
-  --border: #e5e7eb;
-  --bg: #ffffff;
-}
-
 * {
   box-sizing: border-box;
 }
@@ -17,22 +8,17 @@ html {
 
 body {
   margin: 0;
-  color: var(--fg);
+  color: var(--text);
   background: var(--bg);
-  font:
-    16px / 1.65 -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    Helvetica,
-    Arial,
-    sans-serif;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.65;
 }
 
 .site-header,
 .site-main,
 .site-footer {
-  max-width: var(--maxw);
+  max-width: var(--reading-width);
   margin-inline: auto;
   padding-inline: 1.25rem;
 }
@@ -47,7 +33,7 @@ body {
 .site-title {
   font-weight: 700;
   text-decoration: none;
-  color: var(--fg);
+  color: var(--text);
 }
 
 .site-main {
@@ -58,11 +44,11 @@ body {
 .site-footer {
   padding-block: 1.5rem;
   border-top: 1px solid var(--border);
-  color: #6b6b70;
+  color: var(--muted);
 }
 
 .wiki-status {
-  color: #6b6b70;
+  color: var(--muted);
   font-style: italic;
 }
 
@@ -82,13 +68,13 @@ body {
   color: var(--accent);
 }
 .wiki-content pre {
-  background: #f6f8fa;
+  background: var(--surface);
   padding: 1rem;
   border-radius: 6px;
   overflow: auto;
 }
 .wiki-content code {
-  background: #f6f8fa;
+  background: var(--surface);
   padding: 0.15em 0.35em;
   border-radius: 4px;
   font-size: 0.9em;
@@ -101,7 +87,7 @@ body {
   margin-inline: 0;
   padding-left: 1rem;
   border-left: 3px solid var(--border);
-  color: #6b6b70;
+  color: var(--muted);
 }
 .wiki-content table {
   border-collapse: collapse;
@@ -123,12 +109,12 @@ body {
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-contrast);
   cursor: pointer;
 }
 .editor button.ghost {
   background: transparent;
-  color: var(--fg);
+  color: var(--text);
 }
 .editor button:disabled {
   opacity: 0.6;
@@ -137,11 +123,13 @@ body {
 .editor-area {
   width: 100%;
   box-sizing: border-box;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 0.9rem;
   padding: 0.75rem;
   border: 1px solid var(--border);
   border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
 }
 .editor-actions {
   display: flex;
@@ -152,10 +140,10 @@ body {
   margin-top: 0.75rem;
 }
 .editor-ok {
-  color: #1a7f37;
+  color: var(--ok);
 }
 .editor-err {
-  color: #cf222e;
+  color: var(--err);
 }
 
 .discussion {
@@ -191,12 +179,12 @@ body {
 }
 .comment-author.anon {
   font-weight: 500;
-  color: #6b6b70;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--muted);
+  font-family: var(--font-mono);
   font-size: 0.85em;
 }
 .comment-date {
-  color: #6b6b70;
+  color: var(--muted);
   font-size: 0.85em;
 }
 .comment-body :first-child {
@@ -212,4 +200,6 @@ body {
   padding: 0.6rem;
   border: 1px solid var(--border);
   border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
 }
