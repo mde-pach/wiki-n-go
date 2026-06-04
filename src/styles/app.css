@@ -1,7 +1,6 @@
 @import "tailwindcss";
 @import "./tokens.css";
 @import "./base.css";
-@plugin "@tailwindcss/typography";
 
 /* Transition shim: old token names → design tokens, until every component is
    ported to the design's own classes. New code should use --color-* directly. */
@@ -70,6 +69,17 @@
   color: var(--color-ink-muted);
   font-style: italic;
   font-family: var(--font-ui);
+}
+
+/* Page title: design puts it in chrome; our content starts with `# Title`, so
+   style the in-prose h1 as a title until PageHeader is ported. */
+.prose h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
+  margin: 0 0 0.6em;
 }
 
 /* ── Wikilinks + heading anchors (on .prose from base.css) ─────────────────── */

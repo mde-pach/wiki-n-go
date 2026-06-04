@@ -1,0 +1,31 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "wiki-n-go" [ref=e3] [cursor=pointer]:
+      - /url: /wiki-n-go
+    - generic [ref=e4]:
+      - button "Skin" [ref=e5] [cursor=pointer]
+      - button "Theme" [ref=e6] [cursor=pointer]
+  - main [ref=e7]:
+    - article [ref=e9]:
+      - paragraph [ref=e10]: Loading…
+    - button "Edit this page" [ref=e13] [cursor=pointer]
+    - generic [ref=e15]:
+      - heading "Discussion" [level=2] [ref=e16]
+      - paragraph [ref=e17]: No comments yet — start the discussion.
+      - list
+      - textbox "Add to the discussion…" [ref=e18]
+      - button "Post comment" [ref=e20] [cursor=pointer]
+  - contentinfo [ref=e21]: Content served from GitHub via jsDelivr · no rebuild on edit
+  - generic [ref=e24]:
+    - button "Menu" [ref=e25]:
+      - img [ref=e27]
+      - generic: Menu
+    - button "Inspect" [ref=e31]:
+      - img [ref=e33]
+      - generic: Inspect
+    - button "Audit" [ref=e35]:
+      - img [ref=e37]
+      - generic: Audit
+    - button "Settings" [ref=e40]:
+      - img [ref=e42]
+      - generic: Settings
