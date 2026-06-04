@@ -1,8 +1,27 @@
 import DOMPurify from "dompurify";
 import MarkdownIt from "markdown-it";
+import anchor from "markdown-it-anchor";
 import { config } from "../config";
+import { wikilink } from "./wikilink";
 
-const md = new MarkdownIt({ html: false, linkify: true, typographer: true });
+const md = new MarkdownIt({ html: false, linkify: true, typographer: true })
+  .use(anchor, {
+    slugify: slugifyHeading,
+    permalink: anchor.permalink.ariaHidden({
+      symbol: "#",
+      placement: "after",
+      class: "header-anchor",
+    }),
+  })
+  .use(wikilink);
+
+function slugifyHeading(s: string): string {
+  return s
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-");
+}
 
 export class PageNotFoundError extends Error {
   constructor(public slug: string) {

@@ -97,6 +97,25 @@ body {
   border: 1px solid var(--border);
   padding: 0.4rem 0.6rem;
 }
+.wiki-content :is(h2, h3, h4) {
+  scroll-margin-top: 1.5rem;
+}
+.wikilink {
+  color: var(--accent);
+}
+.wikilink.red {
+  color: var(--redlink);
+}
+.header-anchor {
+  margin-left: 0.35em;
+  color: var(--muted);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+.wiki-content :is(h2, h3, h4):hover .header-anchor {
+  opacity: 1;
+}
 
 .editor {
   margin-top: 2.5rem;

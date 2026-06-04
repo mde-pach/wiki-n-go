@@ -12,6 +12,7 @@ rebuild** — the reader always fetches the latest commit.
 - Soon: edit **in this site** with Wikipedia-level friction — no account, no
   token.
 
-See [Getting started](./getting-started) for the next steps.
+See [[getting-started]] for the next steps — or open a page that doesn't exist
+yet, like [[example draft]], to see a red link you can create.
 
 _Edited live to prove the no-rebuild path._
