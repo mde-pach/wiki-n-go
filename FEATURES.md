@@ -109,21 +109,29 @@ and undo/thank/tag actions; Newer/Older pagination.
 | Swappable skins (token presets) | ⬜ | P1 |
 | Config-/frontmatter-driven theming | ⬜ | P1 |
 
-## I. Talk page (Discussion namespace) — deeper than flat comments
-From `Talk:` teardown: talk pages are **threaded, topic-organized, and signed**.
-Ours is currently flat — this is the gap to close.
+## I. Talk page (Discussion namespace) — threaded, topic-organized, signed
+From the French `Discussion:Expresso` (real threads): each **topic** is a titled
+`==section==` with its own metadata header ("last comment 18y ago · 1 comment ·
+1 participant"), arbitrarily **indented replies**, **signatures** (author · talk/
+contribs · timestamp permalink), and a per-comment **"Répondre" (reply)** button.
+
+Architecture: map each **topic → one GitHub Discussion** (titled); "New topic" =
+create a discussion. Threading is **arbitrary depth** via a `<!-- reply-to:id -->`
+marker we reconstruct into a tree client-side (GitHub Discussions natively nests
+only **one** level), reusing the same marker trick as `anon-<hash>`.
 
 | Wikipedia | Ours | St | Pri |
 |---|---|---|---|
 | Anonymous comments | via Worker → GitHub Discussions | ✅ | P0 |
-| **Topic threads** (one `==section==` per topic) | top-level comments = topics + "New topic" (⚒) | ⬜ | P1 |
-| **Nested replies** (indentation) | GitHub Discussions reply via `replyToId` (one level) (⚒) | ⬜ | P1 |
-| Per-comment **"reply"** affordance | reply box under each comment (⚒) | ⬜ | P1 |
-| **Signature**: author · timestamp · **permalink to comment** | have author+date; add the comment permalink (⚒) | 🟡 | P1 |
-| Talk **header / guidelines** banner | config/frontmatter banner (⚒) | ⬜ | P2 |
-| Archives of old threads | n/a v1 (Discussions retain all) | ⬜ | P2 |
-| Article **assessment / WikiProject** banners | Wikipedia-specific | ⊘ | — |
-| "Find sources" helper links | Wikipedia-specific | ⊘ | — |
+| **Topics** = titled threads; "New topic" | one Discussion per topic, titled (⚒) | ⬜ | P1 |
+| Per-topic metadata (last-comment age · #comments · #participants) | compute from the thread (★) | ⬜ | P2 |
+| **Arbitrary-depth replies** (indentation) | reply-to marker → client-rebuilt tree (⚒) | ⬜ | P1 |
+| Per-comment **reply** button + more menu | reply box under each comment (⚒) | ⬜ | P1 |
+| **Signature**: author · timestamp · **comment permalink** | have author+date; add permalink + reply linkage (⚒) | 🟡 | P1 |
+| **@mentions** of contributors | parse + link (anon handle / GitHub user) (⚒) | ⬜ | P2 |
+| Talk header / guidelines banner | config/frontmatter (⚒) | ⬜ | P2 |
+| Unsigned-comment attribution | n/a — we always stamp the author | ✅ | — |
+| Archives, WikiProject/assessment, find-sources | Wikipedia-specific | ⊘ | — |
 
 ## J. Cross-page chrome (seen on every namespace)
 | Wikipedia | Ours | St | Pri |
