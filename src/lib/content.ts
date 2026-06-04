@@ -6,6 +6,7 @@ import { wikilink } from "./wikilink";
 
 const md = new MarkdownIt({ html: false, linkify: true, typographer: true })
   .use(anchor, {
+    level: [2, 3, 4],
     slugify: slugifyHeading,
     permalink: anchor.permalink.ariaHidden({
       symbol: "#",
