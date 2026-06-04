@@ -247,8 +247,8 @@ trust gradient):
 - [x] ~~Rate-limiting mechanism~~ → **KV fixed-window** (5 / 10 min per source).
 - [ ] **`ip_hash` input:** full IP vs. coarsened (`/24` / geo) for extra safety.
 - [ ] **Auto-merge policy:** which (if any) signed-in contributors bypass review.
-- [ ] **SHA resolution:** GitHub API (`vnd.github.sha`) vs. jsDelivr data API vs.
-      a CI-committed `latest.json` (to dodge GitHub's 60/hr unauth limit at scale).
+- [x] ~~SHA resolution~~ → **Worker `/latest`** (KV-cached ~20s, authed quota) with
+      GitHub-API fallback; `no-store` so the browser never pins a stale SHA.
 - [ ] **SSR-edge variant:** when/whether to add it for SEO.
 - [ ] **PKCE watch:** drop the OAuth half of the Worker once GitHub supports
       client-side PKCE.
