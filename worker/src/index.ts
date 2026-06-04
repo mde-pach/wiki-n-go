@@ -6,6 +6,7 @@ interface Env {
   BRANCH: string;
   CONTENT_DIR: string;
   ALLOWED_ORIGIN: string;
+  RATE_LIMIT?: KVNamespace; // unset until a KV namespace is bound; rate limiting then activates
 }
 
 interface EditBody {
@@ -27,6 +28,8 @@ class HttpError extends Error {
 
 const MAX_CONTENT_BYTES = 100_000;
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/;
+const RATE_LIMIT_MAX = 5;
+const RATE_LIMIT_WINDOW_S = 600;
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -61,6 +64,7 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
   const ip = request.headers.get("CF-Connecting-IP") ?? "0.0.0.0";
   const author = `anon-${await ipHash(env.HASH_SECRET, ip)}`;
   if (await isBanned(env, author)) throw new HttpError(403, "This source is blocked.");
+  await enforceRateLimit(env, author);
 
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
   const path = `${env.CONTENT_DIR}/${slug}.md`;
@@ -134,6 +138,19 @@ async function currentFileSha(
   if (res.status === 404) return undefined;
   if (!res.ok) throw new HttpError(502, `GitHub ${res.status}`);
   return ((await res.json()) as { sha: string }).sha;
+}
+
+// Fixed-window per-source limit. KV is eventually consistent, so this is coarse
+// abuse control, not a precise quota — sufficient alongside PR review.
+async function enforceRateLimit(env: Env, author: string): Promise<void> {
+  if (!env.RATE_LIMIT) return;
+  const key = `rl:${author}`;
+  const count = Number.parseInt((await env.RATE_LIMIT.get(key)) ?? "0", 10);
+  if (count >= RATE_LIMIT_MAX)
+    throw new HttpError(429, "Too many edits — try again later.");
+  await env.RATE_LIMIT.put(key, String(count + 1), {
+    expirationTtl: RATE_LIMIT_WINDOW_S,
+  });
 }
 
 // Ban list lives at the repo root, outside the anon-writable content/ dir.
