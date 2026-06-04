@@ -11,7 +11,10 @@ export default function WikiPage(props: { slug?: string }) {
 
   let body: HTMLDivElement | undefined;
   createEffect(() => {
-    if (html() && body) markRedLinks(body);
+    if (html() && body) {
+      markRedLinks(body);
+      document.dispatchEvent(new CustomEvent("wiki:rendered"));
+    }
   });
 
   return (

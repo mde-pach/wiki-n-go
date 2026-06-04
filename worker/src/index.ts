@@ -54,6 +54,25 @@ export default {
       if (request.method === "GET" && url.pathname === "/pages") {
         return json(await listPages(env), 200, headers);
       }
+      if (request.method === "GET" && url.pathname === "/history") {
+        return json(
+          await history(env, url.searchParams.get("slug") ?? ""),
+          200,
+          headers,
+        );
+      }
+      if (request.method === "GET" && url.pathname === "/diff") {
+        return json(
+          await diff(
+            env,
+            url.searchParams.get("slug") ?? "",
+            url.searchParams.get("base") ?? "",
+            url.searchParams.get("head") ?? "",
+          ),
+          200,
+          headers,
+        );
+      }
       if (request.method === "POST" && url.pathname === "/edit") {
         const body = (await request.json()) as EditBody;
         return json(await proposeEdit(env, request, body), 200, headers);
@@ -128,6 +147,43 @@ async function listPages(env: Env): Promise<{ pages: string[] }> {
     await env.RATE_LIMIT.put(key, JSON.stringify({ pages, ts: Date.now() }));
   }
   return { pages };
+}
+
+interface CommitItem {
+  sha: string;
+  parents: { sha: string }[];
+  commit: { author: { name: string; date: string }; message: string };
+}
+
+async function history(env: Env, slug: string) {
+  if (!SLUG_RE.test(slug)) return { revisions: [] };
+  const path = `${env.CONTENT_DIR}/${slug}.md`;
+  const commits = await gh<CommitItem[]>(
+    env,
+    `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits?path=${path}&sha=${env.BRANCH}&per_page=50`,
+  );
+  return {
+    revisions: commits.map((c) => ({
+      sha: c.sha,
+      parent: c.parents[0]?.sha ?? null,
+      author: c.commit.author.name,
+      date: c.commit.author.date,
+      message: c.commit.message.split("\n")[0],
+    })),
+  };
+}
+
+async function diff(env: Env, slug: string, base: string, head: string) {
+  if (!SLUG_RE.test(slug)) throw new HttpError(400, "Invalid slug.");
+  if (!/^[0-9a-f]{7,40}$/.test(base) || !/^[0-9a-f]{7,40}$/.test(head)) {
+    throw new HttpError(400, "Invalid revision.");
+  }
+  const path = `${env.CONTENT_DIR}/${slug}.md`;
+  const cmp = await gh<{ files?: { filename: string; patch?: string }[] }>(
+    env,
+    `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/compare/${base}...${head}`,
+  );
+  return { patch: cmp.files?.find((f) => f.filename === path)?.patch ?? null };
 }
 
 async function proposeEdit(env: Env, request: Request, body: EditBody) {

@@ -1,6 +1,8 @@
 ---
 import Discussion from "../components/Discussion.tsx";
 import Editor from "../components/Editor.tsx";
+import History from "../components/History.tsx";
+import Toc from "../components/Toc.tsx";
 import WikiPage from "../components/WikiPage.tsx";
 import Base from "../layouts/Base.astro";
 
@@ -8,6 +10,8 @@ import Base from "../layouts/Base.astro";
 ---
 
 <Base title="Wiki">
+  <History client:only="solid-js" />
+  <Toc client:only="solid-js" />
   <WikiPage client:only="solid-js" />
   <Editor client:only="solid-js" />
   <Discussion client:only="solid-js" />

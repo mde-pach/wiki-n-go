@@ -1,0 +1,2430 @@
+- generic [active] [ref=e1]:
+  - link "Jump to content" [ref=e2] [cursor=pointer]:
+    - /url: "#bodyContent"
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - navigation "Site" [ref=e6]:
+        - generic "Main menu" [ref=e7]:
+          - button "Main menu" [ref=e8] [cursor=pointer]
+          - generic [ref=e11]: Main menu
+      - link "Wikipedia The Free Encyclopedia" [ref=e12] [cursor=pointer]:
+        - /url: /wiki/Main_Page
+        - generic [ref=e13]:
+          - img "Wikipedia" [ref=e14]
+          - img "The Free Encyclopedia" [ref=e15]
+    - generic [ref=e16]:
+      - search [ref=e17]:
+        - generic [ref=e20]:
+          - searchbox "Search Wikipedia" [ref=e23]
+          - button "Search" [ref=e25]
+      - navigation "Personal tools" [ref=e26]:
+        - list [ref=e30]:
+          - listitem [ref=e31]:
+            - link "Donate" [ref=e32] [cursor=pointer]:
+              - /url: https://donate.wikimedia.org/?wmf_source=donate&wmf_medium=sidebar&wmf_campaign=en.wikipedia.org&uselang=en
+          - listitem [ref=e33]:
+            - link "Create account" [ref=e34] [cursor=pointer]:
+              - /url: /w/index.php?title=Special:CreateAccount&returnto=Espresso&returntoquery=action%3Dhistory
+          - listitem [ref=e35]:
+            - link "Log in" [ref=e36] [cursor=pointer]:
+              - /url: /w/index.php?title=Special:UserLogin&returnto=Espresso&returntoquery=action%3Dhistory
+  - generic [ref=e38]:
+    - main [ref=e42]:
+      - generic [ref=e43]:
+        - 'heading "Espresso: Revision history" [level=1] [ref=e44]':
+          - generic [ref=e45]: Espresso
+          - text: ": Revision history"
+        - link "Help" [ref=e48] [cursor=pointer]:
+          - /url: https://www.mediawiki.org/wiki/Special:MyLanguage/Help:History
+          - text: Help
+      - generic [ref=e51]:
+        - navigation "Namespaces" [ref=e53]:
+          - generic [ref=e54]:
+            - generic:
+              - list:
+                - listitem [ref=e55]:
+                  - link "Article" [ref=e56] [cursor=pointer]:
+                    - /url: /wiki/Espresso
+                    - generic [ref=e57]: Article
+                - listitem [ref=e58]:
+                  - link "Talk" [ref=e59] [cursor=pointer]:
+                    - /url: /wiki/Talk:Espresso
+                    - generic [ref=e60]: Talk
+        - generic [ref=e61]:
+          - navigation "Views" [ref=e62]:
+            - generic [ref=e63]:
+              - generic:
+                - list:
+                  - listitem [ref=e64]:
+                    - link "Read" [ref=e65] [cursor=pointer]:
+                      - /url: /wiki/Espresso
+                      - generic [ref=e66]: Read
+                  - listitem [ref=e67]:
+                    - link "Edit" [ref=e68] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit
+                      - generic [ref=e69]: Edit
+                  - listitem [ref=e70]:
+                    - link "View history" [ref=e71] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=history
+                      - generic [ref=e72]: View history
+          - navigation "Page tools" [ref=e73]:
+            - generic [ref=e74]:
+              - button "Tools" [ref=e75] [cursor=pointer]
+              - generic [ref=e77] [cursor=pointer]: Tools
+      - navigation "Appearance" [ref=e80]:
+        - generic [ref=e83]:
+          - generic [ref=e84]: Appearance
+          - button "hide" [ref=e85] [cursor=pointer]
+      - 'generic "Espresso: Revision history" [ref=e86]':
+        - generic [ref=e89]:
+          - link "View logs for this page" [ref=e90] [cursor=pointer]:
+            - /url: /w/index.php?title=Special:Log&page=Espresso
+          - text: (
+          - link "view filter log" [ref=e91] [cursor=pointer]:
+            - /url: /w/index.php?title=Special:AbuseLog&wpSearchTitle=Espresso
+          - text: )
+        - generic [ref=e92]:
+          - group "Filter revisions show" [ref=e95]:
+            - button "Filter revisions show" [ref=e96] [cursor=pointer]:
+              - generic [ref=e97]: Filter revisions
+              - generic [ref=e98]: show
+          - generic [ref=e100]:
+            - generic [ref=e101]:
+              - text: "External tools:"
+              - list [ref=e102]:
+                - listitem [ref=e103]:
+                  - link "Find addition/removal" [ref=e104] [cursor=pointer]:
+                    - /url: https://wikipedia.ramselehof.de/wikiblame.php?lang=en&article=Espresso
+                  - superscript [ref=e105]:
+                    - text: (
+                    - link "Alternate" [ref=e106] [cursor=pointer]:
+                      - /url: https://xtools.wmcloud.org/blame/en.wikipedia.org?page=Espresso
+                    - text: )
+                  - text: ·
+                - listitem [ref=e107]:
+                  - link "Find edits by user" [ref=e108] [cursor=pointer]:
+                    - /url: https://sigma.toolforge.org/usersearch.py?page=Espresso&server=enwiki
+                  - superscript [ref=e109]:
+                    - text: (
+                    - link "Alternate" [ref=e110] [cursor=pointer]:
+                      - /url: https://xtools.wmcloud.org/topedits/en.wikipedia.org?namespace=0&page=Espresso&focus=username
+                    - text: )
+                  - text: ·
+                - listitem [ref=e111]:
+                  - link "Page statistics" [ref=e112] [cursor=pointer]:
+                    - /url: https://xtools.wmcloud.org/articleinfo/en.wikipedia.org/Espresso
+                  - text: ·
+                - listitem [ref=e113]:
+                  - link "Pageviews" [ref=e114] [cursor=pointer]:
+                    - /url: https://pageviews.wmcloud.org/?pages=Espresso&project=en.wikipedia.org
+                  - text: ·
+                - listitem [ref=e115]:
+                  - link "Fix dead links" [ref=e116] [cursor=pointer]:
+                    - /url: https://iabot.wmcloud.org/index.php?page=runbotsingle&pagesearch=Espresso&wiki=enwiki
+                  - text: ·
+                - listitem [ref=e117]:
+                  - link "Copyvio detector" [ref=e118] [cursor=pointer]:
+                    - /url: https://copyvios.toolforge.org/?lang=en&project=wikipedia&title=Espresso
+            - separator [ref=e119]
+            - paragraph [ref=e120]:
+              - text: For any version listed below, click on its date to view it. For more help, see
+              - link "Help:Page history" [ref=e121] [cursor=pointer]:
+                - /url: /wiki/Help:Page_history
+              - text: and
+              - link "Help:Edit summary" [ref=e122] [cursor=pointer]:
+                - /url: /wiki/Help:Edit_summary
+              - text: . (cur) = difference from current version, (prev) = difference from preceding version,
+              - generic [ref=e123]:
+                - text: m =
+                - link "minor edit" [ref=e124] [cursor=pointer]:
+                  - /url: /wiki/Help:Minor_edit
+              - text: ","
+              - generic [ref=e125]:
+                - text: → =
+                - link "section edit" [ref=e126] [cursor=pointer]:
+                  - /url: /wiki/Help:Section#Section_editing
+              - text: ","
+              - generic [ref=e127]:
+                - text: ← =
+                - link "automatic edit summary" [ref=e128] [cursor=pointer]:
+                  - /url: /wiki/Help:Automatic_edit_summaries
+          - generic [ref=e129]:
+            - text: (newest |
+            - link "oldest" [ref=e130] [cursor=pointer]:
+              - /url: /w/index.php?title=Espresso&action=history&dir=prev
+            - text: ) View (newer 50 |
+            - link "older 50" [ref=e131] [cursor=pointer]:
+              - /url: /w/index.php?title=Espresso&action=history&offset=20251126031826%7C1324191329
+            - text: ) (
+            - link "20" [ref=e132] [cursor=pointer]:
+              - /url: /w/index.php?title=Espresso&action=history&offset=&limit=20
+            - text: "| 50 |"
+            - link "100" [ref=e133] [cursor=pointer]:
+              - /url: /w/index.php?title=Espresso&action=history&offset=&limit=100
+            - text: "|"
+            - link "250" [ref=e134] [cursor=pointer]:
+              - /url: /w/index.php?title=Espresso&action=history&offset=&limit=250
+            - text: "|"
+            - link "500" [ref=e135] [cursor=pointer]:
+              - /url: /w/index.php?title=Espresso&action=history&offset=&limit=500
+            - text: )
+          - generic [ref=e136]:
+            - button "Compare selected revisions" [ref=e138]
+            - generic [ref=e139]:
+              - heading "1 June 2026" [level=4] [ref=e140]
+              - list [ref=e141]:
+                - listitem [ref=e142]:
+                  - generic [ref=e143]:
+                    - text: (
+                    - generic [ref=e144]: cur
+                    - generic [ref=e145]:
+                      - text: "|"
+                      - link "prev" [ref=e146] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1357183342
+                    - text: )
+                  - radio [checked] [ref=e147]
+                  - link "05:34, 1 June 2026" [ref=e150] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1357183342
+                  - generic [ref=e151]:
+                    - link "OAbot" [ref=e152] [cursor=pointer]:
+                      - /url: /wiki/User:OAbot
+                    - generic [ref=e153]:
+                      - text: (
+                      - link "talk" [ref=e155] [cursor=pointer]:
+                        - /url: /wiki/User_talk:OAbot
+                      - generic [ref=e156]:
+                        - text: "|"
+                        - link "contribs" [ref=e157] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/OAbot
+                      - text: )
+                  - text: m
+                  - generic [ref=e158]: . .
+                  - text: (39,898 bytes) (+75)
+                  - generic [ref=e159]: . .
+                  - generic [ref=e160]:
+                    - text: (
+                    - link "Open access bot" [ref=e161] [cursor=pointer]:
+                      - /url: /wiki/Wikipedia:OABOT
+                    - text: ": url-access=subscription updated in citation with #oabot.)"
+                  - generic [ref=e162]:
+                    - text: (
+                    - link "undo" [ref=e165] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1356601907&undo=1357183342
+                    - text: )
+              - heading "28 May 2026" [level=4] [ref=e166]
+              - list [ref=e167]:
+                - listitem [ref=e168]:
+                  - generic [ref=e169]:
+                    - text: (
+                    - link "cur" [ref=e171] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1356601907
+                    - generic [ref=e172]:
+                      - text: "|"
+                      - link "prev" [ref=e173] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1356601907
+                    - text: )
+                  - radio [checked] [ref=e174]
+                  - radio [ref=e175]
+                  - link "19:30, 28 May 2026" [ref=e178] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1356601907
+                  - generic [ref=e179]:
+                    - link "~2026-31918-61" [ref=e180] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2026-31918-61
+                    - generic [ref=e181]:
+                      - text: (
+                      - link "talk" [ref=e183] [cursor=pointer]:
+                        - /url: /w/index.php?title=User_talk:~2026-31918-61&action=edit&redlink=1
+                      - text: )
+                  - generic [ref=e184]: . .
+                  - text: (39,823 bytes) (+8)
+                  - generic [ref=e185]: . .
+                  - text: (corrected the incorrect and offensive American terminology, which does not exist in Italy and which distorts the meaning of espresso)
+                  - generic [ref=e186]:
+                    - text: (
+                    - link "undo" [ref=e189] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1353782408&undo=1356601907
+                    - text: )
+              - heading "12 May 2026" [level=4] [ref=e190]
+              - list [ref=e191]:
+                - listitem [ref=e192]:
+                  - generic [ref=e193]:
+                    - text: (
+                    - link "cur" [ref=e195] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1353782408
+                    - generic [ref=e196]:
+                      - text: "|"
+                      - link "prev" [ref=e197] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1353782408
+                    - text: )
+                  - radio [ref=e198]
+                  - radio [ref=e199]
+                  - link "09:57, 12 May 2026" [ref=e202] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1353782408
+                  - generic [ref=e203]:
+                    - link "Theki" [ref=e204] [cursor=pointer]:
+                      - /url: /wiki/User:Theki
+                    - generic [ref=e205]:
+                      - text: (
+                      - link "talk" [ref=e207] [cursor=pointer]:
+                        - /url: /wiki/User_talk:Theki
+                      - generic [ref=e208]:
+                        - text: "|"
+                        - link "contribs" [ref=e209] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/Theki
+                      - text: )
+                  - text: m
+                  - generic [ref=e210]: . .
+                  - text: (39,815 bytes) (−1)
+                  - generic [ref=e211]: . .
+                  - generic [ref=e212]:
+                    - text: (
+                    - generic [ref=e213]:
+                      - link "→top" [ref=e214] [cursor=pointer]:
+                        - /url: /wiki/Espresso#top
+                      - text: ":"
+                    - text: spelling)
+                  - generic [ref=e215]:
+                    - text: (
+                    - link "undo" [ref=e218] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1353782280&undo=1353782408
+                    - text: )
+                  - generic [ref=e219]:
+                    - text: (
+                    - link "Tags" [ref=e220] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ": Mobile edit, Mobile app edit, Android app edit,"
+                    - link "App full source" [ref=e222] [cursor=pointer]:
+                      - /url: https://www.mediawiki.org/wiki/Wikimedia_Apps/Mobile_App_Edits_Revision_Tags#app-full-source
+                    - text: )
+                - listitem [ref=e223]:
+                  - generic [ref=e224]:
+                    - text: (
+                    - link "cur" [ref=e226] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1353782280
+                    - generic [ref=e227]:
+                      - text: "|"
+                      - link "prev" [ref=e228] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1353782280
+                    - text: )
+                  - radio [ref=e229]
+                  - radio [ref=e230]
+                  - link "09:55, 12 May 2026" [ref=e233] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1353782280
+                  - generic [ref=e234]:
+                    - link "Theki" [ref=e235] [cursor=pointer]:
+                      - /url: /wiki/User:Theki
+                    - generic [ref=e236]:
+                      - text: (
+                      - link "talk" [ref=e238] [cursor=pointer]:
+                        - /url: /wiki/User_talk:Theki
+                      - generic [ref=e239]:
+                        - text: "|"
+                        - link "contribs" [ref=e240] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/Theki
+                      - text: )
+                  - text: m
+                  - generic [ref=e241]: . .
+                  - text: (39,816 bytes) (−1)
+                  - generic [ref=e242]: . .
+                  - generic [ref=e243]:
+                    - text: (
+                    - generic [ref=e244]:
+                      - link "→top" [ref=e245] [cursor=pointer]:
+                        - /url: /wiki/Espresso#top
+                      - text: ":"
+                    - text: spelling)
+                  - generic [ref=e246]:
+                    - text: (
+                    - link "undo" [ref=e249] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1353618496&undo=1353782280
+                    - text: )
+                  - generic [ref=e250]:
+                    - text: (
+                    - link "Tags" [ref=e251] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ": Mobile edit, Mobile app edit, Android app edit,"
+                    - link "App full source" [ref=e253] [cursor=pointer]:
+                      - /url: https://www.mediawiki.org/wiki/Wikimedia_Apps/Mobile_App_Edits_Revision_Tags#app-full-source
+                    - text: )
+              - heading "11 May 2026" [level=4] [ref=e254]
+              - list [ref=e255]:
+                - listitem [ref=e256]:
+                  - generic [ref=e257]:
+                    - text: (
+                    - link "cur" [ref=e259] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1353618496
+                    - generic [ref=e260]:
+                      - text: "|"
+                      - link "prev" [ref=e261] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1353618496
+                    - text: )
+                  - radio [ref=e262]
+                  - radio [ref=e263]
+                  - link "10:22, 11 May 2026" [ref=e266] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1353618496
+                  - generic [ref=e267]:
+                    - link "Theki" [ref=e268] [cursor=pointer]:
+                      - /url: /wiki/User:Theki
+                    - generic [ref=e269]:
+                      - text: (
+                      - link "talk" [ref=e271] [cursor=pointer]:
+                        - /url: /wiki/User_talk:Theki
+                      - generic [ref=e272]:
+                        - text: "|"
+                        - link "contribs" [ref=e273] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/Theki
+                      - text: )
+                  - generic [ref=e274]: . .
+                  - text: (39,817 bytes) (+12)
+                  - generic [ref=e275]: . .
+                  - generic [ref=e276]:
+                    - text: (
+                    - generic [ref=e277]:
+                      - link "→Characteristics" [ref=e278] [cursor=pointer]:
+                        - /url: /wiki/Espresso#Characteristics
+                      - text: ":"
+                    - text: spelling)
+                  - generic [ref=e279]:
+                    - text: (
+                    - link "undo" [ref=e282] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1352492785&undo=1353618496
+                    - text: )
+                  - generic [ref=e283]:
+                    - text: (
+                    - link "Tags" [ref=e284] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ": Mobile edit, Mobile app edit, Android app edit,"
+                    - link "App section source" [ref=e286] [cursor=pointer]:
+                      - /url: https://www.mediawiki.org/wiki/Wikimedia_Apps/Mobile_App_Edits_Revision_Tags#app-section-source
+                    - text: )
+              - heading "4 May 2026" [level=4] [ref=e287]
+              - list [ref=e288]:
+                - listitem [ref=e289]:
+                  - generic [ref=e290]:
+                    - text: (
+                    - link "cur" [ref=e292] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1352492785
+                    - generic [ref=e293]:
+                      - text: "|"
+                      - link "prev" [ref=e294] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1352492785
+                    - text: )
+                  - radio [ref=e295]
+                  - radio [ref=e296]
+                  - link "14:36, 4 May 2026" [ref=e299] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1352492785
+                  - generic [ref=e300]:
+                    - link "JCW-CleanerBot" [ref=e301] [cursor=pointer]:
+                      - /url: /wiki/User:JCW-CleanerBot
+                    - generic [ref=e302]:
+                      - text: (
+                      - link "talk" [ref=e304] [cursor=pointer]:
+                        - /url: /wiki/User_talk:JCW-CleanerBot
+                      - generic [ref=e305]:
+                        - text: "|"
+                        - link "contribs" [ref=e306] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/JCW-CleanerBot
+                      - text: )
+                  - text: m
+                  - generic [ref=e307]: . .
+                  - text: (39,805 bytes) (−28)
+                  - generic [ref=e308]: . .
+                  - text: "(clean up, removed: (Basel, Switzerland) (2))"
+                  - generic [ref=e309]:
+                    - text: (
+                    - link "undo" [ref=e312] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1350328895&undo=1352492785
+                    - text: )
+                  - generic [ref=e313]:
+                    - text: (
+                    - link "Tag" [ref=e314] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ":"
+                    - link "AWB" [ref=e316] [cursor=pointer]:
+                      - /url: /wiki/Wikipedia:AutoWikiBrowser
+                    - text: )
+              - heading "21 April 2026" [level=4] [ref=e317]
+              - list [ref=e318]:
+                - listitem [ref=e319]:
+                  - generic [ref=e320]:
+                    - text: (
+                    - link "cur" [ref=e322] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1350328895
+                    - generic [ref=e323]:
+                      - text: "|"
+                      - link "prev" [ref=e324] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1350328895
+                    - text: )
+                  - radio [ref=e325]
+                  - radio [ref=e326]
+                  - link "08:27, 21 April 2026" [ref=e329] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1350328895
+                  - generic [ref=e330]:
+                    - link "Thatemooverthere" [ref=e331] [cursor=pointer]:
+                      - /url: /wiki/User:Thatemooverthere
+                    - generic [ref=e332]:
+                      - text: (
+                      - link "talk" [ref=e334] [cursor=pointer]:
+                        - /url: /wiki/User_talk:Thatemooverthere
+                      - generic [ref=e335]:
+                        - text: "|"
+                        - link "contribs" [ref=e336] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/Thatemooverthere
+                      - text: )
+                  - generic [ref=e337]: . .
+                  - text: (39,833 bytes) (+38)
+                  - generic [ref=e338]: . .
+                  - generic [ref=e339]:
+                    - text: (
+                    - link "→top" [ref=e341] [cursor=pointer]:
+                      - /url: /wiki/Espresso#top
+                    - text: )
+                  - generic [ref=e342]:
+                    - text: (
+                    - link "undo" [ref=e345] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1349092007&undo=1350328895
+                    - text: )
+                  - generic [ref=e346]:
+                    - text: (
+                    - link "Tags" [ref=e347] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ": Mobile edit, Mobile app edit, Android app edit,"
+                    - link "App section source" [ref=e349] [cursor=pointer]:
+                      - /url: https://www.mediawiki.org/wiki/Wikimedia_Apps/Mobile_App_Edits_Revision_Tags#app-section-source
+                    - text: )
+              - heading "15 April 2026" [level=4] [ref=e350]
+              - list [ref=e351]:
+                - listitem [ref=e352]:
+                  - generic [ref=e353]:
+                    - text: (
+                    - link "cur" [ref=e355] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1349092007
+                    - generic [ref=e356]:
+                      - text: "|"
+                      - link "prev" [ref=e357] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1349092007
+                    - text: )
+                  - radio [ref=e358]
+                  - radio [ref=e359]
+                  - link "18:41, 15 April 2026" [ref=e362] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1349092007
+                  - generic [ref=e363]:
+                    - link "~2026-23116-68" [ref=e364] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2026-23116-68
+                    - generic [ref=e365]:
+                      - text: (
+                      - link "talk" [ref=e367] [cursor=pointer]:
+                        - /url: /w/index.php?title=User_talk:~2026-23116-68&action=edit&redlink=1
+                      - text: )
+                  - generic [ref=e368]: . .
+                  - text: (39,795 bytes) (0)
+                  - generic [ref=e369]: . .
+                  - text: (Per names and surnames)
+                  - generic [ref=e370]:
+                    - text: (
+                    - link "undo" [ref=e373] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1349088780&undo=1349092007
+                    - text: )
+                  - generic [ref=e374]:
+                    - text: (
+                    - link "Tags" [ref=e375] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ":"
+                    - generic [ref=e376]:
+                      - link "Visual edit" [ref=e377] [cursor=pointer]:
+                        - /url: /wiki/Wikipedia:VisualEditor
+                      - text: ","
+                    - text: Mobile edit, Mobile web edit)
+                - listitem [ref=e378]:
+                  - generic [ref=e379]:
+                    - text: (
+                    - link "cur" [ref=e381] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1349088780
+                    - generic [ref=e382]:
+                      - text: "|"
+                      - link "prev" [ref=e383] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1349088780
+                    - text: )
+                  - radio [ref=e384]
+                  - radio [ref=e385]
+                  - link "18:20, 15 April 2026" [ref=e388] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1349088780
+                  - generic [ref=e389]:
+                    - link "~2026-23334-14" [ref=e390] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2026-23334-14
+                    - generic [ref=e391]:
+                      - text: (
+                      - link "talk" [ref=e393] [cursor=pointer]:
+                        - /url: /w/index.php?title=User_talk:~2026-23334-14&action=edit&redlink=1
+                      - text: )
+                  - generic [ref=e394]: . .
+                  - text: (39,795 bytes) (0)
+                  - generic [ref=e395]: . .
+                  - text: (Punct. before references)
+                  - generic [ref=e396]:
+                    - text: (
+                    - link "undo" [ref=e399] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1346386271&undo=1349088780
+                    - text: )
+                  - generic [ref=e400]:
+                    - text: (
+                    - link "Tags" [ref=e401] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ": Mobile edit, Mobile web edit)"
+              - heading "31 March 2026" [level=4] [ref=e402]
+              - list [ref=e403]:
+                - listitem [ref=e404]:
+                  - generic [ref=e405]:
+                    - text: (
+                    - link "cur" [ref=e407] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1346386271
+                    - generic [ref=e408]:
+                      - text: "|"
+                      - link "prev" [ref=e409] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1346386271
+                    - text: )
+                  - radio [ref=e410]
+                  - radio [ref=e411]
+                  - link "15:00, 31 March 2026" [ref=e414] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1346386271
+                  - generic [ref=e415]:
+                    - link "Paul2520" [ref=e416] [cursor=pointer]:
+                      - /url: /wiki/User:Paul2520
+                    - generic [ref=e417]:
+                      - text: (
+                      - link "talk" [ref=e419] [cursor=pointer]:
+                        - /url: /wiki/User_talk:Paul2520
+                      - generic [ref=e420]:
+                        - text: "|"
+                        - link "contribs" [ref=e421] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/Paul2520
+                      - text: )
+                  - text: m
+                  - generic [ref=e422]: . .
+                  - text: (39,795 bytes) (+10)
+                  - generic [ref=e423]: . .
+                  - generic [ref=e424]:
+                    - text: (clears
+                    - link "CS1 date error(s)" [ref=e425] [cursor=pointer]:
+                      - /url: /wiki/Category:CS1_errors:_dates
+                    - text: )
+                  - generic [ref=e426]:
+                    - text: (
+                    - link "undo" [ref=e429] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1345653904&undo=1346386271
+                    - text: )
+                  - generic [ref=e430]:
+                    - text: (
+                    - link "Tag" [ref=e431] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ":"
+                    - link "JWB" [ref=e433] [cursor=pointer]:
+                      - /url: /wiki/User:Joeytje50/JWB
+                    - text: )
+              - heading "27 March 2026" [level=4] [ref=e434]
+              - list [ref=e435]:
+                - listitem [ref=e436]:
+                  - generic [ref=e437]:
+                    - text: (
+                    - link "cur" [ref=e439] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1345653904
+                    - generic [ref=e440]:
+                      - text: "|"
+                      - link "prev" [ref=e441] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1345653904
+                    - text: )
+                  - radio [ref=e442]
+                  - radio [ref=e443]
+                  - link "09:38, 27 March 2026" [ref=e446] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1345653904
+                  - generic [ref=e447]:
+                    - link "BIOL 4095 edits" [ref=e448] [cursor=pointer]:
+                      - /url: /wiki/User:BIOL_4095_edits
+                    - generic [ref=e449]:
+                      - text: (
+                      - link "talk" [ref=e451] [cursor=pointer]:
+                        - /url: /wiki/User_talk:BIOL_4095_edits
+                      - generic [ref=e452]:
+                        - text: "|"
+                        - link "contribs" [ref=e453] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/BIOL_4095_edits
+                      - text: )
+                  - generic [ref=e454]: . .
+                  - text: (39,785 bytes)
+                  - strong [ref=e455]: (+1,282)
+                  - generic [ref=e456]: . .
+                  - text: (Added citations)
+                  - generic [ref=e457]:
+                    - text: (
+                    - link "undo" [ref=e460] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1345325642&undo=1345653904
+                    - text: )
+                  - generic [ref=e461]:
+                    - text: (
+                    - link "Tag" [ref=e462] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ":"
+                    - link "Visual edit" [ref=e464] [cursor=pointer]:
+                      - /url: /wiki/Wikipedia:VisualEditor
+                    - text: )
+              - heading "25 March 2026" [level=4] [ref=e465]
+              - list [ref=e466]:
+                - listitem [ref=e467]:
+                  - generic [ref=e468]:
+                    - text: (
+                    - link "cur" [ref=e470] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1345325642
+                    - generic [ref=e471]:
+                      - text: "|"
+                      - link "prev" [ref=e472] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1345325642
+                    - text: )
+                  - radio [ref=e473]
+                  - radio [ref=e474]
+                  - link "14:43, 25 March 2026" [ref=e477] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1345325642
+                  - generic [ref=e478]:
+                    - link "Jirka.h23" [ref=e479] [cursor=pointer]:
+                      - /url: /wiki/User:Jirka.h23
+                    - generic [ref=e480]:
+                      - text: (
+                      - link "talk" [ref=e482] [cursor=pointer]:
+                        - /url: /wiki/User_talk:Jirka.h23
+                      - generic [ref=e483]:
+                        - text: "|"
+                        - link "contribs" [ref=e484] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/Jirka.h23
+                      - text: )
+                  - generic [ref=e485]: . .
+                  - text: (38,503 bytes) (+16)
+                  - generic [ref=e486]: . .
+                  - generic [ref=e487]: No edit summary
+                  - generic [ref=e488]:
+                    - text: (
+                    - link "undo" [ref=e491] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1345325310&undo=1345325642
+                    - text: )
+                - listitem [ref=e492]:
+                  - generic [ref=e493]:
+                    - text: (
+                    - link "cur" [ref=e495] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1345325310
+                    - generic [ref=e496]:
+                      - text: "|"
+                      - link "prev" [ref=e497] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1345325310
+                    - text: )
+                  - radio [ref=e498]
+                  - radio [ref=e499]
+                  - link "14:41, 25 March 2026" [ref=e502] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1345325310
+                  - generic [ref=e503]:
+                    - link "Jirka.h23" [ref=e504] [cursor=pointer]:
+                      - /url: /wiki/User:Jirka.h23
+                    - generic [ref=e505]:
+                      - text: (
+                      - link "talk" [ref=e507] [cursor=pointer]:
+                        - /url: /wiki/User_talk:Jirka.h23
+                      - generic [ref=e508]:
+                        - text: "|"
+                        - link "contribs" [ref=e509] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/Jirka.h23
+                      - text: )
+                  - generic [ref=e510]: . .
+                  - text: (38,487 bytes) (+8)
+                  - generic [ref=e511]: . .
+                  - text: (moved nutrition details, because they still interfered with the table below.)
+                  - generic [ref=e512]:
+                    - text: (
+                    - link "undo" [ref=e515] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1344927589&undo=1345325310
+                    - text: )
+              - heading "23 March 2026" [level=4] [ref=e516]
+              - list [ref=e517]:
+                - listitem [ref=e518]:
+                  - generic [ref=e519]:
+                    - text: (
+                    - link "cur" [ref=e521] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1344927589
+                    - generic [ref=e522]:
+                      - text: "|"
+                      - link "prev" [ref=e523] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1344927589
+                    - text: )
+                  - radio [ref=e524]
+                  - radio [ref=e525]
+                  - link "09:48, 23 March 2026" [ref=e528] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1344927589
+                  - generic [ref=e529]:
+                    - link "JCW-CleanerBot" [ref=e530] [cursor=pointer]:
+                      - /url: /wiki/User:JCW-CleanerBot
+                    - generic [ref=e531]:
+                      - text: (
+                      - link "talk" [ref=e533] [cursor=pointer]:
+                        - /url: /wiki/User_talk:JCW-CleanerBot
+                      - generic [ref=e534]:
+                        - text: "|"
+                        - link "contribs" [ref=e535] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/JCW-CleanerBot
+                      - text: )
+                  - text: m
+                  - generic [ref=e536]: . .
+                  - text: (38,479 bytes) (+34)
+                  - generic [ref=e537]: . .
+                  - generic [ref=e538]:
+                    - text: (
+                    - generic [ref=e539]:
+                      - link "→top" [ref=e540] [cursor=pointer]:
+                        - /url: /wiki/Espresso#top
+                      - text: ":"
+                    - text: mark free doi)
+                  - generic [ref=e541]:
+                    - text: (
+                    - link "undo" [ref=e544] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1344149864&undo=1344927589
+                    - text: )
+                  - generic [ref=e545]:
+                    - text: (
+                    - link "Tag" [ref=e546] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ":"
+                    - link "AWB" [ref=e548] [cursor=pointer]:
+                      - /url: /wiki/Wikipedia:AutoWikiBrowser
+                    - text: )
+              - heading "18 March 2026" [level=4] [ref=e549]
+              - list [ref=e550]:
+                - listitem [ref=e551]:
+                  - generic [ref=e552]:
+                    - text: (
+                    - link "cur" [ref=e554] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1344149864
+                    - generic [ref=e555]:
+                      - text: "|"
+                      - link "prev" [ref=e556] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1344149864
+                    - text: )
+                  - radio [ref=e557]
+                  - radio [ref=e558]
+                  - link "17:06, 18 March 2026" [ref=e561] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1344149864
+                  - generic [ref=e562]:
+                    - link "BlueMorphoButterflies" [ref=e563] [cursor=pointer]:
+                      - /url: /wiki/User:BlueMorphoButterflies
+                    - generic [ref=e564]:
+                      - text: (
+                      - link "talk" [ref=e566] [cursor=pointer]:
+                        - /url: /wiki/User_talk:BlueMorphoButterflies
+                      - generic [ref=e567]:
+                        - text: "|"
+                        - link "contribs" [ref=e568] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/BlueMorphoButterflies
+                      - text: )
+                  - generic [ref=e569]: . .
+                  - text: (38,445 bytes)
+                  - strong [ref=e570]: (+1,301)
+                  - generic [ref=e571]: . .
+                  - text: (Added a references)
+                  - generic [ref=e572]:
+                    - text: (
+                    - link "undo" [ref=e575] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1344048452&undo=1344149864
+                    - text: )
+                  - generic [ref=e576]:
+                    - text: (
+                    - link "Tag" [ref=e577] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ":"
+                    - link "Visual edit" [ref=e579] [cursor=pointer]:
+                      - /url: /wiki/Wikipedia:VisualEditor
+                    - text: )
+                - listitem [ref=e580]:
+                  - generic [ref=e581]:
+                    - text: (
+                    - link "cur" [ref=e583] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1344048452
+                    - generic [ref=e584]:
+                      - text: "|"
+                      - link "prev" [ref=e585] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1344048452
+                    - text: )
+                  - radio [ref=e586]
+                  - radio [ref=e587]
+                  - link "00:21, 18 March 2026" [ref=e590] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1344048452
+                  - generic [ref=e591]:
+                    - link "TheScholemaster" [ref=e592] [cursor=pointer]:
+                      - /url: /wiki/User:TheScholemaster
+                    - generic [ref=e593]:
+                      - text: (
+                      - link "talk" [ref=e595] [cursor=pointer]:
+                        - /url: /wiki/User_talk:TheScholemaster
+                      - generic [ref=e596]:
+                        - text: "|"
+                        - link "contribs" [ref=e597] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/TheScholemaster
+                      - text: )
+                  - text: m
+                  - generic [ref=e598]: . .
+                  - text: (37,144 bytes) (+4)
+                  - generic [ref=e599]: . .
+                  - generic [ref=e600]:
+                    - text: (
+                    - generic [ref=e601]:
+                      - link "→Bezzera's invention" [ref=e602] [cursor=pointer]:
+                        - /url: /wiki/Espresso#Bezzera's_invention
+                      - text: ":"
+                    - text: Added Pavoni wikilink.)
+                  - generic [ref=e603]:
+                    - text: (
+                    - link "undo" [ref=e606] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1343193308&undo=1344048452
+                    - text: )
+              - heading "12 March 2026" [level=4] [ref=e607]
+              - list [ref=e608]:
+                - listitem [ref=e609]:
+                  - generic [ref=e610]:
+                    - text: (
+                    - link "cur" [ref=e612] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1343193308
+                    - generic [ref=e613]:
+                      - text: "|"
+                      - link "prev" [ref=e614] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1343193308
+                    - text: )
+                  - radio [ref=e615]
+                  - radio [ref=e616]
+                  - link "21:19, 12 March 2026" [ref=e619] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1343193308
+                  - generic [ref=e620]:
+                    - link "Junglenut" [ref=e621] [cursor=pointer]:
+                      - /url: /wiki/User:Junglenut
+                    - generic [ref=e622]:
+                      - text: (
+                      - link "talk" [ref=e624] [cursor=pointer]:
+                        - /url: /wiki/User_talk:Junglenut
+                      - generic [ref=e625]:
+                        - text: "|"
+                        - link "contribs" [ref=e626] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/Junglenut
+                      - text: )
+                  - generic [ref=e627]: . .
+                  - text: (37,140 bytes) (−198)
+                  - generic [ref=e628]: . .
+                  - generic [ref=e629]:
+                    - text: (Undid revision
+                    - link "1342818723" [ref=e630] [cursor=pointer]:
+                      - /url: /wiki/Special:Diff/1342818723
+                    - text: by
+                    - link "KIRASAMAI" [ref=e631] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/KIRASAMAI
+                    - text: (
+                    - link "talk" [ref=e632] [cursor=pointer]:
+                      - /url: /wiki/User_talk:KIRASAMAI
+                    - text: ) new ref does not support the stement)
+                  - generic [ref=e633]:
+                    - text: (
+                    - link "undo" [ref=e636] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1343193009&undo=1343193308
+                    - text: )
+                  - generic [ref=e637]:
+                    - text: (
+                    - link "Tag" [ref=e638] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ":"
+                    - link "Undo" [ref=e640] [cursor=pointer]:
+                      - /url: /wiki/Wikipedia:Undo
+                    - text: )
+                - listitem [ref=e641]:
+                  - generic [ref=e642]:
+                    - text: (
+                    - link "cur" [ref=e644] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1343193009
+                    - generic [ref=e645]:
+                      - text: "|"
+                      - link "prev" [ref=e646] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1343193009
+                    - text: )
+                  - radio [ref=e647]
+                  - radio [ref=e648]
+                  - link "21:17, 12 March 2026" [ref=e651] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1343193009
+                  - generic [ref=e652]:
+                    - link "Junglenut" [ref=e653] [cursor=pointer]:
+                      - /url: /wiki/User:Junglenut
+                    - generic [ref=e654]:
+                      - text: (
+                      - link "talk" [ref=e656] [cursor=pointer]:
+                        - /url: /wiki/User_talk:Junglenut
+                      - generic [ref=e657]:
+                        - text: "|"
+                        - link "contribs" [ref=e658] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/Junglenut
+                      - text: )
+                  - generic [ref=e659]: . .
+                  - text: (37,338 bytes) (−195)
+                  - generic [ref=e660]: . .
+                  - generic [ref=e661]:
+                    - text: (Restored revision 1342818723 by
+                    - link "KIRASAMAI" [ref=e662] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/KIRASAMAI
+                    - text: (
+                    - link "talk" [ref=e663] [cursor=pointer]:
+                      - /url: /wiki/User_talk:KIRASAMAI
+                    - text: "): Randomly-added citation does not support the statement)"
+                  - generic [ref=e664]:
+                    - text: (
+                    - link "undo" [ref=e667] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1342823292&undo=1343193009
+                    - text: )
+                  - generic [ref=e668]:
+                    - text: (
+                    - link "Tags" [ref=e669] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ":"
+                    - generic [ref=e670]:
+                      - link "Twinkle" [ref=e671] [cursor=pointer]:
+                        - /url: /wiki/Wikipedia:Twinkle
+                      - text: ","
+                    - link "Undo" [ref=e673] [cursor=pointer]:
+                      - /url: /wiki/Wikipedia:Undo
+                    - text: )
+              - heading "10 March 2026" [level=4] [ref=e674]
+              - list [ref=e675]:
+                - listitem [ref=e676]:
+                  - generic [ref=e677]:
+                    - text: (
+                    - link "cur" [ref=e679] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1342823292
+                    - generic [ref=e680]:
+                      - text: "|"
+                      - link "prev" [ref=e681] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1342823292
+                    - text: )
+                  - radio [ref=e682]
+                  - radio [ref=e683]
+                  - link "21:41, 10 March 2026" [ref=e686] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1342823292
+                  - generic [ref=e687]:
+                    - link "KIRASAMAI" [ref=e688] [cursor=pointer]:
+                      - /url: /wiki/User:KIRASAMAI
+                    - generic [ref=e689]:
+                      - text: (
+                      - link "talk" [ref=e691] [cursor=pointer]:
+                        - /url: /wiki/User_talk:KIRASAMAI
+                      - generic [ref=e692]:
+                        - text: "|"
+                        - link "contribs" [ref=e693] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/KIRASAMAI
+                      - text: )
+                  - generic [ref=e694]: . .
+                  - text: (37,533 bytes) (+195)
+                  - generic [ref=e695]: . .
+                  - text: (added a citation)
+                  - generic [ref=e696]:
+                    - text: (
+                    - link "undo" [ref=e699] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1342818723&undo=1342823292
+                    - text: )
+                  - generic [ref=e700]:
+                    - text: (
+                    - link "Tags" [ref=e701] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ": Reverted,"
+                    - link "Visual edit" [ref=e703] [cursor=pointer]:
+                      - /url: /wiki/Wikipedia:VisualEditor
+                    - text: )
+                - listitem [ref=e704]:
+                  - generic [ref=e705]:
+                    - text: (
+                    - link "cur" [ref=e707] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1342818723
+                    - generic [ref=e708]:
+                      - text: "|"
+                      - link "prev" [ref=e709] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1342818723
+                    - text: )
+                  - radio [ref=e710]
+                  - radio [ref=e711]
+                  - link "21:14, 10 March 2026" [ref=e714] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1342818723
+                  - generic [ref=e715]:
+                    - link "KIRASAMAI" [ref=e716] [cursor=pointer]:
+                      - /url: /wiki/User:KIRASAMAI
+                    - generic [ref=e717]:
+                      - text: (
+                      - link "talk" [ref=e719] [cursor=pointer]:
+                        - /url: /wiki/User_talk:KIRASAMAI
+                      - generic [ref=e720]:
+                        - text: "|"
+                        - link "contribs" [ref=e721] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/KIRASAMAI
+                      - text: )
+                  - generic [ref=e722]: . .
+                  - text: (37,338 bytes) (+198)
+                  - generic [ref=e723]: . .
+                  - text: (added citation)
+                  - generic [ref=e724]:
+                    - text: (
+                    - link "undo" [ref=e727] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1341329597&undo=1342818723
+                    - text: )
+                  - generic [ref=e728]:
+                    - text: (
+                    - link "Tags" [ref=e729] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ": Reverted,"
+                    - link "Visual edit" [ref=e731] [cursor=pointer]:
+                      - /url: /wiki/Wikipedia:VisualEditor
+                    - text: )
+              - heading "2 March 2026" [level=4] [ref=e732]
+              - list [ref=e733]:
+                - listitem [ref=e734]:
+                  - generic [ref=e735]:
+                    - text: (
+                    - link "cur" [ref=e737] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1341329597
+                    - generic [ref=e738]:
+                      - text: "|"
+                      - link "prev" [ref=e739] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1341329597
+                    - text: )
+                  - radio [ref=e740]
+                  - radio [ref=e741]
+                  - link "16:29, 2 March 2026" [ref=e744] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1341329597
+                  - generic [ref=e745]:
+                    - link "~2026-13257-12" [ref=e746] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2026-13257-12
+                    - generic [ref=e747]:
+                      - text: (
+                      - link "talk" [ref=e749] [cursor=pointer]:
+                        - /url: /w/index.php?title=User_talk:~2026-13257-12&action=edit&redlink=1
+                      - text: )
+                  - generic [ref=e750]: . .
+                  - text: (37,140 bytes) (+10)
+                  - generic [ref=e751]: . .
+                  - generic [ref=e752]:
+                    - text: (
+                    - generic [ref=e753]:
+                      - link "→Etymology and spelling" [ref=e754] [cursor=pointer]:
+                        - /url: /wiki/Espresso#Etymology_and_spelling
+                      - text: ":"
+                    - text: have spelled and pronounced → have sometimes spelled and pronounced)
+                  - generic [ref=e755]:
+                    - text: (
+                    - link "undo" [ref=e758] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1341126529&undo=1341329597
+                    - text: )
+              - heading "1 March 2026" [level=4] [ref=e759]
+              - list [ref=e760]:
+                - listitem [ref=e761]:
+                  - generic [ref=e762]:
+                    - text: (
+                    - link "cur" [ref=e764] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1341126529
+                    - generic [ref=e765]:
+                      - text: "|"
+                      - link "prev" [ref=e766] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1341126529
+                    - text: )
+                  - radio [ref=e767]
+                  - radio [ref=e768]
+                  - link "16:23, 1 March 2026" [ref=e771] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1341126529
+                  - generic [ref=e772]:
+                    - link "TheScholemaster" [ref=e773] [cursor=pointer]:
+                      - /url: /wiki/User:TheScholemaster
+                    - generic [ref=e774]:
+                      - text: (
+                      - link "talk" [ref=e776] [cursor=pointer]:
+                        - /url: /wiki/User_talk:TheScholemaster
+                      - generic [ref=e777]:
+                        - text: "|"
+                        - link "contribs" [ref=e778] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/TheScholemaster
+                      - text: )
+                  - text: m
+                  - generic [ref=e779]: . .
+                  - text: (37,130 bytes) (+211)
+                  - generic [ref=e780]: . .
+                  - text: (Page categorized as containing video clips, but lacked one; added a video clip accordingly.)
+                  - generic [ref=e781]:
+                    - text: (
+                    - link "undo" [ref=e784] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1340861361&undo=1341126529
+                    - text: )
+              - heading "28 February 2026" [level=4] [ref=e785]
+              - list [ref=e786]:
+                - listitem [ref=e787]:
+                  - generic [ref=e788]:
+                    - text: (
+                    - link "cur" [ref=e790] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1340861361
+                    - generic [ref=e791]:
+                      - text: "|"
+                      - link "prev" [ref=e792] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1340861361
+                    - text: )
+                  - radio [ref=e793]
+                  - radio [ref=e794]
+                  - link "03:41, 28 February 2026" [ref=e797] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1340861361
+                  - generic [ref=e798]:
+                    - link "Eru719" [ref=e799] [cursor=pointer]:
+                      - /url: /wiki/User:Eru719
+                    - generic [ref=e800]:
+                      - text: (
+                      - link "talk" [ref=e802] [cursor=pointer]:
+                        - /url: /wiki/User_talk:Eru719
+                      - generic [ref=e803]:
+                        - text: "|"
+                        - link "contribs" [ref=e804] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/Eru719
+                      - text: )
+                  - text: m
+                  - generic [ref=e805]: . .
+                  - text: (36,919 bytes) (+1)
+                  - generic [ref=e806]: . .
+                  - text: (Wrong sp)
+                  - generic [ref=e807]:
+                    - text: (
+                    - link "undo" [ref=e810] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1340489033&undo=1340861361
+                    - text: )
+                  - generic [ref=e811]:
+                    - text: (
+                    - link "Tags" [ref=e812] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ":"
+                    - generic [ref=e813]:
+                      - link "Visual edit" [ref=e814] [cursor=pointer]:
+                        - /url: /wiki/Wikipedia:VisualEditor
+                      - text: ","
+                    - text: Mobile edit, Mobile web edit,
+                    - link "Advanced mobile edit" [ref=e816] [cursor=pointer]:
+                      - /url: https://www.mediawiki.org/wiki/Special:MyLanguage/Reading/Web/Advanced_mobile_contributions
+                    - text: )
+              - heading "26 February 2026" [level=4] [ref=e817]
+              - list [ref=e818]:
+                - listitem [ref=e819]:
+                  - generic [ref=e820]:
+                    - text: (
+                    - link "cur" [ref=e822] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1340489033
+                    - generic [ref=e823]:
+                      - text: "|"
+                      - link "prev" [ref=e824] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1340489033
+                    - text: )
+                  - radio [ref=e825]
+                  - radio [ref=e826]
+                  - link "00:50, 26 February 2026" [ref=e829] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1340489033
+                  - generic [ref=e830]:
+                    - link "InternetArchiveBot" [ref=e831] [cursor=pointer]:
+                      - /url: /wiki/User:InternetArchiveBot
+                    - generic [ref=e832]:
+                      - text: (
+                      - link "talk" [ref=e834] [cursor=pointer]:
+                        - /url: /wiki/User_talk:InternetArchiveBot
+                      - generic [ref=e835]:
+                        - text: "|"
+                        - link "contribs" [ref=e836] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/InternetArchiveBot
+                      - text: )
+                  - generic [ref=e837]: . .
+                  - text: (36,918 bytes) (+148)
+                  - generic [ref=e838]: . .
+                  - text: "(Rescuing 1 sources and tagging 0 as dead.) #IABot (v2.0.9.5)"
+                  - generic [ref=e839]:
+                    - text: (
+                    - link "undo" [ref=e842] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1339575566&undo=1340489033
+                    - text: )
+              - heading "21 February 2026" [level=4] [ref=e843]
+              - list [ref=e844]:
+                - listitem [ref=e845]:
+                  - generic [ref=e846]:
+                    - text: (
+                    - link "cur" [ref=e848] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1339575566
+                    - generic [ref=e849]:
+                      - text: "|"
+                      - link "prev" [ref=e850] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1339575566
+                    - text: )
+                  - radio [ref=e851]
+                  - radio [ref=e852]
+                  - link "06:23, 21 February 2026" [ref=e855] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1339575566
+                  - generic [ref=e856]:
+                    - link "Jirka.h23" [ref=e857] [cursor=pointer]:
+                      - /url: /wiki/User:Jirka.h23
+                    - generic [ref=e858]:
+                      - text: (
+                      - link "talk" [ref=e860] [cursor=pointer]:
+                        - /url: /wiki/User_talk:Jirka.h23
+                      - generic [ref=e861]:
+                        - text: "|"
+                        - link "contribs" [ref=e862] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/Jirka.h23
+                      - text: )
+                  - generic [ref=e863]: . .
+                  - text: (36,770 bytes) (+2)
+                  - generic [ref=e864]: . .
+                  - generic [ref=e865]:
+                    - text: (
+                    - generic [ref=e866]:
+                      - link "→Espresso-based drinks" [ref=e867] [cursor=pointer]:
+                        - /url: /wiki/Espresso#Espresso-based_drinks
+                      - text: ":"
+                    - text: finished, not preparation.)
+                  - generic [ref=e868]:
+                    - text: (
+                    - link "undo" [ref=e871] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1339051654&undo=1339575566
+                    - text: )
+              - heading "18 February 2026" [level=4] [ref=e872]
+              - list [ref=e873]:
+                - listitem [ref=e874]:
+                  - generic [ref=e875]:
+                    - text: (
+                    - link "cur" [ref=e877] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1339051654
+                    - generic [ref=e878]:
+                      - text: "|"
+                      - link "prev" [ref=e879] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1339051654
+                    - text: )
+                  - radio [ref=e880]
+                  - radio [ref=e881]
+                  - link "18:58, 18 February 2026" [ref=e884] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1339051654
+                  - generic [ref=e885]:
+                    - link "TheScholemaster" [ref=e886] [cursor=pointer]:
+                      - /url: /wiki/User:TheScholemaster
+                    - generic [ref=e887]:
+                      - text: (
+                      - link "talk" [ref=e889] [cursor=pointer]:
+                        - /url: /wiki/User_talk:TheScholemaster
+                      - generic [ref=e890]:
+                        - text: "|"
+                        - link "contribs" [ref=e891] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/TheScholemaster
+                      - text: )
+                  - text: m
+                  - generic [ref=e892]: . .
+                  - text: (36,768 bytes) (+44)
+                  - generic [ref=e893]: . .
+                  - generic [ref=e894]:
+                    - text: (
+                    - generic [ref=e895]:
+                      - link "→Bezzera's invention" [ref=e896] [cursor=pointer]:
+                        - /url: /wiki/Espresso#Bezzera's_invention
+                      - text: ":"
+                    - text: Expanded image caption with identification of specific Gaggia model and date/location from metadata.)
+                  - generic [ref=e897]:
+                    - text: (
+                    - link "undo" [ref=e900] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1338704484&undo=1339051654
+                    - text: )
+              - heading "16 February 2026" [level=4] [ref=e901]
+              - list [ref=e902]:
+                - listitem [ref=e903]:
+                  - generic [ref=e904]:
+                    - text: (
+                    - link "cur" [ref=e906] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1338704484
+                    - generic [ref=e907]:
+                      - text: "|"
+                      - link "prev" [ref=e908] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1338704484
+                    - text: )
+                  - radio [ref=e909]
+                  - radio [ref=e910]
+                  - link "19:19, 16 February 2026" [ref=e913] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1338704484
+                  - generic [ref=e914]:
+                    - link "~2026-10565-42" [ref=e915] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2026-10565-42
+                    - generic [ref=e916]:
+                      - text: (
+                      - link "talk" [ref=e918] [cursor=pointer]:
+                        - /url: /w/index.php?title=User_talk:~2026-10565-42&action=edit&redlink=1
+                      - text: )
+                  - generic [ref=e919]: . .
+                  - text: (36,724 bytes) (+24)
+                  - generic [ref=e920]: . .
+                  - generic [ref=e921]:
+                    - text: (
+                    - link "→Works cited" [ref=e923] [cursor=pointer]:
+                      - /url: /wiki/Espresso#Works_cited
+                    - text: )
+                  - generic [ref=e924]:
+                    - text: (
+                    - link "undo" [ref=e927] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1338704376&undo=1338704484
+                    - text: )
+                  - generic [ref=e928]:
+                    - text: (
+                    - link "Tags" [ref=e929] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ": Mobile edit, Mobile web edit)"
+                - listitem [ref=e930]:
+                  - generic [ref=e931]:
+                    - text: (
+                    - link "cur" [ref=e933] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1338704376
+                    - generic [ref=e934]:
+                      - text: "|"
+                      - link "prev" [ref=e935] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1338704376
+                    - text: )
+                  - radio [ref=e936]
+                  - radio [ref=e937]
+                  - link "19:18, 16 February 2026" [ref=e940] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1338704376
+                  - generic [ref=e941]:
+                    - link "~2026-10565-42" [ref=e942] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2026-10565-42
+                    - generic [ref=e943]:
+                      - text: (
+                      - link "talk" [ref=e945] [cursor=pointer]:
+                        - /url: /w/index.php?title=User_talk:~2026-10565-42&action=edit&redlink=1
+                      - text: )
+                  - generic [ref=e946]: . .
+                  - text: (36,700 bytes) (+24)
+                  - generic [ref=e947]: . .
+                  - generic [ref=e948]:
+                    - text: (
+                    - link "→Further reading" [ref=e950] [cursor=pointer]:
+                      - /url: /wiki/Espresso#Further_reading
+                    - text: )
+                  - generic [ref=e951]:
+                    - text: (
+                    - link "undo" [ref=e954] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1338364528&undo=1338704376
+                    - text: )
+                  - generic [ref=e955]:
+                    - text: (
+                    - link "Tags" [ref=e956] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ": Mobile edit, Mobile web edit)"
+              - heading "14 February 2026" [level=4] [ref=e957]
+              - list [ref=e958]:
+                - listitem [ref=e959]:
+                  - generic [ref=e960]:
+                    - text: (
+                    - link "cur" [ref=e962] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1338364528
+                    - generic [ref=e963]:
+                      - text: "|"
+                      - link "prev" [ref=e964] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1338364528
+                    - text: )
+                  - radio [ref=e965]
+                  - radio [ref=e966]
+                  - link "19:05, 14 February 2026" [ref=e969] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1338364528
+                  - generic [ref=e970]:
+                    - link "~2026-10174-25" [ref=e971] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2026-10174-25
+                    - generic [ref=e972]:
+                      - text: (
+                      - link "talk" [ref=e974] [cursor=pointer]:
+                        - /url: /w/index.php?title=User_talk:~2026-10174-25&action=edit&redlink=1
+                      - text: )
+                  - generic [ref=e975]: . .
+                  - text: (36,676 bytes)
+                  - strong [ref=e976]: (−1,180)
+                  - generic [ref=e977]: . .
+                  - generic [ref=e978]:
+                    - text: (Undid revision
+                    - link "1337852401" [ref=e979] [cursor=pointer]:
+                      - /url: /wiki/Special:Diff/1337852401
+                    - text: by
+                    - link "~2025-39812-51" [ref=e980] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2025-39812-51
+                    - text: (
+                    - link "talk" [ref=e981] [cursor=pointer]:
+                      - /url: /w/index.php?title=User_talk:~2025-39812-51&action=edit&redlink=1
+                    - text: ) not providing a source)
+                  - generic [ref=e982]:
+                    - text: (
+                    - link "undo" [ref=e985] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1338364470&undo=1338364528
+                    - text: )
+                  - generic [ref=e986]:
+                    - text: (
+                    - link "Tag" [ref=e987] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ":"
+                    - link "Undo" [ref=e989] [cursor=pointer]:
+                      - /url: /wiki/Wikipedia:Undo
+                    - text: )
+                - listitem [ref=e990]:
+                  - generic [ref=e991]:
+                    - text: (
+                    - link "cur" [ref=e993] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1338364470
+                    - generic [ref=e994]:
+                      - text: "|"
+                      - link "prev" [ref=e995] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1338364470
+                    - text: )
+                  - radio [ref=e996]
+                  - radio [ref=e997]
+                  - link "19:04, 14 February 2026" [ref=e1000] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1338364470
+                  - generic [ref=e1001]:
+                    - link "~2026-10174-25" [ref=e1002] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2026-10174-25
+                    - generic [ref=e1003]:
+                      - text: (
+                      - link "talk" [ref=e1005] [cursor=pointer]:
+                        - /url: /w/index.php?title=User_talk:~2026-10174-25&action=edit&redlink=1
+                      - text: )
+                  - generic [ref=e1006]: . .
+                  - text: (37,856 bytes) (+82)
+                  - generic [ref=e1007]: . .
+                  - generic [ref=e1008]:
+                    - text: (Undid revision
+                    - link "1337852812" [ref=e1009] [cursor=pointer]:
+                      - /url: /wiki/Special:Diff/1337852812
+                    - text: by
+                    - link "~2025-39812-51" [ref=e1010] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2025-39812-51
+                    - text: (
+                    - link "talk" [ref=e1011] [cursor=pointer]:
+                      - /url: /w/index.php?title=User_talk:~2025-39812-51&action=edit&redlink=1
+                    - text: ) not providing a source)
+                  - generic [ref=e1012]:
+                    - text: (
+                    - link "undo" [ref=e1015] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1338363443&undo=1338364470
+                    - text: )
+                  - generic [ref=e1016]:
+                    - text: (
+                    - link "Tag" [ref=e1017] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ":"
+                    - link "Undo" [ref=e1019] [cursor=pointer]:
+                      - /url: /wiki/Wikipedia:Undo
+                    - text: )
+                - listitem [ref=e1020]:
+                  - generic [ref=e1021]:
+                    - text: (
+                    - link "cur" [ref=e1023] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1338363443
+                    - generic [ref=e1024]:
+                      - text: "|"
+                      - link "prev" [ref=e1025] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1338363443
+                    - text: )
+                  - radio [ref=e1026]
+                  - radio [ref=e1027]
+                  - link "18:57, 14 February 2026" [ref=e1030] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1338363443
+                  - generic [ref=e1031]:
+                    - link "Daranz" [ref=e1032] [cursor=pointer]:
+                      - /url: /wiki/User:Daranz
+                    - generic [ref=e1033]:
+                      - text: (
+                      - link "talk" [ref=e1035] [cursor=pointer]:
+                        - /url: /wiki/User_talk:Daranz
+                      - generic [ref=e1036]:
+                        - text: "|"
+                        - link "contribs" [ref=e1037] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/Daranz
+                      - text: )
+                  - generic [ref=e1038]: . .
+                  - text: (37,774 bytes) (+1)
+                  - generic [ref=e1039]: . .
+                  - generic [ref=e1040]:
+                    - text: (
+                    - generic [ref=e1041]:
+                      - link "→Process" [ref=e1042] [cursor=pointer]:
+                        - /url: /wiki/Espresso#Process
+                      - text: ":"
+                    - text: numbers formatting (
+                    - link "MOS:DECIMAL" [ref=e1043] [cursor=pointer]:
+                      - /url: /wiki/MOS:DECIMAL
+                    - text: ","
+                    - link "MOS:UNCERTAINTY" [ref=e1044] [cursor=pointer]:
+                      - /url: /wiki/MOS:UNCERTAINTY
+                    - text: ))
+                  - generic [ref=e1045]:
+                    - text: (
+                    - link "undo" [ref=e1048] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1338347329&undo=1338363443
+                    - text: )
+                - listitem [ref=e1049]:
+                  - generic [ref=e1050]:
+                    - text: (
+                    - link "cur" [ref=e1052] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1338347329
+                    - generic [ref=e1053]:
+                      - text: "|"
+                      - link "prev" [ref=e1054] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1338347329
+                    - text: )
+                  - radio [ref=e1055]
+                  - radio [ref=e1056]
+                  - link "17:04, 14 February 2026" [ref=e1059] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1338347329
+                  - generic [ref=e1060]:
+                    - link "Herrerarausaure" [ref=e1061] [cursor=pointer]:
+                      - /url: /wiki/User:Herrerarausaure
+                    - generic [ref=e1062]:
+                      - text: (
+                      - link "talk" [ref=e1064] [cursor=pointer]:
+                        - /url: /wiki/User_talk:Herrerarausaure
+                      - generic [ref=e1065]:
+                        - text: "|"
+                        - link "contribs" [ref=e1066] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/Herrerarausaure
+                      - text: )
+                  - text: m
+                  - generic [ref=e1067]: . .
+                  - text: (37,773 bytes) (+166)
+                  - generic [ref=e1068]: . .
+                  - generic [ref=e1069]:
+                    - text: (
+                    - generic [ref=e1070]:
+                      - link "→Process" [ref=e1071] [cursor=pointer]:
+                        - /url: /wiki/Espresso#Process
+                      - text: ":"
+                    - text: Fixed dead reference link for espresso technical parameter table with an archive link)
+                  - generic [ref=e1072]:
+                    - text: (
+                    - link "undo" [ref=e1075] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1337852812&undo=1338347329
+                    - text: )
+              - heading "11 February 2026" [level=4] [ref=e1076]
+              - list [ref=e1077]:
+                - listitem [ref=e1078]:
+                  - generic [ref=e1079]:
+                    - text: (
+                    - link "cur" [ref=e1081] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1337852812
+                    - generic [ref=e1082]:
+                      - text: "|"
+                      - link "prev" [ref=e1083] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1337852812
+                    - text: )
+                  - radio [ref=e1084]
+                  - radio [ref=e1085]
+                  - link "20:38, 11 February 2026" [ref=e1088] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1337852812
+                  - generic [ref=e1089]:
+                    - link "~2025-39812-51" [ref=e1090] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2025-39812-51
+                    - generic [ref=e1091]:
+                      - text: (
+                      - link "talk" [ref=e1093] [cursor=pointer]:
+                        - /url: /w/index.php?title=User_talk:~2025-39812-51&action=edit&redlink=1
+                      - text: )
+                  - generic [ref=e1094]: . .
+                  - text: (37,607 bytes) (−82)
+                  - generic [ref=e1095]: . .
+                  - generic [ref=e1096]:
+                    - text: (
+                    - link "→Process" [ref=e1098] [cursor=pointer]:
+                      - /url: /wiki/Espresso#Process
+                    - text: )
+                  - generic [ref=e1099]:
+                    - text: (
+                    - link "undo" [ref=e1102] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1337852401&undo=1337852812
+                    - text: )
+                  - generic [ref=e1103]:
+                    - text: (
+                    - link "Tag" [ref=e1104] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ": Reverted)"
+                - listitem [ref=e1105]:
+                  - generic [ref=e1106]:
+                    - text: (
+                    - link "cur" [ref=e1108] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1337852401
+                    - generic [ref=e1109]:
+                      - text: "|"
+                      - link "prev" [ref=e1110] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1337852401
+                    - text: )
+                  - radio [ref=e1111]
+                  - radio [ref=e1112]
+                  - link "20:34, 11 February 2026" [ref=e1115] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1337852401
+                  - generic [ref=e1116]:
+                    - link "~2025-39812-51" [ref=e1117] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2025-39812-51
+                    - generic [ref=e1118]:
+                      - text: (
+                      - link "talk" [ref=e1120] [cursor=pointer]:
+                        - /url: /w/index.php?title=User_talk:~2025-39812-51&action=edit&redlink=1
+                      - text: )
+                  - generic [ref=e1121]: . .
+                  - text: (37,689 bytes)
+                  - strong [ref=e1122]: (+1,180)
+                  - generic [ref=e1123]: . .
+                  - generic [ref=e1124]:
+                    - text: (
+                    - link "→Process" [ref=e1126] [cursor=pointer]:
+                      - /url: /wiki/Espresso#Process
+                    - text: )
+                  - generic [ref=e1127]:
+                    - text: (
+                    - link "undo" [ref=e1130] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1333993887&undo=1337852401
+                    - text: )
+                  - generic [ref=e1131]:
+                    - text: (
+                    - link "Tag" [ref=e1132] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ": Reverted)"
+              - heading "20 January 2026" [level=4] [ref=e1133]
+              - list [ref=e1134]:
+                - listitem [ref=e1135]:
+                  - generic [ref=e1136]:
+                    - text: (
+                    - link "cur" [ref=e1138] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1333993887
+                    - generic [ref=e1139]:
+                      - text: "|"
+                      - link "prev" [ref=e1140] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1333993887
+                    - text: )
+                  - radio [ref=e1141]
+                  - radio [ref=e1142]
+                  - link "23:20, 20 January 2026" [ref=e1145] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1333993887
+                  - generic [ref=e1146]:
+                    - link "AnomieBOT" [ref=e1147] [cursor=pointer]:
+                      - /url: /wiki/User:AnomieBOT
+                    - generic [ref=e1148]:
+                      - text: (
+                      - link "talk" [ref=e1150] [cursor=pointer]:
+                        - /url: /wiki/User_talk:AnomieBOT
+                      - generic [ref=e1151]:
+                        - text: "|"
+                        - link "contribs" [ref=e1152] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/AnomieBOT
+                      - text: )
+                  - text: m
+                  - generic [ref=e1153]: . .
+                  - text: (36,509 bytes) (+36)
+                  - generic [ref=e1154]: . .
+                  - text: "(Dating maintenance tags: {{Citation needed}} {{Refimprove section}})"
+                  - generic [ref=e1155]:
+                    - text: (
+                    - link "undo" [ref=e1158] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1333979202&undo=1333993887
+                    - text: )
+                - listitem [ref=e1159]:
+                  - generic [ref=e1160]:
+                    - text: (
+                    - link "cur" [ref=e1162] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1333979202
+                    - generic [ref=e1163]:
+                      - text: "|"
+                      - link "prev" [ref=e1164] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1333979202
+                    - text: )
+                  - radio [ref=e1165]
+                  - radio [ref=e1166]
+                  - link "21:20, 20 January 2026" [ref=e1169] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1333979202
+                  - generic [ref=e1170]:
+                    - link "~2026-44016-1" [ref=e1171] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2026-44016-1
+                    - generic [ref=e1172]:
+                      - text: (
+                      - link "talk" [ref=e1174] [cursor=pointer]:
+                        - /url: /wiki/User_talk:~2026-44016-1
+                      - text: )
+                  - generic [ref=e1175]: . .
+                  - text: (36,473 bytes) (−1)
+                  - generic [ref=e1176]: . .
+                  - generic [ref=e1177]: No edit summary
+                  - generic [ref=e1178]:
+                    - text: (
+                    - link "undo" [ref=e1181] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1333979156&undo=1333979202
+                    - text: )
+                  - generic [ref=e1182]:
+                    - text: (
+                    - link "Tags" [ref=e1183] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ": Mobile edit, Mobile web edit)"
+                - listitem [ref=e1184]:
+                  - generic [ref=e1185]:
+                    - text: (
+                    - link "cur" [ref=e1187] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1333979156
+                    - generic [ref=e1188]:
+                      - text: "|"
+                      - link "prev" [ref=e1189] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1333979156
+                    - text: )
+                  - radio [ref=e1190]
+                  - radio [ref=e1191]
+                  - link "21:20, 20 January 2026" [ref=e1194] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1333979156
+                  - generic [ref=e1195]:
+                    - link "~2026-44016-1" [ref=e1196] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2026-44016-1
+                    - generic [ref=e1197]:
+                      - text: (
+                      - link "talk" [ref=e1199] [cursor=pointer]:
+                        - /url: /wiki/User_talk:~2026-44016-1
+                      - text: )
+                  - generic [ref=e1200]: . .
+                  - text: (36,474 bytes) (+44)
+                  - generic [ref=e1201]: . .
+                  - generic [ref=e1202]:
+                    - text: (
+                    - generic [ref=e1203]:
+                      - link "→Characteristics" [ref=e1204] [cursor=pointer]:
+                        - /url: /wiki/Espresso#Characteristics
+                      - text: ":"
+                    - text: Perhaps source needed here)
+                  - generic [ref=e1205]:
+                    - text: (
+                    - link "undo" [ref=e1208] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1333979004&undo=1333979156
+                    - text: )
+                  - generic [ref=e1209]:
+                    - text: (
+                    - link "Tags" [ref=e1210] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ": Mobile edit, Mobile web edit)"
+                - listitem [ref=e1211]:
+                  - generic [ref=e1212]:
+                    - text: (
+                    - link "cur" [ref=e1214] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1333979004
+                    - generic [ref=e1215]:
+                      - text: "|"
+                      - link "prev" [ref=e1216] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1333979004
+                    - text: )
+                  - radio [ref=e1217]
+                  - radio [ref=e1218]
+                  - link "21:19, 20 January 2026" [ref=e1221] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1333979004
+                  - generic [ref=e1222]:
+                    - link "~2026-44016-1" [ref=e1223] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2026-44016-1
+                    - generic [ref=e1224]:
+                      - text: (
+                      - link "talk" [ref=e1226] [cursor=pointer]:
+                        - /url: /wiki/User_talk:~2026-44016-1
+                      - text: )
+                  - generic [ref=e1227]: . .
+                  - text: (36,430 bytes) (−8)
+                  - generic [ref=e1228]: . .
+                  - generic [ref=e1229]:
+                    - text: (
+                    - generic [ref=e1230]:
+                      - link "→Achieving higher pressures" [ref=e1231] [cursor=pointer]:
+                        - /url: /wiki/Espresso#Achieving_higher_pressures
+                      - text: ":"
+                    - text: Not in italics)
+                  - generic [ref=e1232]:
+                    - text: (
+                    - link "undo" [ref=e1235] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1333978601&undo=1333979004
+                    - text: )
+                  - generic [ref=e1236]:
+                    - text: (
+                    - link "Tags" [ref=e1237] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ": Mobile edit, Mobile web edit)"
+                - listitem [ref=e1238]:
+                  - generic [ref=e1239]:
+                    - text: (
+                    - link "cur" [ref=e1241] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1333978601
+                    - generic [ref=e1242]:
+                      - text: "|"
+                      - link "prev" [ref=e1243] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1333978601
+                    - text: )
+                  - radio [ref=e1244]
+                  - radio [ref=e1245]
+                  - link "21:16, 20 January 2026" [ref=e1248] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1333978601
+                  - generic [ref=e1249]:
+                    - link "~2026-44016-1" [ref=e1250] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2026-44016-1
+                    - generic [ref=e1251]:
+                      - text: (
+                      - link "talk" [ref=e1253] [cursor=pointer]:
+                        - /url: /wiki/User_talk:~2026-44016-1
+                      - text: )
+                  - generic [ref=e1254]: . .
+                  - text: (36,438 bytes) (−282)
+                  - generic [ref=e1255]: . .
+                  - generic [ref=e1256]:
+                    - text: (
+                    - generic [ref=e1257]:
+                      - link "→Bezzera's invention" [ref=e1258] [cursor=pointer]:
+                        - /url: /wiki/Espresso#Bezzera's_invention
+                      - text: ":"
+                    - text: Too many files)
+                  - generic [ref=e1259]:
+                    - text: (
+                    - link "undo" [ref=e1262] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1333977513&undo=1333978601
+                    - text: )
+                  - generic [ref=e1263]:
+                    - text: (
+                    - link "Tags" [ref=e1264] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ": Mobile edit, Mobile web edit)"
+                - listitem [ref=e1265]:
+                  - generic [ref=e1266]:
+                    - text: (
+                    - link "cur" [ref=e1268] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1333977513
+                    - generic [ref=e1269]:
+                      - text: "|"
+                      - link "prev" [ref=e1270] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1333977513
+                    - text: )
+                  - radio [ref=e1271]
+                  - radio [ref=e1272]
+                  - link "21:10, 20 January 2026" [ref=e1275] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1333977513
+                  - generic [ref=e1276]:
+                    - link "~2026-44016-1" [ref=e1277] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2026-44016-1
+                    - generic [ref=e1278]:
+                      - text: (
+                      - link "talk" [ref=e1280] [cursor=pointer]:
+                        - /url: /wiki/User_talk:~2026-44016-1
+                      - text: )
+                  - generic [ref=e1281]: . .
+                  - text: (36,720 bytes)
+                  - strong [ref=e1282]: (−612)
+                  - generic [ref=e1283]: . .
+                  - text: (Unsourced)
+                  - generic [ref=e1284]:
+                    - text: (
+                    - link "undo" [ref=e1287] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1333958298&undo=1333977513
+                    - text: )
+                  - generic [ref=e1288]:
+                    - text: (
+                    - link "Tags" [ref=e1289] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ": Mobile edit, Mobile web edit)"
+                - listitem [ref=e1290]:
+                  - generic [ref=e1291]:
+                    - text: (
+                    - link "cur" [ref=e1293] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1333958298
+                    - generic [ref=e1294]:
+                      - text: "|"
+                      - link "prev" [ref=e1295] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1333958298
+                    - text: )
+                  - radio [ref=e1296]
+                  - radio [ref=e1297]
+                  - link "19:06, 20 January 2026" [ref=e1300] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1333958298
+                  - generic [ref=e1301]:
+                    - link "~2026-43361-1" [ref=e1302] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2026-43361-1
+                    - generic [ref=e1303]:
+                      - text: (
+                      - link "talk" [ref=e1305] [cursor=pointer]:
+                        - /url: /w/index.php?title=User_talk:~2026-43361-1&action=edit&redlink=1
+                      - text: )
+                  - generic [ref=e1306]: . .
+                  - text: (37,332 bytes) (−16)
+                  - generic [ref=e1307]: . .
+                  - generic [ref=e1308]: No edit summary
+                  - generic [ref=e1309]:
+                    - text: (
+                    - link "undo" [ref=e1312] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1333958093&undo=1333958298
+                    - text: )
+                  - generic [ref=e1313]:
+                    - text: (
+                    - link "Tags" [ref=e1314] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ": Mobile edit, Mobile web edit)"
+                - listitem [ref=e1315]:
+                  - generic [ref=e1316]:
+                    - text: (
+                    - link "cur" [ref=e1318] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1333958093
+                    - generic [ref=e1319]:
+                      - text: "|"
+                      - link "prev" [ref=e1320] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1333958093
+                    - text: )
+                  - radio [ref=e1321]
+                  - radio [ref=e1322]
+                  - link "19:05, 20 January 2026" [ref=e1325] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1333958093
+                  - generic [ref=e1326]:
+                    - link "~2026-43361-1" [ref=e1327] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2026-43361-1
+                    - generic [ref=e1328]:
+                      - text: (
+                      - link "talk" [ref=e1330] [cursor=pointer]:
+                        - /url: /w/index.php?title=User_talk:~2026-43361-1&action=edit&redlink=1
+                      - text: )
+                  - generic [ref=e1331]: . .
+                  - text: (37,348 bytes) (−116)
+                  - generic [ref=e1332]: . .
+                  - text: (Not espresso)
+                  - generic [ref=e1333]:
+                    - text: (
+                    - link "undo" [ref=e1336] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1329188580&undo=1333958093
+                    - text: )
+                  - generic [ref=e1337]:
+                    - text: (
+                    - link "Tags" [ref=e1338] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ":"
+                    - generic [ref=e1339]:
+                      - link "Manual revert" [ref=e1340] [cursor=pointer]:
+                        - /url: /wiki/Help:Reverting#Manual_reverting
+                      - text: ","
+                    - generic [ref=e1341]:
+                      - link "Visual edit" [ref=e1342] [cursor=pointer]:
+                        - /url: /wiki/Wikipedia:VisualEditor
+                      - text: ","
+                    - text: Mobile edit, Mobile web edit)
+              - heading "24 December 2025" [level=4] [ref=e1343]
+              - list [ref=e1344]:
+                - listitem [ref=e1345]:
+                  - generic [ref=e1346]:
+                    - text: (
+                    - link "cur" [ref=e1348] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1329188580
+                    - generic [ref=e1349]:
+                      - text: "|"
+                      - link "prev" [ref=e1350] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1329188580
+                    - text: )
+                  - radio [ref=e1351]
+                  - radio [ref=e1352]
+                  - link "08:08, 24 December 2025" [ref=e1355] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1329188580
+                  - generic [ref=e1356]:
+                    - link "ArtDream22" [ref=e1357] [cursor=pointer]:
+                      - /url: /w/index.php?title=User:ArtDream22&action=edit&redlink=1
+                    - generic [ref=e1358]:
+                      - text: (
+                      - link "talk" [ref=e1360] [cursor=pointer]:
+                        - /url: /wiki/User_talk:ArtDream22
+                      - generic [ref=e1361]:
+                        - text: "|"
+                        - link "contribs" [ref=e1362] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/ArtDream22
+                      - text: )
+                  - generic [ref=e1363]: . .
+                  - text: (37,464 bytes) (+116)
+                  - generic [ref=e1364]: . .
+                  - generic [ref=e1365]:
+                    - text: (
+                    - generic [ref=e1366]:
+                      - link "→Espresso-based drinks" [ref=e1367] [cursor=pointer]:
+                        - /url: /wiki/Espresso#Espresso-based_drinks
+                      - text: ":"
+                    - text: Flat red)
+                  - generic [ref=e1368]:
+                    - text: (
+                    - link "undo" [ref=e1371] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1328856217&undo=1329188580
+                    - text: )
+                  - generic [ref=e1372]:
+                    - text: (
+                    - link "Tags" [ref=e1373] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ": Reverted,"
+                    - 'link "Visual edit: Switched" [ref=e1375] [cursor=pointer]':
+                      - /url: /wiki/Wikipedia:VisualEditor
+                    - text: )
+              - heading "22 December 2025" [level=4] [ref=e1376]
+              - list [ref=e1377]:
+                - listitem [ref=e1378]:
+                  - generic [ref=e1379]:
+                    - text: (
+                    - link "cur" [ref=e1381] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1328856217
+                    - generic [ref=e1382]:
+                      - text: "|"
+                      - link "prev" [ref=e1383] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1328856217
+                    - text: )
+                  - radio [ref=e1384]
+                  - radio [ref=e1385]
+                  - link "04:52, 22 December 2025" [ref=e1388] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1328856217
+                  - generic [ref=e1389]:
+                    - link "~2025-42278-01" [ref=e1390] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2025-42278-01
+                    - generic [ref=e1391]:
+                      - text: (
+                      - link "talk" [ref=e1393] [cursor=pointer]:
+                        - /url: /w/index.php?title=User_talk:~2025-42278-01&action=edit&redlink=1
+                      - text: )
+                  - generic [ref=e1394]: . .
+                  - text: (37,348 bytes) (−13)
+                  - generic [ref=e1395]: . .
+                  - generic [ref=e1396]:
+                    - text: (
+                    - link "→Achieving higher pressures" [ref=e1398] [cursor=pointer]:
+                      - /url: /wiki/Espresso#Achieving_higher_pressures
+                    - text: )
+                  - generic [ref=e1399]:
+                    - text: (
+                    - link "undo" [ref=e1402] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1326825028&undo=1328856217
+                    - text: )
+                  - generic [ref=e1403]:
+                    - text: (
+                    - link "Tags" [ref=e1404] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ": Mobile edit, Mobile web edit)"
+              - heading "11 December 2025" [level=4] [ref=e1405]
+              - list [ref=e1406]:
+                - listitem [ref=e1407]:
+                  - generic [ref=e1408]:
+                    - text: (
+                    - link "cur" [ref=e1410] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1326825028
+                    - generic [ref=e1411]:
+                      - text: "|"
+                      - link "prev" [ref=e1412] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1326825028
+                    - text: )
+                  - radio [ref=e1413]
+                  - radio [ref=e1414]
+                  - link "02:43, 11 December 2025" [ref=e1417] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1326825028
+                  - generic [ref=e1418]:
+                    - link "Jpgordon" [ref=e1419] [cursor=pointer]:
+                      - /url: /wiki/User:Jpgordon
+                    - generic [ref=e1420]:
+                      - text: (
+                      - link "talk" [ref=e1422] [cursor=pointer]:
+                        - /url: /wiki/User_talk:Jpgordon
+                      - generic [ref=e1423]:
+                        - text: "|"
+                        - link "contribs" [ref=e1424] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/Jpgordon
+                      - text: )
+                  - generic [ref=e1425]: . .
+                  - text: (37,361 bytes) (−167)
+                  - generic [ref=e1426]: . .
+                  - text: (We'd need a source for this, and it doesn't belong in the lede.)
+                  - generic [ref=e1427]:
+                    - text: (
+                    - link "undo" [ref=e1430] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1326792012&undo=1326825028
+                    - text: )
+                  - generic [ref=e1431]:
+                    - text: (
+                    - link "Tag" [ref=e1432] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ":"
+                    - link "Manual revert" [ref=e1434] [cursor=pointer]:
+                      - /url: /wiki/Help:Reverting#Manual_reverting
+                    - text: )
+              - heading "10 December 2025" [level=4] [ref=e1435]
+              - list [ref=e1436]:
+                - listitem [ref=e1437]:
+                  - generic [ref=e1438]:
+                    - text: (
+                    - link "cur" [ref=e1440] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1326792012
+                    - generic [ref=e1441]:
+                      - text: "|"
+                      - link "prev" [ref=e1442] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1326792012
+                    - text: )
+                  - radio [ref=e1443]
+                  - radio [ref=e1444]
+                  - link "22:33, 10 December 2025" [ref=e1447] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1326792012
+                  - generic [ref=e1448]:
+                    - link "CoffeeCultureUK" [ref=e1449] [cursor=pointer]:
+                      - /url: /w/index.php?title=User:CoffeeCultureUK&action=edit&redlink=1
+                    - generic [ref=e1450]:
+                      - text: (
+                      - link "talk" [ref=e1452] [cursor=pointer]:
+                        - /url: /wiki/User_talk:CoffeeCultureUK
+                      - generic [ref=e1453]:
+                        - text: "|"
+                        - link "contribs" [ref=e1454] [cursor=pointer]:
+                          - /url: /wiki/Special:Contributions/CoffeeCultureUK
+                      - text: )
+                  - generic [ref=e1455]: . .
+                  - text: (37,528 bytes) (+167)
+                  - generic [ref=e1456]: . .
+                  - text: (Added note on modern espresso machine engineering developments.)
+                  - generic [ref=e1457]:
+                    - text: (
+                    - link "undo" [ref=e1460] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1325518363&undo=1326792012
+                    - text: )
+                  - generic [ref=e1461]:
+                    - text: (
+                    - link "Tags" [ref=e1462] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ": Reverted,"
+                    - generic [ref=e1463]:
+                      - link "Visual edit" [ref=e1464] [cursor=pointer]:
+                        - /url: /wiki/Wikipedia:VisualEditor
+                      - text: ","
+                    - text: Mobile edit, Mobile web edit)
+              - heading "3 December 2025" [level=4] [ref=e1465]
+              - list [ref=e1466]:
+                - listitem [ref=e1467]:
+                  - generic [ref=e1468]:
+                    - text: (
+                    - link "cur" [ref=e1470] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1325518363
+                    - generic [ref=e1471]:
+                      - text: "|"
+                      - link "prev" [ref=e1472] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1325518363
+                    - text: )
+                  - radio [ref=e1473]
+                  - radio [ref=e1474]
+                  - link "14:40, 3 December 2025" [ref=e1477] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1325518363
+                  - generic [ref=e1478]:
+                    - link "~2025-38146-94" [ref=e1479] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2025-38146-94
+                    - generic [ref=e1480]:
+                      - text: (
+                      - link "talk" [ref=e1482] [cursor=pointer]:
+                        - /url: /w/index.php?title=User_talk:~2025-38146-94&action=edit&redlink=1
+                      - text: )
+                  - generic [ref=e1483]: . .
+                  - text: (37,361 bytes) (+2)
+                  - generic [ref=e1484]: . .
+                  - text: (If you look at the references, or any other source online, 8 oz of coffee provides approximately 95 mg, not the higher amount previously listed.)
+                  - generic [ref=e1485]:
+                    - text: (
+                    - link "undo" [ref=e1488] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1324217539&undo=1325518363
+                    - text: )
+                  - generic [ref=e1489]:
+                    - text: (
+                    - link "Tag" [ref=e1490] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ":"
+                    - link "Visual edit" [ref=e1492] [cursor=pointer]:
+                      - /url: /wiki/Wikipedia:VisualEditor
+                    - text: )
+              - heading "26 November 2025" [level=4] [ref=e1493]
+              - list [ref=e1494]:
+                - listitem [ref=e1495]:
+                  - generic [ref=e1496]:
+                    - text: (
+                    - link "cur" [ref=e1498] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1324217539
+                    - generic [ref=e1499]:
+                      - text: "|"
+                      - link "prev" [ref=e1500] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1324217539
+                    - text: )
+                  - radio [ref=e1501]
+                  - radio [ref=e1502]
+                  - link "07:44, 26 November 2025" [ref=e1505] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1324217539
+                  - generic [ref=e1506]:
+                    - link "~2025-36437-58" [ref=e1507] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2025-36437-58
+                    - generic [ref=e1508]:
+                      - text: (
+                      - link "talk" [ref=e1510] [cursor=pointer]:
+                        - /url: /w/index.php?title=User_talk:~2025-36437-58&action=edit&redlink=1
+                      - text: )
+                  - generic [ref=e1511]: . .
+                  - text: (37,359 bytes) (+1)
+                  - generic [ref=e1512]: . .
+                  - generic [ref=e1513]: No edit summary
+                  - generic [ref=e1514]:
+                    - text: (
+                    - link "undo" [ref=e1517] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1324217445&undo=1324217539
+                    - text: )
+                  - generic [ref=e1518]:
+                    - text: (
+                    - link "Tags" [ref=e1519] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ": Mobile edit, Mobile web edit)"
+                - listitem [ref=e1520]:
+                  - generic [ref=e1521]:
+                    - text: (
+                    - link "cur" [ref=e1523] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1324217445
+                    - generic [ref=e1524]:
+                      - text: "|"
+                      - link "prev" [ref=e1525] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1324217445
+                    - text: )
+                  - radio [ref=e1526]
+                  - radio [ref=e1527]
+                  - link "07:43, 26 November 2025" [ref=e1530] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1324217445
+                  - generic [ref=e1531]:
+                    - link "~2025-36437-58" [ref=e1532] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2025-36437-58
+                    - generic [ref=e1533]:
+                      - text: (
+                      - link "talk" [ref=e1535] [cursor=pointer]:
+                        - /url: /w/index.php?title=User_talk:~2025-36437-58&action=edit&redlink=1
+                      - text: )
+                  - generic [ref=e1536]: . .
+                  - text: (37,358 bytes) (−275)
+                  - generic [ref=e1537]: . .
+                  - generic [ref=e1538]:
+                    - text: (
+                    - generic [ref=e1539]:
+                      - link "→Etymology and spelling" [ref=e1540] [cursor=pointer]:
+                        - /url: /wiki/Espresso#Etymology_and_spelling
+                      - text: ":"
+                    - text: Trolling)
+                  - generic [ref=e1541]:
+                    - text: (
+                    - link "undo" [ref=e1544] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1324191329&undo=1324217445
+                    - text: )
+                  - generic [ref=e1545]:
+                    - text: (
+                    - link "Tags" [ref=e1546] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ":"
+                    - generic [ref=e1547]:
+                      - link "Manual revert" [ref=e1548] [cursor=pointer]:
+                        - /url: /wiki/Help:Reverting#Manual_reverting
+                      - text: ","
+                    - text: Mobile edit, Mobile web edit)
+                - listitem [ref=e1549]:
+                  - generic [ref=e1550]:
+                    - text: (
+                    - link "cur" [ref=e1552] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&diff=1357183342&oldid=1324191329
+                    - generic [ref=e1553]:
+                      - text: "|"
+                      - link "prev" [ref=e1554] [cursor=pointer]:
+                        - /url: /w/index.php?title=Espresso&diff=prev&oldid=1324191329
+                    - text: )
+                  - radio [ref=e1555]
+                  - radio [ref=e1556]
+                  - link "03:18, 26 November 2025" [ref=e1559] [cursor=pointer]:
+                    - /url: /w/index.php?title=Espresso&oldid=1324191329
+                  - generic [ref=e1560]:
+                    - link "~2025-36428-93" [ref=e1561] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/~2025-36428-93
+                    - generic [ref=e1562]:
+                      - text: (
+                      - link "talk" [ref=e1564] [cursor=pointer]:
+                        - /url: /wiki/User_talk:~2025-36428-93
+                      - text: )
+                  - generic [ref=e1565]: . .
+                  - text: (37,633 bytes) (+275)
+                  - generic [ref=e1566]: . .
+                  - generic [ref=e1567]:
+                    - text: (Undid revision
+                    - link "1324135630" [ref=e1568] [cursor=pointer]:
+                      - /url: /wiki/Special:Diff/1324135630
+                    - text: by
+                    - link "Vivienjustj" [ref=e1569] [cursor=pointer]:
+                      - /url: /wiki/Special:Contributions/Vivienjustj
+                    - text: (
+                    - link "talk" [ref=e1570] [cursor=pointer]:
+                      - /url: /wiki/User_talk:Vivienjustj
+                    - text: ))
+                  - generic [ref=e1571]:
+                    - text: (
+                    - link "undo" [ref=e1574] [cursor=pointer]:
+                      - /url: /w/index.php?title=Espresso&action=edit&undoafter=1324135630&undo=1324191329
+                    - text: )
+                  - generic [ref=e1575]:
+                    - text: (
+                    - link "Tags" [ref=e1576] [cursor=pointer]:
+                      - /url: /wiki/Special:Tags
+                    - text: ":"
+                    - generic [ref=e1577]:
+                      - link "Undo" [ref=e1578] [cursor=pointer]:
+                        - /url: /wiki/Wikipedia:Undo
+                      - text: ","
+                    - text: Reverted)
+              - button "Compare selected revisions" [ref=e1580]
+          - generic [ref=e1581]:
+            - text: (newest |
+            - link "oldest" [ref=e1582] [cursor=pointer]:
+              - /url: /w/index.php?title=Espresso&action=history&dir=prev
+            - text: ) View (newer 50 |
+            - link "older 50" [ref=e1583] [cursor=pointer]:
+              - /url: /w/index.php?title=Espresso&action=history&offset=20251126031826%7C1324191329
+            - text: ) (
+            - link "20" [ref=e1584] [cursor=pointer]:
+              - /url: /w/index.php?title=Espresso&action=history&offset=&limit=20
+            - text: "| 50 |"
+            - link "100" [ref=e1585] [cursor=pointer]:
+              - /url: /w/index.php?title=Espresso&action=history&offset=&limit=100
+            - text: "|"
+            - link "250" [ref=e1586] [cursor=pointer]:
+              - /url: /w/index.php?title=Espresso&action=history&offset=&limit=250
+            - text: "|"
+            - link "500" [ref=e1587] [cursor=pointer]:
+              - /url: /w/index.php?title=Espresso&action=history&offset=&limit=500
+            - text: )
+    - contentinfo [ref=e1589]:
+      - list
+      - list:
+        - listitem [ref=e1590]:
+          - link "Privacy policy" [ref=e1591] [cursor=pointer]:
+            - /url: https://foundation.wikimedia.org/wiki/Special:MyLanguage/Policy:Privacy_policy
+        - listitem [ref=e1592]:
+          - link "About Wikipedia" [ref=e1593] [cursor=pointer]:
+            - /url: /wiki/Wikipedia:About
+        - listitem [ref=e1594]:
+          - link "Disclaimers" [ref=e1595] [cursor=pointer]:
+            - /url: /wiki/Wikipedia:General_disclaimer
+        - listitem [ref=e1596]:
+          - link "Contact Wikipedia" [ref=e1597] [cursor=pointer]:
+            - /url: //en.wikipedia.org/wiki/Wikipedia:Contact_us
+        - listitem [ref=e1598]:
+          - link "Legal & safety contacts" [ref=e1599] [cursor=pointer]:
+            - /url: https://foundation.wikimedia.org/wiki/Special:MyLanguage/Legal:Wikimedia_Foundation_Legal_and_Safety_Contact_Information
+        - listitem [ref=e1600]:
+          - link "Code of Conduct" [ref=e1601] [cursor=pointer]:
+            - /url: https://foundation.wikimedia.org/wiki/Special:MyLanguage/Policy:Universal_Code_of_Conduct
+        - listitem [ref=e1602]:
+          - link "Developers" [ref=e1603] [cursor=pointer]:
+            - /url: https://developer.wikimedia.org
+        - listitem [ref=e1604]:
+          - link "Statistics" [ref=e1605] [cursor=pointer]:
+            - /url: https://stats.wikimedia.org/#/en.wikipedia.org
+        - listitem [ref=e1606]:
+          - link "Cookie statement" [ref=e1607] [cursor=pointer]:
+            - /url: https://foundation.wikimedia.org/wiki/Special:MyLanguage/Policy:Cookie_statement
+        - listitem [ref=e1608]:
+          - link "Mobile view" [ref=e1609] [cursor=pointer]:
+            - /url: //en.wikipedia.org/w/index.php?title=Espresso&action=history&mobileaction=toggle_view_mobile
+      - list [ref=e1610]:
+        - listitem [ref=e1611]:
+          - link "Wikimedia Foundation" [ref=e1612] [cursor=pointer]:
+            - /url: https://www.wikimedia.org/
+            - img "Wikimedia Foundation" [ref=e1614]
+        - listitem [ref=e1615]:
+          - link "Powered by MediaWiki" [ref=e1616] [cursor=pointer]:
+            - /url: https://www.mediawiki.org/
+            - img "Powered by MediaWiki" [ref=e1618]
+  - generic [ref=e1619]:
+    - list

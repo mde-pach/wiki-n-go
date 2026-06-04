@@ -148,7 +148,8 @@ only **one** level), reusing the same marker trick as `anon-<hash>`.
 - ✅ Foundation: Tailwind + theme tokens; **page manifest** (`/pages`).
 
 ## Next build order (design-independent first, styled when the design lands)
-1. **Reading core (P0):** heading anchors + **TOC**, **`[[wikilinks]]` + red links**, "last edited" line.
-2. **History (P0, cheap):** Worker `/history` + `/diff` → revision list + diff view.
-3. **Editor DX (P0):** live preview, edit-summary field, create-page polish.
-4. **Then:** section edit, references, infobox, search, categories, skins.
+1. ✅ **Reading core:** heading anchors, **`[[wikilinks]]` + red links**, **TOC** (active-section
+   highlight), **"last edited by `anon-<hash>`"** line.
+2. ✅ **History:** Worker `/history` + `/diff` → revision list (cur/prev diffs) + colored diff view.
+3. **Editor DX (P0, next):** live preview, edit-summary field, create-page polish.
+4. **Then:** section edit, references, infobox, search, categories, Talk threading, skins.

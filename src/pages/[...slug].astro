@@ -1,6 +1,8 @@
 ---
 import Discussion from "../components/Discussion.tsx";
 import Editor from "../components/Editor.tsx";
+import History from "../components/History.tsx";
+import Toc from "../components/Toc.tsx";
 import WikiPage from "../components/WikiPage.tsx";
 import { config } from "../config";
 import Base from "../layouts/Base.astro";
@@ -22,6 +24,8 @@ const pageSlug = slug ?? config.homeSlug;
 ---
 
 <Base title={pageSlug}>
+  <History slug={pageSlug} client:only="solid-js" />
+  <Toc client:only="solid-js" />
   <WikiPage slug={pageSlug} client:only="solid-js" />
   <Editor slug={pageSlug} client:only="solid-js" />
   <Discussion slug={pageSlug} client:only="solid-js" />
