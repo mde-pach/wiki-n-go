@@ -13,7 +13,7 @@ export default function Toc() {
 
   function build() {
     const heads = Array.from(
-      document.querySelectorAll<HTMLElement>(".wiki-content :is(h2, h3)[id]"),
+      document.querySelectorAll<HTMLElement>(".prose :is(h2, h3)[id]"),
     );
     setItems(
       heads.map((h) => ({

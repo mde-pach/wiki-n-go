@@ -1,0 +1,263 @@
+/* ============================================================================
+   wiki-n-go · DESIGN TOKENS
+   ----------------------------------------------------------------------------
+   One source of truth. Everything visual is expressed as a SEMANTIC ROLE here,
+   never as a raw hex in component code.
+
+     [data-skin]            chooses type / spacing / radius / measure + base hues
+     [data-skin][data-theme="dark"]   overrides colour roles for dark mode
+
+   Two skins ship by default:
+     editorial  — warm, roomy, serif-led reference work (default)
+     vector     — cool, dense, all-sans, utilitarian (proves a 1-config reskin)
+
+   The Tailwind theme.extend mapping that consumes these vars is shown verbatim
+   inside the in-app "Tokens" view.
+   ========================================================================== */
+
+:root {
+  /* --- Non-themed primitives (shared by every skin) --------------------- */
+  --ring-width: 2px;
+  --ring-offset: 2px;
+  --transition-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --z-header: 100;
+  --z-toc: 50;
+  --z-pop: 600;
+  --z-modal: 800;
+}
+
+/* ===========================================================================
+   SKIN · EDITORIAL  (default)
+   ========================================================================== */
+[data-skin="editorial"] {
+  /* Type */
+  --font-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-ui: "Libre Franklin", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display: "Source Serif 4", Georgia, serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace;
+
+  --text-xs: 0.75rem; /* 12 */
+  --text-sm: 0.8125rem; /* 13 */
+  --text-ui: 0.875rem; /* 14 chrome */
+  --text-base: 1.0625rem; /* 17 reading */
+  --text-md: 1.1875rem; /* 19 */
+  --text-lg: 1.4375rem; /* 23 */
+  --text-xl: 1.75rem; /* 28 */
+  --text-2xl: 2.25rem; /* 36 */
+  --text-3xl: 2.875rem; /* 46 title */
+
+  --leading-body: 1.72;
+  --leading-snug: 1.4;
+  --leading-tight: 1.15;
+  --tracking-display: -0.012em;
+  --tracking-eyebrow: 0.08em;
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Space + shape */
+  --measure: 43rem; /* reading column */
+  --space-card: 1.5rem;
+  --space-section: 2.75rem;
+  --gap-chrome: 0.5rem;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+  --border-w: 1px;
+  --header-h: 60px;
+  --header-h-compact: 50px;
+
+  /* Colour — LIGHT */
+  --color-canvas: #faf8f3;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f3efe6;
+  --color-surface-raised: #ffffff;
+  --color-ink: #221f1b;
+  --color-ink-muted: #5d564c;
+  --color-ink-subtle: #8b8275;
+  --color-border: #e7e0d3;
+  --color-border-strong: #d4cab8;
+  --color-accent: #1d4ed8;
+  --color-accent-hover: #1740b0;
+  --color-accent-subtle: #ebf0fe;
+  --color-accent-line: #c5d4fb;
+  --color-on-accent: #ffffff;
+  --color-redlink: #b3261e;
+  --color-redlink-hover: #8c1d17;
+  --color-visited: #6d3bce;
+  --color-focus: #1d4ed8;
+  --color-add-bg: #e4f3e7;
+  --color-add-strong: #b3e3bf;
+  --color-add-ink: #176231;
+  --color-remove-bg: #fbe7e6;
+  --color-remove-strong: #f2c2bf;
+  --color-remove-ink: #9a201b;
+  --color-selection: #d6e2fb;
+  --color-warn-bg: #fdf3df;
+  --color-warn-ink: #8a5a00;
+  --color-warn-line: #f0d9a3;
+
+  --shadow-sm: 0 1px 2px rgba(50, 40, 24, 0.06), 0 1px 1px rgba(50, 40, 24, 0.04);
+  --shadow-md: 0 4px 14px rgba(50, 40, 24, 0.08), 0 1px 3px rgba(50, 40, 24, 0.05);
+  --shadow-lg: 0 16px 44px rgba(40, 32, 18, 0.16), 0 4px 12px rgba(40, 32, 18, 0.08);
+  --shadow-pop: 0 10px 34px rgba(40, 32, 18, 0.16);
+}
+
+[data-skin="editorial"][data-theme="dark"] {
+  --color-canvas: #1a1714;
+  --color-surface: #242019;
+  --color-surface-sunken: #15120e;
+  --color-surface-raised: #2b261e;
+  --color-ink: #ede6da;
+  --color-ink-muted: #b3aa9b;
+  --color-ink-subtle: #847b6d;
+  --color-border: #39332a;
+  --color-border-strong: #4c4439;
+  --color-accent: #82a8ff;
+  --color-accent-hover: #a3c0ff;
+  --color-accent-subtle: #1e2843;
+  --color-accent-line: #2f3d61;
+  --color-on-accent: #11203f;
+  --color-redlink: #f0726a;
+  --color-redlink-hover: #f59891;
+  --color-visited: #b99bf0;
+  --color-focus: #82a8ff;
+  --color-add-bg: #15351f;
+  --color-add-strong: #2c6840;
+  --color-add-ink: #8ad6a1;
+  --color-remove-bg: #3a1917;
+  --color-remove-strong: #6e2f2a;
+  --color-remove-ink: #f0a39d;
+  --color-selection: #28395e;
+  --color-warn-bg: #34280f;
+  --color-warn-ink: #e6bd6a;
+  --color-warn-line: #564219;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 44px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-pop: 0 10px 34px rgba(0, 0, 0, 0.55);
+}
+
+/* ===========================================================================
+   SKIN · VECTOR  (dense / utilitarian — the token-swap proof)
+   ========================================================================== */
+[data-skin="vector"] {
+  --font-body: "Libre Franklin", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-ui: "Libre Franklin", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display: "Libre Franklin", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace;
+
+  --text-xs: 0.6875rem; /* 11 */
+  --text-sm: 0.75rem; /* 12 */
+  --text-ui: 0.8125rem; /* 13 */
+  --text-base: 0.9375rem; /* 15 */
+  --text-md: 1.0625rem; /* 17 */
+  --text-lg: 1.25rem; /* 20 */
+  --text-xl: 1.5rem; /* 24 */
+  --text-2xl: 1.875rem; /* 30 */
+  --text-3xl: 2.125rem; /* 34 */
+
+  --leading-body: 1.55;
+  --leading-snug: 1.35;
+  --leading-tight: 1.1;
+  --tracking-display: -0.005em;
+  --tracking-eyebrow: 0.06em;
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --measure: 46rem;
+  --space-card: 1rem;
+  --space-section: 1.85rem;
+  --gap-chrome: 0.375rem;
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 3px;
+  --radius-pill: 3px;
+  --border-w: 1px;
+  --header-h: 54px;
+  --header-h-compact: 46px;
+
+  /* Colour — LIGHT (cooler greys, classic wiki blue) */
+  --color-canvas: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #eef0f3;
+  --color-surface-raised: #ffffff;
+  --color-ink: #1b1d20;
+  --color-ink-muted: #54595f;
+  --color-ink-subtle: #828990;
+  --color-border: #e1e4e8;
+  --color-border-strong: #c4cacf;
+  --color-accent: #2a55d4;
+  --color-accent-hover: #1d43b0;
+  --color-accent-subtle: #e9eefb;
+  --color-accent-line: #c2d0f6;
+  --color-on-accent: #ffffff;
+  --color-redlink: #c23628;
+  --color-redlink-hover: #9c2a20;
+  --color-visited: #6a30c0;
+  --color-focus: #2a55d4;
+  --color-add-bg: #d9f0df;
+  --color-add-strong: #a7dcb4;
+  --color-add-ink: #14622d;
+  --color-remove-bg: #fbdedc;
+  --color-remove-strong: #f0b6b1;
+  --color-remove-ink: #97241c;
+  --color-selection: #cfdcf8;
+  --color-warn-bg: #fcf1d6;
+  --color-warn-ink: #7a5200;
+  --color-warn-line: #ecd596;
+
+  --shadow-sm: 0 1px 0 rgba(20, 25, 30, 0.05);
+  --shadow-md: 0 2px 6px rgba(20, 25, 30, 0.1);
+  --shadow-lg: 0 8px 24px rgba(20, 25, 30, 0.16);
+  --shadow-pop: 0 6px 20px rgba(20, 25, 30, 0.16);
+}
+
+[data-skin="vector"][data-theme="dark"] {
+  --color-canvas: #0f1318;
+  --color-surface: #181c22;
+  --color-surface-sunken: #0a0d11;
+  --color-surface-raised: #1f242b;
+  --color-ink: #e6e9ec;
+  --color-ink-muted: #a4abb3;
+  --color-ink-subtle: #767d85;
+  --color-border: #2a2f37;
+  --color-border-strong: #3a414a;
+  --color-accent: #6f9bff;
+  --color-accent-hover: #93b4ff;
+  --color-accent-subtle: #18213a;
+  --color-accent-line: #2b3654;
+  --color-on-accent: #0d1730;
+  --color-redlink: #f07065;
+  --color-redlink-hover: #f4948b;
+  --color-visited: #ad8df0;
+  --color-focus: #6f9bff;
+  --color-add-bg: #103021;
+  --color-add-strong: #245c3c;
+  --color-add-ink: #7fd49b;
+  --color-remove-bg: #361715;
+  --color-remove-strong: #642b26;
+  --color-remove-ink: #f0a39c;
+  --color-selection: #213253;
+  --color-warn-bg: #2f2510;
+  --color-warn-ink: #e3ba66;
+  --color-warn-line: #4d3d18;
+
+  --shadow-sm: 0 1px 0 rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+  --shadow-pop: 0 6px 20px rgba(0, 0, 0, 0.6);
+}
+
+/* Roles that a couple of components read without caring about skin */
+:root {
+  --color-code-bg: var(--color-surface-sunken);
+}

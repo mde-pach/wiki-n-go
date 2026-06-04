@@ -18,7 +18,7 @@ export default function WikiPage(props: { slug?: string }) {
   });
 
   return (
-    <article class="wiki-content">
+    <article class="prose">
       <ErrorBoundary
         fallback={(err) => (
           <div class="wiki-status">

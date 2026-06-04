@@ -10,7 +10,7 @@ const md = new MarkdownIt({ html: false, linkify: true, typographer: true })
     permalink: anchor.permalink.ariaHidden({
       symbol: "#",
       placement: "after",
-      class: "header-anchor",
+      class: "anchor-link",
     }),
   })
   .use(wikilink);

@@ -1,0 +1,316 @@
+@import "tailwindcss";
+@import "./tokens.css";
+@import "./base.css";
+@plugin "@tailwindcss/typography";
+
+/* Transition shim: old token names → design tokens, until every component is
+   ported to the design's own classes. New code should use --color-* directly. */
+:root {
+  --text: var(--color-ink);
+  --bg: var(--color-canvas);
+  --surface: var(--color-surface-sunken);
+  --muted: var(--color-ink-muted);
+  --accent: var(--color-accent);
+  --border: var(--color-border);
+  --redlink: var(--color-redlink);
+  --ok: var(--color-add-ink);
+  --err: var(--color-remove-ink);
+  --reading-width: var(--measure);
+  --font-sans: var(--font-ui);
+}
+
+/* ── App chrome (placeholder until chrome.jsx is ported) ───────────────────── */
+.site-header,
+.site-main,
+.site-footer {
+  max-width: var(--measure);
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+.site-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-block: 1rem;
+  border-bottom: 1px solid var(--color-border);
+  font-family: var(--font-ui);
+}
+.site-title {
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--color-ink);
+}
+.site-main {
+  padding-block: 2rem;
+  min-height: 60vh;
+}
+.site-footer {
+  padding-block: 1.5rem;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-ink-muted);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+}
+.theme-controls {
+  margin-left: auto;
+  display: flex;
+  gap: 0.4rem;
+}
+.theme-controls button {
+  font: inherit;
+  font-size: var(--text-sm);
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.wiki-status {
+  color: var(--color-ink-muted);
+  font-style: italic;
+  font-family: var(--font-ui);
+}
+
+/* ── Wikilinks + heading anchors (on .prose from base.css) ─────────────────── */
+.wikilink {
+  color: var(--color-accent);
+}
+.wikilink.red {
+  color: var(--color-redlink);
+}
+.prose :is(h2, h3, h4) .anchor-link {
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+.prose :is(h2, h3, h4):hover .anchor-link,
+.prose :is(h2, h3, h4):focus-within .anchor-link {
+  opacity: 1;
+}
+
+/* ── Buttons used by widgets ──────────────────────────────────────────────── */
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-family: var(--font-ui);
+  color: var(--color-accent);
+  cursor: pointer;
+}
+.link-btn:disabled {
+  color: var(--color-ink-subtle);
+  cursor: default;
+}
+
+/* ── TOC ──────────────────────────────────────────────────────────────────── */
+.toc {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  background: var(--color-surface-sunken);
+}
+.toc-title {
+  margin: 0 0 0.4rem;
+  font-weight: 700;
+}
+.toc ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.toc li a {
+  color: var(--color-ink);
+  text-decoration: none;
+}
+.toc li.active a {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+.toc-l3 {
+  padding-left: 1rem;
+}
+
+/* ── Page meta + history + diff ───────────────────────────────────────────── */
+.page-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: baseline;
+  color: var(--color-ink-muted);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  margin-bottom: 1rem;
+}
+.meta-author {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+.history {
+  margin: 0 0 1rem;
+  padding-left: 0;
+  list-style: none;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+}
+.rev {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.rev-author {
+  font-weight: 600;
+}
+.rev-msg {
+  color: var(--color-ink-muted);
+}
+.diff {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+.diff-head {
+  padding: 0.4rem 0.75rem;
+  background: var(--color-surface-sunken);
+  border-bottom: 1px solid var(--color-border);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+.diff-body {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  overflow-x: auto;
+}
+.diff-line {
+  padding: 0 0.75rem;
+  white-space: pre-wrap;
+}
+.diff-line.add {
+  background: var(--color-add-bg);
+  color: var(--color-add-ink);
+}
+.diff-line.del {
+  background: var(--color-remove-bg);
+  color: var(--color-remove-ink);
+}
+.diff-line.hunk {
+  color: var(--color-ink-muted);
+}
+
+/* ── Editor ───────────────────────────────────────────────────────────────── */
+.editor {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border);
+  font-family: var(--font-ui);
+}
+.editor button {
+  font: inherit;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  cursor: pointer;
+}
+.editor button.ghost {
+  background: transparent;
+  color: var(--color-ink);
+}
+.editor button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.editor-area {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+.editor-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+.editor-widget {
+  margin-top: 0.75rem;
+}
+.editor-ok {
+  color: var(--color-add-ink);
+}
+.editor-err {
+  color: var(--color-remove-ink);
+}
+
+/* ── Discussion ───────────────────────────────────────────────────────────── */
+.discussion {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border);
+  font-family: var(--font-ui);
+}
+.discussion-title {
+  font-size: var(--text-lg);
+  font-family: var(--font-display);
+}
+.comment-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.25rem;
+}
+.comment {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.comment-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+.comment-author {
+  font-weight: 600;
+}
+.comment-author.anon {
+  font-weight: 500;
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+.comment-date {
+  color: var(--color-ink-muted);
+  font-size: 0.85em;
+}
+.comment-body :first-child {
+  margin-top: 0;
+}
+.comment-body :last-child {
+  margin-bottom: 0;
+}
+.comment-input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
