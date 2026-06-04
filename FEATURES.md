@@ -72,13 +72,21 @@ The core, in render order observed on the page.
 | Mobile view toggle | responsive (no separate view) | — | — |
 
 ## F. History & revisions (git = our superpower)
+Observed on `?action=history`: each row has cur/prev diff links, two compare
+radios, timestamp→revision, author + talk + contribs, byte size + delta, summary,
+and undo/thank/tag actions; Newer/Older pagination.
+
 | Wikipedia | Ours | St | Pri |
 |---|---|---|---|
-| Revision list (date · author · summary) | `git log` for the file (Worker `/history`) (★) | ⬜ | P0 |
-| Pick-two diff (add/remove coloring) | GitHub compare/commit → rendered diff (★) | ⬜ | P0 |
+| Revision list: date · author · **summary** · **size + byte delta** | `git log` w/ stats (Worker `/history`) (★) | ⬜ | P0 |
+| Per-row **cur / prev** diff links | diff vs latest / previous (★) | ⬜ | P0 |
+| **Compare any two** (radio select) | pick-two → `/diff?from&to` (★) | ⬜ | P0 |
+| Diff render (add/remove coloring) | GitHub compare/commit patch → render (★) | ⬜ | P0 |
 | Permalink to a revision | jsDelivr `@<sha>` (★) | ⬜ | P1 |
-| Revert a revision | resubmit prior content as an anon edit (⚒) | ⬜ | P1 |
+| **Undo / revert** a revision | resubmit prior content as an anon edit→PR (⚒) | ⬜ | P1 |
+| Pagination (Newer/Older) | paginate commits (★) | ⬜ | P2 |
 | Per-line blame | GraphQL `blame` (★) | ⬜ | P2 |
+| "Thank" an edit | n/a (maybe a 👍 reaction) | ⬜ | — |
 
 ## G. Editing flow
 | Wikipedia | Ours | St | Pri |
@@ -100,6 +108,29 @@ The core, in render order observed on the page.
 | Width control (Standard/Wide) | ⬜ | P1 |
 | Swappable skins (token presets) | ⬜ | P1 |
 | Config-/frontmatter-driven theming | ⬜ | P1 |
+
+## I. Talk page (Discussion namespace) — deeper than flat comments
+From `Talk:` teardown: talk pages are **threaded, topic-organized, and signed**.
+Ours is currently flat — this is the gap to close.
+
+| Wikipedia | Ours | St | Pri |
+|---|---|---|---|
+| Anonymous comments | via Worker → GitHub Discussions | ✅ | P0 |
+| **Topic threads** (one `==section==` per topic) | top-level comments = topics + "New topic" (⚒) | ⬜ | P1 |
+| **Nested replies** (indentation) | GitHub Discussions reply via `replyToId` (one level) (⚒) | ⬜ | P1 |
+| Per-comment **"reply"** affordance | reply box under each comment (⚒) | ⬜ | P1 |
+| **Signature**: author · timestamp · **permalink to comment** | have author+date; add the comment permalink (⚒) | 🟡 | P1 |
+| Talk **header / guidelines** banner | config/frontmatter banner (⚒) | ⬜ | P2 |
+| Archives of old threads | n/a v1 (Discussions retain all) | ⬜ | P2 |
+| Article **assessment / WikiProject** banners | Wikipedia-specific | ⊘ | — |
+| "Find sources" helper links | Wikipedia-specific | ⊘ | — |
+
+## J. Cross-page chrome (seen on every namespace)
+| Wikipedia | Ours | St | Pri |
+|---|---|---|---|
+| Same header/footer/TOC/appearance on Article, Talk, History | one shared layout across all page types | 🟡 | P0 |
+| Namespace tabs adapt (Article↔Talk, Read/Edit/History) | tab bar reflects current view | ⬜ | P0 |
+| User links: profile · **talk** · **contributions** | for GitHub users: profile/commits; for anon: filter-by-`anon-<hash>` | ⬜ | P2 |
 
 ---
 
