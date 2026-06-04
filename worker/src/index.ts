@@ -26,7 +26,7 @@ class HttpError extends Error {
 }
 
 const MAX_CONTENT_BYTES = 100_000;
-const SLUG_RE = /^[a-z0-9][a-z0-9/-]*$/;
+const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/;
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -60,6 +60,7 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
 
   const ip = request.headers.get("CF-Connecting-IP") ?? "0.0.0.0";
   const author = `anon-${await ipHash(env.HASH_SECRET, ip)}`;
+  if (await isBanned(env, author)) throw new HttpError(403, "This source is blocked.");
 
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
   const path = `${env.CONTENT_DIR}/${slug}.md`;
@@ -133,6 +134,20 @@ async function currentFileSha(
   if (res.status === 404) return undefined;
   if (!res.ok) throw new HttpError(502, `GitHub ${res.status}`);
   return ((await res.json()) as { sha: string }).sha;
+}
+
+// Ban list lives at the repo root, outside the anon-writable content/ dir.
+async function isBanned(env: Env, author: string): Promise<boolean> {
+  const res = await fetch(
+    `https://raw.githubusercontent.com/${env.REPO_OWNER}/${env.REPO_NAME}/${env.BRANCH}/bans.json`,
+  );
+  if (!res.ok) return false;
+  try {
+    const list = (await res.json()) as unknown;
+    return Array.isArray(list) && list.includes(author);
+  } catch {
+    return false;
+  }
 }
 
 async function ipHash(secret: string, ip: string): Promise<string> {

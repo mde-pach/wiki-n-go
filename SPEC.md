@@ -230,9 +230,10 @@ trust gradient):
 - [ ] ⬜ PR authored by the signed-in user's identity.
 
 ### M3 — Moderation & abuse (essential)
-- [ ] ⬜ `bans.json` in repo + Worker enforcement.
-- [ ] ⬜ Rate-limiting (mechanism TBD — see §10).
-- [ ] ⬜ Trust-graded auto-merge policy (anon always reviewed).
+- [x] ✅ `bans.json` at repo root (outside anon-writable `content/`) + Worker 403 on banned `anon-<hash>`.
+- [x] ✅ Anon edits never auto-merge — every edit is a PR awaiting manual review (default).
+- [x] ✅ Slug hardened: no leading/trailing/double slash, no traversal (Worker `SLUG_RE`).
+- [ ] ⬜ Rate-limiting (mechanism TBD — §10; couples to the Cloudflare setup).
 
 ### M4 — Discussion, deploy & polish
 - [ ] ⬜ giscus discussion layer.
