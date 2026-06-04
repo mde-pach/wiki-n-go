@@ -5,4 +5,5 @@ export const config = {
   branch: "main",
   contentDir: "content",
   homeSlug: "index",
+  workerUrl: "", // deployed Worker URL enables in-site editing (M1)
 };

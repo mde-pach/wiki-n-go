@@ -1,14 +1,6 @@
 import { createResource, ErrorBoundary, Suspense } from "solid-js";
 import { fetchMarkdown, PageNotFoundError, renderMarkdown } from "../lib/content";
-
-// Used by the 404 fallback, where no slug prop is passed.
-function slugFromLocation(): string {
-  const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-  let path = window.location.pathname;
-  if (base && path.startsWith(base)) path = path.slice(base.length);
-  path = path.replace(/^\/+/, "").replace(/\/+$/, "");
-  return path || "index";
-}
+import { slugFromLocation } from "../lib/slug";
 
 export default function WikiPage(props: { slug?: string }) {
   const slug = () => props.slug ?? slugFromLocation();

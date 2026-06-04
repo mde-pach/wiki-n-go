@@ -211,16 +211,19 @@ trust gradient):
 
 > Status legend: ⬜ todo · 🟡 in progress · ✅ done
 
-### M0 — Zero-infra reader (GitHub Pages)
-- [ ] 🟡 Astro + Solid shell renders a Markdown page from jsDelivr at the latest SHA.
-- [ ] 🟡 Routing for content pages; graceful "page not found" for new slugs.
-- [ ] 🟡 GitHub Pages deploy workflow.
-- [ ] ⬜ Verify: edit a content file + commit → page updates with **no rebuild**.
+### M0 — Zero-infra reader (GitHub Pages) ✅
+- [x] ✅ Astro + Solid shell renders a Markdown page from jsDelivr at the latest SHA.
+- [x] ✅ Routing for content pages; graceful "page not found" for new slugs.
+- [x] ✅ GitHub Pages deploy workflow (skips rebuild on content-only changes).
+- [x] ✅ Verified live: content edit → page updates with **no rebuild** (no workflow run).
+- Live: https://mde-pach.github.io/wiki-n-go/ · repo: `mde-pach/wiki-n-go`
 
 ### M1 — Wikipedia-friction anonymous editing (core Worker)
-- [ ] ⬜ In-site Markdown editor (Solid island).
-- [ ] ⬜ Cloudflare Worker: holds bot token, derives `ip_hash`, opens PR as `anon-<hash>`.
-- [ ] ⬜ Editor → Worker → PR loop working end to end.
+- [x] ✅ In-site Markdown editor (Solid island) — `src/components/Editor.tsx`; builds clean.
+- [x] ✅ Cloudflare Worker: bot token, `ip_hash`, PR as `anon-<hash>` — `worker/`; typechecks clean.
+- [ ] ⬜ Editor → Worker → PR loop verified end to end (needs the Worker deployed).
+- [ ] ⬜ Go-live (user): `cd worker && bun install`, set `GITHUB_TOKEN` + `HASH_SECRET`,
+      `bun run deploy`, then put the URL in `src/config.ts` → `workerUrl`.
 
 ### M2 — Optional GitHub-login attribution
 - [ ] ⬜ "Sign in with GitHub" → Worker OAuth exchange.

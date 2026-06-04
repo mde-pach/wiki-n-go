@@ -1,4 +1,5 @@
 ---
+import Editor from "../components/Editor.tsx";
 import WikiPage from "../components/WikiPage.tsx";
 import Base from "../layouts/Base.astro";
 
@@ -7,4 +8,5 @@ import Base from "../layouts/Base.astro";
 
 <Base title="Wiki">
   <WikiPage client:only="solid-js" />
+  <Editor client:only="solid-js" />
 </Base>

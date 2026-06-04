@@ -1,0 +1,11 @@
+name = "wiki-n-go"
+main = "src/index.ts"
+compatibility_date = "2026-06-01"
+
+# Secrets (set with `wrangler secret put`): GITHUB_TOKEN, HASH_SECRET
+[vars]
+REPO_OWNER = "mde-pach"
+REPO_NAME = "wiki-n-go"
+BRANCH = "main"
+CONTENT_DIR = "content"
+ALLOWED_ORIGIN = "https://mde-pach.github.io"
