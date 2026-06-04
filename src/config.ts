@@ -5,5 +5,5 @@ export const config = {
   branch: "main",
   contentDir: "content",
   homeSlug: "index",
-  workerUrl: "", // deployed Worker URL enables in-site editing (M1)
+  workerUrl: "https://wiki-n-go.maxime-depachtere-80f.workers.dev",
 };

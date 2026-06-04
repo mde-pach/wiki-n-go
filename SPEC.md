@@ -221,9 +221,9 @@ trust gradient):
 ### M1 — Wikipedia-friction anonymous editing (core Worker)
 - [x] ✅ In-site Markdown editor (Solid island) — `src/components/Editor.tsx`; builds clean.
 - [x] ✅ Cloudflare Worker: bot token, `ip_hash`, PR as `anon-<hash>` — `worker/`; typechecks clean.
-- [ ] ⬜ Editor → Worker → PR loop verified end to end (needs the Worker deployed).
-- [ ] ⬜ Go-live (user): `cd worker && bun install`, set `GITHUB_TOKEN` + `HASH_SECRET`,
-      `bun run deploy`, then put the URL in `src/config.ts` → `workerUrl`.
+- [x] ✅ Editor → Worker → PR loop verified end to end (PR authored as `anon-<hash>`).
+- [x] ✅ Worker live: `https://wiki-n-go.maxime-depachtere-80f.workers.dev` (secrets + RATE_LIMIT KV bound).
+      Deploy via `worker/deploy.sh` reading gitignored `worker/.deploy.env`.
 
 ### M2 — Optional GitHub-login attribution
 - [ ] ⬜ "Sign in with GitHub" → Worker OAuth exchange.
@@ -233,7 +233,7 @@ trust gradient):
 - [x] ✅ `bans.json` at repo root (outside anon-writable `content/`) + Worker 403 on banned `anon-<hash>`.
 - [x] ✅ Anon edits never auto-merge — every edit is a PR awaiting manual review (default).
 - [x] ✅ Slug hardened: no leading/trailing/double slash, no traversal (Worker `SLUG_RE`).
-- [ ] ⬜ Rate-limiting (mechanism TBD — §10; couples to the Cloudflare setup).
+- [x] ✅ Rate-limiting live: KV fixed-window, 5 edits / 10 min per `anon-<hash>`.
 
 ### M4 — Discussion, deploy & polish
 - [ ] ⬜ giscus discussion layer.
@@ -244,8 +244,7 @@ trust gradient):
 
 ## 10. Open Decisions
 
-- [ ] **Rate-limiting mechanism:** Worker KV/rate-limit binding vs. derive-from-git
-      vs. rely on PR queue only.
+- [x] ~~Rate-limiting mechanism~~ → **KV fixed-window** (5 / 10 min per source).
 - [ ] **`ip_hash` input:** full IP vs. coarsened (`/24` / geo) for extra safety.
 - [ ] **Auto-merge policy:** which (if any) signed-in contributors bypass review.
 - [ ] **SHA resolution:** GitHub API (`vnd.github.sha`) vs. jsDelivr data API vs.

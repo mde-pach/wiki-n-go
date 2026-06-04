@@ -10,8 +10,6 @@ BRANCH = "main"
 CONTENT_DIR = "content"
 ALLOWED_ORIGIN = "https://mde-pach.github.io"
 
-# Rate limiting (optional): create a namespace, then uncomment with its id.
-#   wrangler kv namespace create RATE_LIMIT
-# [[kv_namespaces]]
-# binding = "RATE_LIMIT"
-# id = "PASTE_NAMESPACE_ID"
+[[kv_namespaces]]
+binding = "RATE_LIMIT"
+id = "ba108356468b483286ff7fecf452cbf5"
