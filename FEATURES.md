@@ -1,97 +1,115 @@
-# FEATURES — Page experience (Wikipedia-style)
+# FEATURES — Wikipedia page teardown → dev tracker
 
-Target: Wikipedia/Wikimedia-grade page UX on our stack (git-backed, no account,
-no rebuild). This doc enumerates per-page features + editor DX, mapped to our
-architecture, with priority tiers. Theming is a parallel workstream (§6).
+Derived from a live teardown of a real article (en.wikipedia.org/wiki/Espresso,
+Vector 2022), region by region. Each row: what Wikipedia actually renders → our
+equivalent on the git-backed stack → status + priority.
 
-Legend — effort: **★ cheap** (mostly free from git/GitHub) · **⚒ build** ·
-**⊘ deferred** (needs the GitHub-account path or is out of v1 scope).
-Priority: **P0** core wiki feel · **P1** important · **P2** nice-to-have.
+Status: ✅ done · 🟡 partial · ⬜ todo. Priority: **P0** core feel · **P1** important · **P2** later.
+Effort: **★** cheap (git/GitHub gives it) · **⚒** build.
 
 ---
 
-## 1. Reading — page anatomy
+## A. Global chrome (`banner`)
+The persistent top bar: menu, wordmark, search, personal tools.
 
-| Feature | Notes / mapping | Effort | Pri |
+| Wikipedia | Ours | St | Pri |
 |---|---|---|---|
-| Headings & sections with `#` anchors | markdown-it auto-slug headings; hover anchor links | ⚒ | P0 |
-| Auto table of contents (sticky) | built from heading tree after render; sticky on desktop | ⚒ | P0 |
-| Lead/summary section | first block before first heading (MoS lead convention) | ★ | P1 |
-| Internal wikilinks `[[Page]]` + **red links** | rewrite `[[..]]`→link; style missing pages red (needs a page index, §5) | ⚒ | P0 |
-| Footnotes / references `[^1]` + reference list | markdown-it footnote plugin | ⚒ | P1 |
-| Infobox (fact panel, top-right) | from Markdown frontmatter; floats on desktop, stacks on mobile | ⚒ | P1 |
-| Images / media | standard Markdown; lazy-load; served via jsDelivr | ★ | P1 |
-| Categories / tags + category pages | frontmatter `tags`; a `/category/<x>` listing page | ⚒ | P1 |
-| "Last edited by `<author>` on `<date>`" | from git history of the file (GitHub API) | ★ | P0 |
-| Breadcrumbs for nested slugs (`a/b/c`) | derive from the slug path | ★ | P1 |
-| Responsive / mobile layout | Tailwind; mobile infobox placement | ⚒ | P0 |
-| Read/print mode, content width cap | Vector-2022-style limited width | ⚒ | P2 |
+| Wordmark / home link | site title → home | 🟡 | P0 |
+| **Search box** (full-text) | search over the manifest/content (⚒) | ⬜ | P1 |
+| Main-menu button (nav drawer) | configurable sidebar/nav (⚒) | ⬜ | P1 |
+| Personal tools (login/donate/account) | optional GitHub sign-in only; no login wall | ⬜ | P2 |
+| "Jump to content" skip link | a11y skip link | ⬜ | P1 |
 
-## 2. Page actions (the Wikipedia tab bar)
+## B. Page header (title + action bars)
+Sits above the article: title, the two tab rows, page tools, appearance, languages.
 
-| Feature | Notes / mapping | Effort | Pri |
+| Wikipedia | Ours | St | Pri |
 |---|---|---|---|
-| Tabs: **Read · Edit · History · Talk** | top-of-page tab bar | ⚒ | P0 |
-| Per-section `[edit]` links | split Markdown by heading; edit one section | ⚒ | P1 |
-| Permalink to a revision | jsDelivr `@<sha>` URL | ★ | P1 |
-| "What links here" (backlinks) | derive from the wikilink index (§5) | ⚒ | P2 |
-| Page information / metadata | size, contributors, created/updated (git) | ★ | P2 |
-| Watch / notifications | needs accounts | ⊘ | — |
+| `h1` page title | page title from H1/frontmatter | 🟡 | P0 |
+| **Namespaces tabs**: Article · Talk | tabs: Read · **Talk** (our discussion) | 🟡 | P0 |
+| **Views tabs**: Read · Edit · View history | tabs: Read · **Edit** · **History** | 🟡 | P0 |
+| **Page tools**: what-links-here, permanent link, page info, cite | permalink (jsDelivr@sha ★), backlinks (manifest ⚒), page info ★, cite ⚒ | ⬜ | P1 |
+| **Appearance**: text size · width · color theme | our **theme tokens** (light/dark/width) — direct analog | 🟡 | P1 |
+| Languages (interwiki) | n/a v1 | ⬜ | — |
+| "From … / tagline" | optional subtitle | ⬜ | P2 |
 
-## 3. History & revisions — git is our superpower
+## C. Table of Contents (`navigation "Contents"`)
+A sticky, collapsible, nested sidebar auto-built from headings.
 
-| Feature | Notes / mapping | Effort | Pri |
+| Wikipedia | Ours | St | Pri |
 |---|---|---|---|
-| Revision list (date · author · summary) | `git log` for the file via GitHub API | ★ | P0 |
-| Diff between any two revisions | GitHub compare/commit API → rendered diff | ★ | P0 |
-| Permalink to a past revision | jsDelivr `@<sha>` | ★ | P1 |
-| Per-line attribution (blame) | GitHub GraphQL `blame` | ★ | P2 |
-| Revert a revision | submit the prior content as a new anon edit (PR) | ⚒ | P1 |
+| Auto TOC from heading tree | build TOC from rendered headings (⚒) | ⬜ | P0 |
+| Sticky + active-section highlight on scroll | IntersectionObserver (⚒) | ⬜ | P1 |
+| Collapse / hide; mobile drawer | responsive behavior (⚒) | ⬜ | P1 |
 
-## 4. Editing DX
+## D. Article body (`main` content)
+The core, in render order observed on the page.
 
-| Feature | Notes / mapping | Effort | Pri |
+| Wikipedia | Ours | St | Pri |
 |---|---|---|---|
-| Live preview (rendered Markdown) | reuse the page renderer beside the textarea | ⚒ | P0 |
-| Edit summary field | already a Worker param; surface in UI | ★ | P0 |
-| Section editing | edit a single section, splice back | ⚒ | P1 |
-| Markdown toolbar (bold/link/heading/list) | textarea helpers | ⚒ | P1 |
-| Create-new-page flow | red link → editor with empty draft (Worker already supports new files) | ★ | P0 |
-| Show diff before submitting | diff draft vs current | ⚒ | P1 |
-| Edit-conflict handling | base-SHA check in the Worker; warn on stale base | ⚒ | P1 |
-| Syntax help / cheatsheet | static help panel | ★ | P2 |
+| **Hatnotes** ("This article is about… For…") | frontmatter/markdown admonition (⚒) | ⬜ | P2 |
+| **Maintenance banners** ("needs additional citations") | status banners from frontmatter (⚒) | ⬜ | P2 |
+| **Lead section** (bold title term, summary) | first block before H1-sub; bold term | ⬜ | P1 |
+| **Infobox** (fact panel, floats top-right) | frontmatter-driven; float desktop / stack mobile (⚒) | ⬜ | P1 |
+| **Section headings** + `#` anchors | slugged headings, hover anchor (⚒) | ⬜ | P0 |
+| **Per-section `[edit]`** links | split markdown by heading, edit one (⚒) | ⬜ | P1 |
+| **Figures** (images + captions) | markdown images + `<figure>` caption (⚒) | ⬜ | P1 |
+| **Blockquotes / tables** | markdown native | ✅ | P0 |
+| **References / footnotes** `[1]` + reflist + backlinks | markdown-it footnotes (⚒) | ⬜ | P1 |
+| Reference **tooltips** on hover | popover on citation marker (⚒) | ⬜ | P2 |
+| **Internal links `[[Page]]`** + **red links** | rewrite via manifest; red = missing (⚒) | ⬜ | P0 |
+| **Hover page previews** | popup card on internal link (⚒) | ⬜ | P2 |
+| **See also / External links** sections | markdown convention | ✅ | P1 |
+| **Navboxes** (bottom template grids) | transclusion/includes (⚒) | ⬜ | P2 |
+| **Categories** footer | frontmatter `tags` → `/category/<x>` (⚒) | ⬜ | P1 |
+| Authority/Wikidata strip | n/a → **"view source on GitHub"** provenance | ⬜ | P2 |
 
-## 5. Navigation & discovery
-
-| Feature | Notes / mapping | Effort | Pri |
+## E. Footer (`contentinfo`)
+| Wikipedia | Ours | St | Pri |
 |---|---|---|---|
-| Page index / manifest | JSON list of pages (powers wikilinks, red links, search, backlinks) | ⚒ | P0 |
-| Full-text search | over the manifest/content; client index for small wikis, or Worker-proxied GitHub code search at scale | ⚒ | P1 |
-| Sidebar / global nav | configurable nav tree | ⚒ | P1 |
-| Recent changes (site-wide) | repo commit feed (GitHub API) | ★ | P1 |
-| Random page | from the manifest | ★ | P2 |
-| Category browse | listing pages by tag | ⚒ | P2 |
+| "**Last edited** on `<date>`" | "last edited by `anon-<hash>` · `<date>`" from git (★) | ⬜ | P0 |
+| License / terms / trademark | configurable license + provenance line | ⬜ | P1 |
+| Mobile view toggle | responsive (no separate view) | — | — |
 
-## 6. Theming (parallel workstream)
+## F. History & revisions (git = our superpower)
+| Wikipedia | Ours | St | Pri |
+|---|---|---|---|
+| Revision list (date · author · summary) | `git log` for the file (Worker `/history`) (★) | ⬜ | P0 |
+| Pick-two diff (add/remove coloring) | GitHub compare/commit → rendered diff (★) | ⬜ | P0 |
+| Permalink to a revision | jsDelivr `@<sha>` (★) | ⬜ | P1 |
+| Revert a revision | resubmit prior content as an anon edit (⚒) | ⬜ | P1 |
+| Per-line blame | GraphQL `blame` (★) | ⬜ | P2 |
 
-| Feature | Notes | Pri |
+## G. Editing flow
+| Wikipedia | Ours | St | Pri |
+|---|---|---|---|
+| In-page editor | textarea editor → PR | ✅ | P0 |
+| Edit summary | Worker param; surface field (★) | 🟡 | P0 |
+| **Live preview** | reuse renderer beside textarea (⚒) | ⬜ | P0 |
+| Section editing | edit one section (⚒) | ⬜ | P1 |
+| Create-new-page (red link → create) | Worker already creates new files (★) | 🟡 | P0 |
+| Show diff before submit | diff draft vs current (⚒) | ⬜ | P1 |
+| Edit-conflict detection | base-SHA check in Worker (⚒) | ⬜ | P1 |
+| Anti-bot (already have) | Turnstile | ✅ | — |
+
+## H. Theming / appearance (our "Appearance" menu)
+| Feature | St | Pri |
 |---|---|---|
-| Tailwind integration | adopt Tailwind for all UI | P0 |
-| Centralized theme tokens | colors, type, spacing, radii as CSS vars → Tailwind theme | P0 |
-| Config-driven theming | non-devs edit one config (or frontmatter) to restyle | P1 |
-| Swappable skins/templates | layout presets (e.g. "Vector-like", "minimal", "docs") | P1 |
-| Dark mode | token-based | P1 |
+| Tailwind + centralized tokens (light/dark) | ✅ | P0 |
+| Theme toggle UI (`data-theme`) | ⬜ | P0 |
+| Width control (Standard/Wide) | ⬜ | P1 |
+| Swappable skins (token presets) | ⬜ | P1 |
+| Config-/frontmatter-driven theming | ⬜ | P1 |
 
 ---
 
-## Suggested build order
+## Already shipped (data + plumbing)
+- ✅ Read path (no-rebuild render), anonymous edit→PR, anonymous Talk/discussion.
+- ✅ Moderation: Turnstile, rate-limit, bans, slug hardening.
+- ✅ Foundation: Tailwind + theme tokens; **page manifest** (`/pages`).
 
-1. **Foundation ✅:** Tailwind v4 + centralized theme tokens (light/dark, `src/styles/theme.css`),
-   page **manifest** (Worker `/pages` + `src/lib/manifest.ts`).
-2. **Reading core:** headings/anchors, **TOC**, wikilinks + red links, "last edited"
-   metadata, tab bar (§1–2 P0).
-3. **History (cheap wins):** revision list + diff view + permalinks (§3 P0–P1).
-4. **Editing DX:** live preview, edit summary, create-new-page, then section edit
-   + pre-submit diff (§4).
-5. **Discovery:** search, recent changes, sidebar (§5).
-6. **Polish:** infobox, footnotes, categories, blame, skins, dark mode.
+## Next build order (design-independent first, styled when the design lands)
+1. **Reading core (P0):** heading anchors + **TOC**, **`[[wikilinks]]` + red links**, "last edited" line.
+2. **History (P0, cheap):** Worker `/history` + `/diff` → revision list + diff view.
+3. **Editor DX (P0):** live preview, edit-summary field, create-page polish.
+4. **Then:** section edit, references, infobox, search, categories, skins.
