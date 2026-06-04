@@ -9,6 +9,8 @@ REPO_NAME = "wiki-n-go"
 BRANCH = "main"
 CONTENT_DIR = "content"
 ALLOWED_ORIGIN = "https://mde-pach.github.io"
+REPO_ID = "R_kgDOSxZFTg"
+DISCUSSION_CATEGORY_ID = "DIC_kwDOSxZFTs4C-huV"
 
 [[kv_namespaces]]
 binding = "RATE_LIMIT"

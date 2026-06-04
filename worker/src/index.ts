@@ -8,12 +8,20 @@ interface Env {
   ALLOWED_ORIGIN: string;
   RATE_LIMIT?: KVNamespace; // unset until a KV namespace is bound; rate limiting then activates
   TURNSTILE_SECRET?: string; // unset until a Turnstile widget is wired; bot check then activates
+  REPO_ID: string;
+  DISCUSSION_CATEGORY_ID: string;
 }
 
 interface EditBody {
   slug?: unknown;
   content?: unknown;
   summary?: unknown;
+  token?: unknown;
+}
+
+interface CommentBody {
+  slug?: unknown;
+  body?: unknown;
   token?: unknown;
 }
 
@@ -46,6 +54,17 @@ export default {
       if (request.method === "POST" && url.pathname === "/edit") {
         const body = (await request.json()) as EditBody;
         return json(await proposeEdit(env, request, body), 200, headers);
+      }
+      if (request.method === "GET" && url.pathname === "/comments") {
+        return json(
+          await listComments(env, url.searchParams.get("slug") ?? ""),
+          200,
+          headers,
+        );
+      }
+      if (request.method === "POST" && url.pathname === "/comment") {
+        const body = (await request.json()) as CommentBody;
+        return json(await postComment(env, request, body), 200, headers);
       }
       return json({ error: "Not found" }, 404, headers);
     } catch (err) {
@@ -237,6 +256,144 @@ function toBase64(str: string): string {
 
 function utf8Bytes(str: string): number {
   return new TextEncoder().encode(str).length;
+}
+
+interface OutComment {
+  author: string;
+  isAnon: boolean;
+  avatarUrl: string | null;
+  bodyHtml: string;
+  createdAt: string;
+  url: string;
+}
+
+interface RawComment {
+  body: string;
+  bodyHTML: string;
+  createdAt: string;
+  url: string;
+  author: { login: string; avatarUrl: string } | null;
+}
+
+const ANON_MARKER = /<!--\s*anon:([a-z0-9-]+)\s*-->/;
+
+const SEARCH_WITH_COMMENTS = `query($q:String!){
+  search(query:$q, type:DISCUSSION, first:10){ nodes{ ... on Discussion {
+    title
+    comments(first:50){ nodes{ body bodyHTML createdAt url author{ login avatarUrl } } }
+  } } }
+}`;
+
+const FIND_DISCUSSION = `query($q:String!){
+  search(query:$q, type:DISCUSSION, first:10){ nodes{ ... on Discussion { id title } } }
+}`;
+
+const CREATE_DISCUSSION = `mutation($repo:ID!,$cat:ID!,$title:String!,$body:String!){
+  createDiscussion(input:{repositoryId:$repo,categoryId:$cat,title:$title,body:$body}){ discussion{ id } }
+}`;
+
+const ADD_COMMENT = `mutation($d:ID!,$body:String!){
+  addDiscussionComment(input:{discussionId:$d,body:$body}){ comment{ id } }
+}`;
+
+async function ghGraphQL<T>(
+  env: Env,
+  query: string,
+  variables: Record<string, unknown>,
+): Promise<T> {
+  const res = await fetch("https://api.github.com/graphql", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+      "User-Agent": `${env.REPO_NAME}-worker`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+  if (!res.ok) throw new HttpError(502, `GitHub GraphQL ${res.status}`);
+  const data = (await res.json()) as { data?: T; errors?: { message: string }[] };
+  if (data.errors?.length) throw new HttpError(502, data.errors[0].message);
+  if (!data.data) throw new HttpError(502, "GraphQL returned no data");
+  return data.data;
+}
+
+function normalizeComment(c: RawComment): OutComment {
+  const m = c.body.match(ANON_MARKER);
+  return {
+    author: m ? m[1] : (c.author?.login ?? "ghost"),
+    isAnon: Boolean(m),
+    avatarUrl: m ? null : (c.author?.avatarUrl ?? null),
+    bodyHtml: c.bodyHTML,
+    createdAt: c.createdAt,
+    url: c.url,
+  };
+}
+
+async function listComments(
+  env: Env,
+  slug: string,
+): Promise<{ comments: OutComment[] }> {
+  if (!SLUG_RE.test(slug)) return { comments: [] };
+  const q = `repo:${env.REPO_OWNER}/${env.REPO_NAME} in:title "${slug}"`;
+  const data = await ghGraphQL<{
+    search: {
+      nodes: (
+        | { title: string; comments: { nodes: RawComment[] } }
+        | Record<string, never>
+      )[];
+    };
+  }>(env, SEARCH_WITH_COMMENTS, { q });
+  const disc = data.search.nodes.find((n) => "title" in n && n.title === slug);
+  if (!disc || !("comments" in disc)) return { comments: [] };
+  return { comments: disc.comments.nodes.map(normalizeComment) };
+}
+
+async function ensureDiscussion(env: Env, slug: string): Promise<string> {
+  const q = `repo:${env.REPO_OWNER}/${env.REPO_NAME} in:title "${slug}"`;
+  const found = await ghGraphQL<{ search: { nodes: { id: string; title: string }[] } }>(
+    env,
+    FIND_DISCUSSION,
+    { q },
+  );
+  const existing = found.search.nodes.find((n) => n.title === slug);
+  if (existing) return existing.id;
+  const created = await ghGraphQL<{ createDiscussion: { discussion: { id: string } } }>(
+    env,
+    CREATE_DISCUSSION,
+    {
+      repo: env.REPO_ID,
+      cat: env.DISCUSSION_CATEGORY_ID,
+      title: slug,
+      body: `Talk page for \`${slug}\`.`,
+    },
+  );
+  return created.createDiscussion.discussion.id;
+}
+
+async function postComment(
+  env: Env,
+  request: Request,
+  body: CommentBody,
+): Promise<{ ok: true }> {
+  const slug = String(body.slug ?? "");
+  const text = String(body.body ?? "").trim();
+  if (!SLUG_RE.test(slug)) throw new HttpError(400, "Invalid slug.");
+  if (!text) throw new HttpError(400, "Empty comment.");
+  if (utf8Bytes(text) > MAX_CONTENT_BYTES)
+    throw new HttpError(413, "Comment too large.");
+
+  const ip = request.headers.get("CF-Connecting-IP") ?? "0.0.0.0";
+  await verifyTurnstile(env, ip, body.token ? String(body.token) : "");
+  const author = `anon-${await ipHash(env.HASH_SECRET, ip)}`;
+  if (await isBanned(env, author)) throw new HttpError(403, "This source is blocked.");
+  await enforceRateLimit(env, author);
+
+  const discussionId = await ensureDiscussion(env, slug);
+  await ghGraphQL(env, ADD_COMMENT, {
+    d: discussionId,
+    body: `<!-- anon:${author} -->\n\n${text}`,
+  });
+  return { ok: true };
 }
 
 function corsHeaders(env: Env): Record<string, string> {

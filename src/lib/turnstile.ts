@@ -31,11 +31,15 @@ export async function renderTurnstile(
   el: HTMLElement,
   sitekey: string,
   onToken: (token: string) => void,
-): Promise<void> {
+): Promise<string | undefined> {
   await loadScript();
-  window.turnstile?.render(el, {
+  return window.turnstile?.render(el, {
     sitekey,
     action: "turnstile-spin-v1",
     callback: onToken,
   });
+}
+
+export function resetTurnstile(id?: string): void {
+  window.turnstile?.reset(id);
 }
