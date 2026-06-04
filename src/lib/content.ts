@@ -11,23 +11,23 @@ export class PageNotFoundError extends Error {
   }
 }
 
-// Pinning the CDN URL to a SHA serves fresh content with immutable caching.
-// Cached per session to stay under GitHub's 60/hr unauthenticated limit.
+// Resolve via the Worker (edge + KV cached, authenticated quota) when set, else
+// the GitHub API. `no-store` stops the browser pinning a stale SHA after a merge.
 export async function resolveLatestSha(): Promise<string> {
-  const cacheKey = `sha:${config.repoOwner}/${config.repoName}@${config.branch}`;
-  const cached = sessionStorage.getItem(cacheKey);
-  if (cached) return cached;
-
+  if (config.workerUrl) {
+    try {
+      const res = await fetch(`${config.workerUrl}/latest`, { cache: "no-store" });
+      if (res.ok) return ((await res.json()) as { sha: string }).sha;
+    } catch {
+      // fall back to the GitHub API below
+    }
+  }
   const res = await fetch(
     `https://api.github.com/repos/${config.repoOwner}/${config.repoName}/commits/${config.branch}`,
-    { headers: { Accept: "application/vnd.github.sha" } },
+    { headers: { Accept: "application/vnd.github.sha" }, cache: "no-store" },
   );
-  if (!res.ok) {
-    throw new Error(`Could not resolve latest commit (HTTP ${res.status}).`);
-  }
-  const sha = (await res.text()).trim();
-  sessionStorage.setItem(cacheKey, sha);
-  return sha;
+  if (!res.ok) throw new Error(`Could not resolve latest commit (HTTP ${res.status}).`);
+  return (await res.text()).trim();
 }
 
 export function cdnUrl(sha: string, slug: string): string {

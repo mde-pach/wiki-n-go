@@ -37,19 +37,48 @@ export default {
     if (request.method === "OPTIONS") return new Response(null, { headers });
 
     const url = new URL(request.url);
-    if (request.method !== "POST" || url.pathname !== "/edit") {
-      return json({ error: "Not found" }, 404, headers);
-    }
-
     try {
-      const body = (await request.json()) as EditBody;
-      return json(await proposeEdit(env, request, body), 200, headers);
+      if (request.method === "GET" && url.pathname === "/latest") {
+        return json(await latestSha(env), 200, headers);
+      }
+      if (request.method === "POST" && url.pathname === "/edit") {
+        const body = (await request.json()) as EditBody;
+        return json(await proposeEdit(env, request, body), 200, headers);
+      }
+      return json({ error: "Not found" }, 404, headers);
     } catch (err) {
       const status = err instanceof HttpError ? err.status : 500;
       return json({ error: message(err) }, status, headers);
     }
   },
 };
+
+// Latest commit SHA, briefly cached in KV so many readers share one GitHub call.
+async function latestSha(env: Env): Promise<{ sha: string }> {
+  const key = "meta:latest-sha";
+  if (env.RATE_LIMIT) {
+    const raw = await env.RATE_LIMIT.get(key);
+    if (raw) {
+      const cached = JSON.parse(raw) as { sha: string; ts: number };
+      if (Date.now() - cached.ts < 20_000) return { sha: cached.sha };
+    }
+  }
+  const res = await fetch(
+    `https://api.github.com/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits/${env.BRANCH}`,
+    {
+      headers: {
+        Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+        Accept: "application/vnd.github.sha",
+        "User-Agent": `${env.REPO_NAME}-worker`,
+      },
+    },
+  );
+  if (!res.ok) throw new HttpError(502, `GitHub ${res.status}`);
+  const sha = (await res.text()).trim();
+  if (env.RATE_LIMIT)
+    await env.RATE_LIMIT.put(key, JSON.stringify({ sha, ts: Date.now() }));
+  return { sha };
+}
 
 async function proposeEdit(env: Env, request: Request, body: EditBody) {
   const slug = String(body.slug ?? "");
@@ -195,7 +224,7 @@ function utf8Bytes(str: string): number {
 function corsHeaders(env: Env): Record<string, string> {
   return {
     "Access-Control-Allow-Origin": env.ALLOWED_ORIGIN || "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
   };
 }
