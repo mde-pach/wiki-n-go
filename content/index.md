@@ -13,3 +13,5 @@ rebuild** — the reader always fetches the latest commit.
   token.
 
 See [Getting started](./getting-started) for the next steps.
+
+_Edited live to prove the no-rebuild path._
