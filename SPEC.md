@@ -234,10 +234,11 @@ trust gradient):
 - [x] ✅ Anon edits never auto-merge — every edit is a PR awaiting manual review (default).
 - [x] ✅ Slug hardened: no leading/trailing/double slash, no traversal (Worker `SLUG_RE`).
 - [x] ✅ Rate-limiting live: KV fixed-window, 5 edits / 10 min per `anon-<hash>`.
+- [x] ✅ Turnstile bot check on edits (Worker verifies `cf-turnstile-response`; 400 without a token).
 
 ### M4 — Discussion, deploy & polish
-- [ ] ⬜ giscus discussion layer.
-- [ ] ⬜ Multi-host "click-to-deploy" buttons + `.env.example`.
+- [x] ✅ giscus discussion layer (per-page threads, General category) — needs the giscus app installed.
+- [x] ✅ Multi-host deploy buttons (Netlify / Vercel / Cloudflare) in README.
 - [ ] ⬜ (Optional) edge-SSR variant for SEO.
 
 ---

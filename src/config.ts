@@ -7,4 +7,10 @@ export const config = {
   homeSlug: "index",
   workerUrl: "https://wiki-n-go.maxime-depachtere-80f.workers.dev",
   turnstileSiteKey: "0x4AAAAAADe7QjsOFAA6Fc8O",
+  giscus: {
+    repo: "mde-pach/wiki-n-go",
+    repoId: "R_kgDOSxZFTg",
+    category: "General",
+    categoryId: "DIC_kwDOSxZFTs4C-huV",
+  },
 };

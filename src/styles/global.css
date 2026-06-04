@@ -148,9 +148,18 @@ body {
   gap: 0.5rem;
   margin-top: 0.6rem;
 }
+.editor-widget {
+  margin-top: 0.75rem;
+}
 .editor-ok {
   color: #1a7f37;
 }
 .editor-err {
   color: #cf222e;
+}
+
+.discussion {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
 }

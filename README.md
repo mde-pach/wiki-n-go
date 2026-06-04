@@ -4,21 +4,24 @@ A collaborative wiki that **renders without rebuilds** and is **edited in-site
 with Wikipedia-level friction** — no account, no token. The GitHub repo,
 Discussions, and Actions are the database; this app is the interface.
 
-See [`SPEC.md`](./SPEC.md) for the full specification and tracker.
+**Live:** https://mde-pach.github.io/wiki-n-go/ · **Spec & tracker:** [`SPEC.md`](./SPEC.md)
 
-## Status: M0 — zero-infra reader
+- **Read** — content fetched from GitHub via jsDelivr (pinned to the latest
+  commit SHA), rendered client-side. No rebuild when content changes.
+- **Edit** — in-site editor → one Cloudflare Worker → opens a PR as
+  `anon-<ip_hash>`. Rate-limited, bot-checked (Turnstile), ban-able; nothing
+  auto-merges.
+- **Discuss** — giscus over GitHub Discussions, one thread per page.
 
-This milestone is the read path only: an Astro + Solid app that fetches Markdown
-from a GitHub repo via jsDelivr (pinned to the latest commit SHA) and renders it
-client-side. **No backend, deployable to GitHub Pages.**
+## Deploy your own
 
-## Configure
+The reader is a static site — deploy it anywhere:
 
-Edit [`src/config.ts`](./src/config.ts) and set `repoOwner` / `repoName` to the
-repo holding your `content/*.md` (you can use this repo once it's on GitHub).
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/mde-pach/wiki-n-go)
+[![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/mde-pach/wiki-n-go)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/mde-pach/wiki-n-go)
 
-For a GitHub Pages **project** site, also set `site` and `base` in
-[`astro.config.mjs`](./astro.config.mjs).
+Or fork and enable **Settings → Pages → Source: GitHub Actions**.
 
 ## Develop
 
@@ -26,19 +29,24 @@ For a GitHub Pages **project** site, also set `site` and `base` in
 bun install
 bun run dev      # local dev server
 bun run build    # production build to ./dist
-bun run preview  # preview the build
 bun run check    # Biome lint + format (write)
 ```
 
-## Deploy
+Point [`src/config.ts`](./src/config.ts) at your content repo (`repoOwner` /
+`repoName`). For a GitHub Pages project site, set `site` + `base` in
+[`astro.config.mjs`](./astro.config.mjs).
 
-Pushing to `main` deploys to GitHub Pages via
-[`.github/workflows/deploy-pages.yml`](./.github/workflows/deploy-pages.yml).
-Enable **Settings → Pages → Source: GitHub Actions** once.
+## Enable editing & discussion (one-time)
+
+- **Editing** — `cd worker`, fill `worker/.deploy.env` (Cloudflare token, GitHub
+  PAT), run `./deploy.sh`, then set `workerUrl` in `src/config.ts`.
+- **Bot check** — create a Turnstile widget; set `turnstileSiteKey` in config and
+  `TURNSTILE_SECRET` in `worker/.deploy.env`.
+- **Discussion** — install the [giscus app](https://github.com/apps/giscus) on
+  the repo, enable Discussions, and set `giscus.*` in config.
 
 ## Roadmap
 
-- **M1** — in-site anonymous editing (Wikipedia friction) via one Cloudflare Worker.
-- **M2** — optional "Sign in with GitHub" for attribution.
-- **M3** — moderation (PR queue, `ip_hash` rate-limit, `bans.json`).
-- **M4** — giscus discussion + multi-host deploy buttons.
+See [`SPEC.md`](./SPEC.md). Done: reader, anonymous editing, moderation
+(rate-limit + bans + Turnstile), discussions. Next: optional GitHub sign-in for
+attribution.

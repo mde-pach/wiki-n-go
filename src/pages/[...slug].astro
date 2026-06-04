@@ -1,4 +1,5 @@
 ---
+import Discussion from "../components/Discussion.tsx";
 import Editor from "../components/Editor.tsx";
 import WikiPage from "../components/WikiPage.tsx";
 import { config } from "../config";
@@ -23,4 +24,5 @@ const pageSlug = slug ?? config.homeSlug;
 <Base title={pageSlug}>
   <WikiPage slug={pageSlug} client:only="solid-js" />
   <Editor slug={pageSlug} client:only="solid-js" />
+  <Discussion client:only="solid-js" />
 </Base>
