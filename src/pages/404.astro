@@ -1,0 +1,10 @@
+---
+import WikiPage from "../components/WikiPage.tsx";
+import Base from "../layouts/Base.astro";
+
+// Renders any page added after the last deploy; slug comes from the URL.
+---
+
+<Base title="Wiki">
+  <WikiPage client:only="solid-js" />
+</Base>

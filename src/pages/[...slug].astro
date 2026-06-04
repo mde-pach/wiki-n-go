@@ -1,0 +1,24 @@
+---
+import WikiPage from "../components/WikiPage.tsx";
+import { config } from "../config";
+import Base from "../layouts/Base.astro";
+
+// Routes for pages present at build time; newer pages fall back to 404.astro.
+export function getStaticPaths() {
+  const files = import.meta.glob("../../content/**/*.md");
+  const slugs = Object.keys(files).map((p) =>
+    p.replace("../../content/", "").replace(/\.md$/, ""),
+  );
+  return [
+    { params: { slug: undefined } }, // "/" → homeSlug
+    ...slugs.filter((s) => s !== config.homeSlug).map((s) => ({ params: { slug: s } })),
+  ];
+}
+
+const { slug } = Astro.params;
+const pageSlug = slug ?? config.homeSlug;
+---
+
+<Base title={pageSlug}>
+  <WikiPage slug={pageSlug} client:only="solid-js" />
+</Base>
