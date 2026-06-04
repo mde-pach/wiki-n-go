@@ -237,7 +237,9 @@ trust gradient):
 - [x] ✅ Turnstile bot check on edits (Worker verifies `cf-turnstile-response`; 400 without a token).
 
 ### M4 — Discussion, deploy & polish
-- [x] ✅ giscus discussion layer (per-page threads, General category) — needs the giscus app installed.
+- [x] ✅ Anonymous discussion: comments via Worker → GitHub Discussions, stamped `anon-<hash>`
+      (replaced giscus, which required a GitHub login). Read is public; posting is Turnstile + rate-limited.
+- [ ] 🟡 Discussion Stage B: "Sign in with GitHub" → comments post as the user (needs an OAuth App).
 - [x] ✅ Multi-host deploy buttons (Netlify / Vercel / Cloudflare) in README.
 - [ ] ⬜ (Optional) edge-SSR variant for SEO.
 
@@ -276,3 +278,4 @@ trust gradient):
 | 2026-06-04 | App = Astro (static) + Solid islands, client-render content | No rebuild, not a heavy SPA, good static portability |
 | 2026-06-04 | Multi-host click-to-deploy; GitHub Pages first | Read phase needs no infra; portable |
 | 2026-06-04 | Avoid Vercel Hobby (non-commercial only) | Prefer Cloudflare / GitHub Pages / Netlify |
+| 2026-06-05 | Drop giscus for discussion; build anonymous comments on the Worker | giscus required a GitHub login — broke the no-account principle |
