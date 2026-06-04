@@ -6,4 +6,5 @@ export const config = {
   contentDir: "content",
   homeSlug: "index",
   workerUrl: "https://wiki-n-go.maxime-depachtere-80f.workers.dev",
+  turnstileSiteKey: "0x4AAAAAADe7QjsOFAA6Fc8O",
 };

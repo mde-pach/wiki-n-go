@@ -7,12 +7,14 @@ interface Env {
   CONTENT_DIR: string;
   ALLOWED_ORIGIN: string;
   RATE_LIMIT?: KVNamespace; // unset until a KV namespace is bound; rate limiting then activates
+  TURNSTILE_SECRET?: string; // unset until a Turnstile widget is wired; bot check then activates
 }
 
 interface EditBody {
   slug?: unknown;
   content?: unknown;
   summary?: unknown;
+  token?: unknown;
 }
 
 type GhInit = { method?: string; body?: string };
@@ -91,6 +93,7 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
     throw new HttpError(413, "Content too large.");
 
   const ip = request.headers.get("CF-Connecting-IP") ?? "0.0.0.0";
+  await verifyTurnstile(env, ip, body.token ? String(body.token) : "");
   const author = `anon-${await ipHash(env.HASH_SECRET, ip)}`;
   if (await isBanned(env, author)) throw new HttpError(403, "This source is blocked.");
   await enforceRateLimit(env, author);
@@ -167,6 +170,21 @@ async function currentFileSha(
   if (res.status === 404) return undefined;
   if (!res.ok) throw new HttpError(502, `GitHub ${res.status}`);
   return ((await res.json()) as { sha: string }).sha;
+}
+
+async function verifyTurnstile(env: Env, ip: string, token: string): Promise<void> {
+  if (!env.TURNSTILE_SECRET) return;
+  if (!token) throw new HttpError(400, "Missing challenge token.");
+  const form = new FormData();
+  form.append("secret", env.TURNSTILE_SECRET);
+  form.append("response", token);
+  form.append("remoteip", ip);
+  const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+    method: "POST",
+    body: form,
+  });
+  const data = (await res.json()) as { success?: boolean };
+  if (!data.success) throw new HttpError(403, "Bot check failed.");
 }
 
 // Fixed-window per-source limit. KV is eventually consistent, so this is coarse

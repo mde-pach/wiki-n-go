@@ -16,4 +16,5 @@ done
 bunx wrangler deploy
 printf '%s' "$GITHUB_BOT_TOKEN" | bunx wrangler secret put GITHUB_TOKEN
 printf '%s' "$HASH_SECRET" | bunx wrangler secret put HASH_SECRET
+[ -n "${TURNSTILE_SECRET:-}" ] && printf '%s' "$TURNSTILE_SECRET" | bunx wrangler secret put TURNSTILE_SECRET
 echo "Done. Use the workers.dev URL printed above as config.workerUrl."

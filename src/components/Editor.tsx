@@ -3,6 +3,7 @@ import { config } from "../config";
 import { submitEdit } from "../lib/api";
 import { fetchMarkdown, PageNotFoundError } from "../lib/content";
 import { slugFromLocation } from "../lib/slug";
+import { renderTurnstile } from "../lib/turnstile";
 
 export default function Editor(props: { slug?: string }) {
   if (!config.workerUrl) return null;
@@ -13,6 +14,14 @@ export default function Editor(props: { slug?: string }) {
   const [busy, setBusy] = createSignal(false);
   const [prUrl, setPrUrl] = createSignal<string>();
   const [error, setError] = createSignal<string>();
+  const [token, setToken] = createSignal<string>();
+
+  function mountWidget(el: HTMLDivElement) {
+    if (!config.turnstileSiteKey) return;
+    renderTurnstile(el, config.turnstileSiteKey, setToken).catch((e) =>
+      setError(message(e)),
+    );
+  }
 
   async function start() {
     setBusy(true);
@@ -33,10 +42,14 @@ export default function Editor(props: { slug?: string }) {
   }
 
   async function propose() {
+    if (config.turnstileSiteKey && !token()) {
+      setError("Please complete the bot check.");
+      return;
+    }
     setBusy(true);
     setError();
     try {
-      const result = await submitEdit(slug(), draft());
+      const result = await submitEdit(slug(), draft(), token());
       setPrUrl(result.prUrl);
       setOpen(false);
     } catch (e) {
@@ -61,6 +74,7 @@ export default function Editor(props: { slug?: string }) {
           value={draft()}
           onInput={(e) => setDraft(e.currentTarget.value)}
         />
+        <div class="editor-widget" ref={mountWidget} />
         <div class="editor-actions">
           <button type="button" disabled={busy()} onClick={propose}>
             {busy() ? "Submitting…" : "Propose edit"}
