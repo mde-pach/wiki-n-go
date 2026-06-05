@@ -729,7 +729,9 @@ async function gh<T = unknown>(env: Env, path: string, init: GhInit = {}): Promi
   });
   if (res.status === 404 && init.allow404) return undefined as T;
   if (!res.ok) throw new HttpError(502, `GitHub ${res.status}: ${await res.text()}`);
-  return (await res.json()) as T;
+  if (res.status === 204) return undefined as T; // e.g. DELETE a ref → no body
+  const text = await res.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 async function verifyTurnstile(env: Env, ip: string, token: string): Promise<void> {
