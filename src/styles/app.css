@@ -211,6 +211,86 @@ html.ready body {
   font-size: 0.78em;
   font-weight: 600;
 }
+
+/* Pending-review queue (in-UI PR review). */
+.footer-tools .sep {
+  margin: 0 0.5rem;
+  color: var(--color-ink-subtle);
+}
+.rv-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-family: var(--font-ui);
+}
+.rv-item {
+  border-top: var(--border-w) solid var(--color-border);
+}
+.rv-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.6rem 0;
+  flex-wrap: wrap;
+}
+.rv-page {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.rv-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: 12rem;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  color: var(--color-ink-muted);
+}
+.rv-caret {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  color: var(--color-ink-subtle);
+  transition: transform var(--transition-fast);
+  align-self: center;
+}
+.rv-title {
+  color: var(--color-ink);
+  flex: 1;
+}
+.rv-delta {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+.rv-delta.pos {
+  color: var(--color-add-ink);
+}
+.rv-delta.neg {
+  color: var(--color-remove-ink);
+}
+.rv-author {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+.rv-time {
+  color: var(--color-ink-subtle);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+.rv-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+.rv-diff {
+  padding: 0 0 1rem;
+}
 @media (max-width: 700px) {
   .rc-row {
     grid-template-columns: auto 1fr auto;

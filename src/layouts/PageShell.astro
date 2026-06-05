@@ -12,6 +12,7 @@ import {
   changesHref,
   prettify,
   readHref,
+  reviewHref,
   type View,
 } from "../lib/paths";
 
@@ -127,6 +128,8 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
           }
           <div class="footer-tools">
             <a href={changesHref}>Recent changes</a>
+            <span class="sep">·</span>
+            <a href={reviewHref}>Pending review</a>
           </div>
           <div class="footer-bottom">
             <p class="fb-license">

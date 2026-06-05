@@ -5,6 +5,7 @@ import Discussion from "./Discussion";
 import Editor from "./Editor";
 import History from "./History";
 import RecentChanges from "./RecentChanges";
+import ReviewQueue from "./ReviewQueue";
 import WikiPage from "./WikiPage";
 
 export default function Route404() {
@@ -35,6 +36,9 @@ export default function Route404() {
       </Match>
       <Match when={view === "changes"}>
         <RecentChanges />
+      </Match>
+      <Match when={view === "review"}>
+        <ReviewQueue />
       </Match>
     </Switch>
   );
