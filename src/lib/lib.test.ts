@@ -13,13 +13,26 @@ describe("prettify", () => {
 
 describe("splitTitle", () => {
   it("splits a leading H1 from the body", () => {
-    expect(splitTitle("# Hello\n\nbody")).toEqual({ title: "Hello", body: "body" });
+    expect(splitTitle("# Hello\n\nbody")).toEqual({
+      title: "Hello",
+      body: "body",
+      meta: {},
+    });
   });
   it("returns an empty title when there is no H1", () => {
     expect(splitTitle("no heading here")).toEqual({
       title: "",
       body: "no heading here",
+      meta: {},
     });
+  });
+  it("strips YAML frontmatter and exposes it as meta", () => {
+    const { title, body, meta } = splitTitle(
+      "---\ntags: [A, B]\n---\n\n# Title\n\nbody",
+    );
+    expect(title).toBe("Title");
+    expect(body).toBe("body");
+    expect(meta).toEqual({ tags: ["A", "B"] });
   });
 });
 
