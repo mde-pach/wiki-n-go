@@ -8,7 +8,7 @@ REPO_OWNER = "mde-pach"
 REPO_NAME = "wiki-n-go"
 BRANCH = "main"
 CONTENT_DIR = "content"
-ALLOWED_ORIGIN = "https://mde-pach.github.io"
+ALLOWED_ORIGIN = "https://mde-pach.github.io,http://localhost:4321"
 REPO_ID = "R_kgDOSxZFTg"
 DISCUSSION_CATEGORY_ID = "DIC_kwDOSxZFTs4C-huV"
 

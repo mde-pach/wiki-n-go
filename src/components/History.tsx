@@ -1,4 +1,4 @@
-import { createSignal, For, onMount, Show } from "solid-js";
+import { createResource, createSignal, For, Show } from "solid-js";
 import { config } from "../config";
 import { getDiff, getHistory, type Revision } from "../lib/history";
 import { slugFromLocation } from "../lib/slug";
@@ -7,20 +7,10 @@ export default function History(props: { slug?: string }) {
   if (!config.workerUrl) return null;
 
   const slug = () => props.slug ?? slugFromLocation();
-  const [revs, setRevs] = createSignal<Revision[]>([]);
-  const [open, setOpen] = createSignal(false);
+  const [revs] = createResource(slug, getHistory);
   const [diff, setDiff] = createSignal<{ title: string; patch: string | null }>();
   const [err, setErr] = createSignal<string>();
-
-  onMount(async () => {
-    try {
-      setRevs(await getHistory(slug()));
-    } catch {
-      // a brand-new page has no history yet
-    }
-  });
-
-  const last = () => revs()[0];
+  const latest = () => revs()?.[0]?.sha;
 
   async function show(base: string | null, head: string, title: string) {
     setErr();
@@ -36,21 +26,12 @@ export default function History(props: { slug?: string }) {
   }
 
   return (
-    <Show when={last()}>
-      <div class="page-meta">
-        <span>
-          Last edited by <span class="meta-author">{last().author}</span> ·{" "}
-          {new Date(last().date).toLocaleDateString()}
-        </span>
-        <button type="button" class="link-btn" onClick={() => setOpen(!open())}>
-          {open() ? "Hide history" : `View history (${revs().length})`}
-        </button>
-      </div>
-
-      <Show when={open()}>
+    <div class="history-view">
+      <h2 class="view-title">Revision history</h2>
+      <Show when={revs()} fallback={<p class="wiki-status">Loading…</p>}>
         <ol class="history">
           <For each={revs()}>
-            {(r, i) => (
+            {(r: Revision, i) => (
               <li class="rev">
                 <span class="rev-actions">
                   <button
@@ -58,7 +39,7 @@ export default function History(props: { slug?: string }) {
                     class="link-btn"
                     disabled={i() === 0}
                     onClick={() =>
-                      show(r.sha, last().sha, `${shorten(r.sha)} → latest`)
+                      show(r.sha, latest() ?? r.sha, `${short(r.sha)} → latest`)
                     }
                   >
                     cur
@@ -71,7 +52,7 @@ export default function History(props: { slug?: string }) {
                       show(
                         r.parent,
                         r.sha,
-                        `${shorten(r.parent ?? "")} → ${shorten(r.sha)}`,
+                        `${short(r.parent ?? "")} → ${short(r.sha)}`,
                       )
                     }
                   >
@@ -108,7 +89,7 @@ export default function History(props: { slug?: string }) {
       <Show when={err()}>
         <p class="editor-err">{err()}</p>
       </Show>
-    </Show>
+    </div>
   );
 }
 
@@ -133,7 +114,7 @@ function Diff(props: { patch: string }) {
   );
 }
 
-function shorten(sha: string): string {
+function short(sha: string): string {
   return sha.slice(0, 7);
 }
 

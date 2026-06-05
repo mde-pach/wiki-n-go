@@ -1,32 +1,30 @@
 ---
-import Discussion from "../components/Discussion.tsx";
-import Editor from "../components/Editor.tsx";
-import History from "../components/History.tsx";
+import Infobox from "../components/Infobox.tsx";
 import Toc from "../components/Toc.tsx";
 import WikiPage from "../components/WikiPage.tsx";
 import { config } from "../config";
-import Base from "../layouts/Base.astro";
+import PageShell from "../layouts/PageShell.astro";
 
-// Routes for pages present at build time; newer pages fall back to 404.astro.
 export function getStaticPaths() {
   const files = import.meta.glob("../../content/**/*.md");
   const slugs = Object.keys(files).map((p) =>
     p.replace("../../content/", "").replace(/\.md$/, ""),
   );
   return [
-    { params: { slug: undefined } }, // "/" → homeSlug
+    { params: { slug: undefined } },
     ...slugs.filter((s) => s !== config.homeSlug).map((s) => ({ params: { slug: s } })),
   ];
 }
 
 const { slug } = Astro.params;
 const pageSlug = slug ?? config.homeSlug;
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 ---
 
-<Base title={pageSlug}>
-  <History slug={pageSlug} client:only="solid-js" />
-  <Toc client:only="solid-js" />
-  <WikiPage slug={pageSlug} client:only="solid-js" />
-  <Editor slug={pageSlug} client:only="solid-js" />
-  <Discussion slug={pageSlug} client:only="solid-js" />
-</Base>
+<PageShell slug={pageSlug} view="read">
+  <main id="main" class="read-grid">
+    <div class="col-toc"><Toc editHref={`${base}/edit/${pageSlug}`} client:only="solid-js" /></div>
+    <div class="col-main"><WikiPage slug={pageSlug} client:only="solid-js" /></div>
+    <div class="col-info"><Infobox slug={pageSlug} client:only="solid-js" /></div>
+  </main>
+</PageShell>

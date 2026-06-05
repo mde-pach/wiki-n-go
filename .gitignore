@@ -9,3 +9,5 @@ dist/
 !.env.example
 .deploy.env
 .dev.vars
+
+.playwright-mcp/

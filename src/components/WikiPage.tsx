@@ -1,30 +1,45 @@
-import { createEffect, createResource, ErrorBoundary, Suspense } from "solid-js";
+import { createEffect, createResource, ErrorBoundary, Show, Suspense } from "solid-js";
 import { fetchMarkdown, PageNotFoundError, renderMarkdown } from "../lib/content";
 import { pageSet } from "../lib/manifest";
 import { slugFromLocation } from "../lib/slug";
 
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
 export default function WikiPage(props: { slug?: string }) {
   const slug = () => props.slug ?? slugFromLocation();
-  const [html] = createResource(slug, async (s) =>
-    renderMarkdown(await fetchMarkdown(s)),
-  );
+  const [page] = createResource(slug, async (s) => {
+    const raw = await fetchMarkdown(s);
+    const m = raw.match(/^#\s+(.+?)\s*$/m);
+    const body = m ? raw.replace(m[0], "").trimStart() : raw;
+    return { title: m ? m[1] : s, html: renderMarkdown(body) };
+  });
 
   let body: HTMLDivElement | undefined;
   createEffect(() => {
-    if (html() && body) {
+    const p = page();
+    if (!p) return;
+    // The page title lives in the static chrome; fill it once content resolves.
+    document.title = p.title;
+    const titleEl = document.querySelector(".page-title");
+    if (titleEl) titleEl.textContent = p.title;
+    if (body) {
       markRedLinks(body);
       document.dispatchEvent(new CustomEvent("wiki:rendered"));
     }
   });
 
   return (
-    <article class="prose">
+    <article class="prose article">
       <ErrorBoundary
         fallback={(err) => (
           <div class="wiki-status">
-            {err instanceof PageNotFoundError
-              ? `No page named “${slug()}” yet.`
-              : `Could not load this page: ${err?.message ?? String(err)}`}
+            <Show
+              when={err instanceof PageNotFoundError}
+              fallback={`Could not load this page: ${err?.message ?? String(err)}`}
+            >
+              No page named “{slug()}” yet.{" "}
+              <a href={`${BASE}/edit/${slug()}`}>Create it →</a>
+            </Show>
           </div>
         )}
       >
@@ -33,7 +48,7 @@ export default function WikiPage(props: { slug?: string }) {
             ref={(el) => {
               body = el;
             }}
-            innerHTML={html()}
+            innerHTML={page()?.html}
           />
         </Suspense>
       </ErrorBoundary>
@@ -48,7 +63,7 @@ async function markRedLinks(root: HTMLElement): Promise<void> {
   for (const a of links) {
     const slug = a.dataset.slug;
     if (slug && !pages.has(slug)) {
-      a.classList.add("red");
+      a.classList.add("is-red");
       a.title = "Page does not exist yet — click to create";
     }
   }

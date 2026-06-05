@@ -1,0 +1,17 @@
+---
+import Editor from "../../components/Editor.tsx";
+import PageShell from "../../layouts/PageShell.astro";
+
+export function getStaticPaths() {
+  const files = import.meta.glob("../../../content/**/*.md");
+  return Object.keys(files).map((p) => ({
+    params: { slug: p.replace("../../../content/", "").replace(/\.md$/, "") },
+  }));
+}
+
+const { slug } = Astro.params;
+---
+
+<PageShell slug={slug} view="edit">
+  <main id="main" class="view-wrap"><Editor slug={slug} open client:only="solid-js" /></main>
+</PageShell>

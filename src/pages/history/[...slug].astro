@@ -1,0 +1,17 @@
+---
+import History from "../../components/History.tsx";
+import PageShell from "../../layouts/PageShell.astro";
+
+export function getStaticPaths() {
+  const files = import.meta.glob("../../../content/**/*.md");
+  return Object.keys(files).map((p) => ({
+    params: { slug: p.replace("../../../content/", "").replace(/\.md$/, "") },
+  }));
+}
+
+const { slug } = Astro.params;
+---
+
+<PageShell slug={slug} view="history">
+  <main id="main" class="view-wrap"><History slug={slug} client:only="solid-js" /></main>
+</PageShell>

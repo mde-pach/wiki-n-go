@@ -1,9 +1,10 @@
 @import "tailwindcss";
 @import "./tokens.css";
 @import "./base.css";
+@import "./components.css";
 
-/* Transition shim: old token names → design tokens, until every component is
-   ported to the design's own classes. New code should use --color-* directly. */
+/* Transition shim: old token names → design tokens, for widgets not yet ported
+   to the design's own view styles (editor, discussion, history/diff). */
 :root {
   --text: var(--color-ink);
   --bg: var(--color-canvas);
@@ -14,65 +15,10 @@
   --redlink: var(--color-redlink);
   --ok: var(--color-add-ink);
   --err: var(--color-remove-ink);
-  --reading-width: var(--measure);
-  --font-sans: var(--font-ui);
 }
 
-/* ── App chrome (placeholder until chrome.jsx is ported) ───────────────────── */
-.site-header,
-.site-main,
-.site-footer {
-  max-width: var(--measure);
-  margin-inline: auto;
-  padding-inline: 1.25rem;
-}
-.site-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding-block: 1rem;
-  border-bottom: 1px solid var(--color-border);
-  font-family: var(--font-ui);
-}
-.site-title {
-  font-weight: 700;
-  text-decoration: none;
-  color: var(--color-ink);
-}
-.site-main {
-  padding-block: 2rem;
-  min-height: 60vh;
-}
-.site-footer {
-  padding-block: 1.5rem;
-  border-top: 1px solid var(--color-border);
-  color: var(--color-ink-muted);
-  font-family: var(--font-ui);
-  font-size: var(--text-sm);
-}
-.theme-controls {
-  margin-left: auto;
-  display: flex;
-  gap: 0.4rem;
-}
-.theme-controls button {
-  font: inherit;
-  font-size: var(--text-sm);
-  padding: 0.25rem 0.6rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  color: var(--color-ink);
-}
-
-.wiki-status {
-  color: var(--color-ink-muted);
-  font-style: italic;
-  font-family: var(--font-ui);
-}
-
-/* Page title: design puts it in chrome; our content starts with `# Title`, so
-   style the in-prose h1 as a title until PageHeader is ported. */
+/* Page title: design puts it in chrome; our markdown starts with `# Title`, so
+   style the in-prose title (used inside views, not the read article). */
 .prose h1 {
   font-family: var(--font-display);
   font-size: var(--text-2xl);
@@ -82,13 +28,7 @@
   margin: 0 0 0.6em;
 }
 
-/* ── Wikilinks + heading anchors (on .prose from base.css) ─────────────────── */
-.wikilink {
-  color: var(--color-accent);
-}
-.wikilink.red {
-  color: var(--color-redlink);
-}
+/* markdown-it-anchor emits a bare `.anchor-link`; reveal it on heading hover. */
 .prose :is(h2, h3, h4) .anchor-link {
   opacity: 0;
   transition: opacity var(--transition-fast);
@@ -98,7 +38,24 @@
   opacity: 1;
 }
 
-/* ── Buttons used by widgets ──────────────────────────────────────────────── */
+/* Non-read views (edit / history / talk) sit in a centered column. */
+.view-wrap {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 1.6rem 1.25rem 3rem;
+}
+.view-title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  margin: 0 0 1.1rem;
+}
+
+.wiki-status {
+  color: var(--color-ink-muted);
+  font-style: italic;
+  font-family: var(--font-ui);
+}
 .link-btn {
   background: none;
   border: none;
@@ -113,54 +70,58 @@
   cursor: default;
 }
 
-/* ── TOC ──────────────────────────────────────────────────────────────────── */
-.toc {
+/* ── Editor (own view styles until edit.jsx is ported) ────────────────────── */
+.editor {
   font-family: var(--font-ui);
-  font-size: var(--text-sm);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 0.75rem 1rem;
-  margin-bottom: 1.5rem;
-  background: var(--color-surface-sunken);
 }
-.toc-title {
-  margin: 0 0 0.4rem;
-  font-weight: 700;
-}
-.toc ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.toc li a {
-  color: var(--color-ink);
-  text-decoration: none;
-}
-.toc li.active a {
-  color: var(--color-accent);
+.editor button {
+  font: inherit;
   font-weight: 600;
+  padding: 0.5rem 0.9rem;
+  border: var(--border-w) solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  cursor: pointer;
 }
-.toc-l3 {
-  padding-left: 1rem;
+.editor button.ghost {
+  background: transparent;
+  color: var(--color-ink);
+  border-color: var(--color-border-strong);
+}
+.editor button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.editor-area {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  padding: 0.85rem;
+  border: var(--border-w) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+.editor-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+}
+.editor-widget {
+  margin-top: 0.75rem;
+}
+.editor-ok {
+  color: var(--color-add-ink);
+}
+.editor-err {
+  color: var(--color-remove-ink);
 }
 
-/* ── Page meta + history + diff ───────────────────────────────────────────── */
-.page-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: baseline;
-  color: var(--color-ink-muted);
-  font-family: var(--font-ui);
-  font-size: var(--text-sm);
-  margin-bottom: 1rem;
-}
-.meta-author {
-  color: var(--color-ink);
-  font-weight: 600;
-}
+/* ── History / diff (own view styles until history.jsx is ported) ─────────── */
 .history {
-  margin: 0 0 1rem;
+  margin: 0 0 1.5rem;
   padding-left: 0;
   list-style: none;
   font-family: var(--font-ui);
@@ -170,8 +131,12 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  padding: 0.35rem 0;
-  border-bottom: 1px solid var(--color-border);
+  padding: 0.45rem 0;
+  border-top: var(--border-w) solid var(--color-border);
+}
+.rev-actions {
+  display: flex;
+  gap: 0.4rem;
 }
 .rev-author {
   font-weight: 600;
@@ -180,15 +145,15 @@
   color: var(--color-ink-muted);
 }
 .diff {
-  border: 1px solid var(--color-border);
+  border: var(--border-w) solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
   margin-bottom: 1.5rem;
 }
 .diff-head {
-  padding: 0.4rem 0.75rem;
+  padding: 0.45rem 0.8rem;
   background: var(--color-surface-sunken);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: var(--border-w) solid var(--color-border);
   font-family: var(--font-mono);
   font-size: var(--text-sm);
 }
@@ -199,7 +164,7 @@
   overflow-x: auto;
 }
 .diff-line {
-  padding: 0 0.75rem;
+  padding: 0 0.8rem;
   white-space: pre-wrap;
 }
 .diff-line.add {
@@ -214,66 +179,14 @@
   color: var(--color-ink-muted);
 }
 
-/* ── Editor ───────────────────────────────────────────────────────────────── */
-.editor {
-  margin-top: 2.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--color-border);
-  font-family: var(--font-ui);
-}
-.editor button {
-  font: inherit;
-  padding: 0.45rem 0.9rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  cursor: pointer;
-}
-.editor button.ghost {
-  background: transparent;
-  color: var(--color-ink);
-}
-.editor button:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-.editor-area {
-  width: 100%;
-  box-sizing: border-box;
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  padding: 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: var(--color-ink);
-}
-.editor-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.6rem;
-}
-.editor-widget {
-  margin-top: 0.75rem;
-}
-.editor-ok {
-  color: var(--color-add-ink);
-}
-.editor-err {
-  color: var(--color-remove-ink);
-}
-
-/* ── Discussion ───────────────────────────────────────────────────────────── */
+/* ── Discussion (own view styles until talk view is ported) ───────────────── */
 .discussion {
-  margin-top: 2.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--color-border);
   font-family: var(--font-ui);
 }
 .discussion-title {
-  font-size: var(--text-lg);
   font-family: var(--font-display);
+  font-size: var(--text-lg);
+  margin: 0 0 1rem;
 }
 .comment-list {
   list-style: none;
@@ -282,7 +195,7 @@
 }
 .comment {
   padding: 0.75rem 0;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: var(--border-w) solid var(--color-border);
 }
 .comment-meta {
   display: flex;
@@ -318,8 +231,8 @@
   width: 100%;
   box-sizing: border-box;
   font: inherit;
-  padding: 0.6rem;
-  border: 1px solid var(--color-border);
+  padding: 0.65rem;
+  border: var(--border-w) solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-ink);

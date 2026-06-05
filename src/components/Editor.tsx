@@ -1,15 +1,18 @@
-import { createSignal, Show } from "solid-js";
+import { createSignal, onMount, Show } from "solid-js";
 import { config } from "../config";
 import { submitEdit } from "../lib/api";
 import { fetchMarkdown, PageNotFoundError } from "../lib/content";
 import { slugFromLocation } from "../lib/slug";
 import { renderTurnstile } from "../lib/turnstile";
 
-export default function Editor(props: { slug?: string }) {
+export default function Editor(props: { slug?: string; open?: boolean }) {
   if (!config.workerUrl) return null;
 
   const slug = () => props.slug ?? slugFromLocation();
   const [open, setOpen] = createSignal(false);
+  onMount(() => {
+    if (props.open) void start();
+  });
   const [draft, setDraft] = createSignal("");
   const [busy, setBusy] = createSignal(false);
   const [prUrl, setPrUrl] = createSignal<string>();

@@ -43,7 +43,7 @@ const RATE_LIMIT_WINDOW_S = 600;
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const headers = corsHeaders(env);
+    const headers = corsHeaders(env, request);
     if (request.method === "OPTIONS") return new Response(null, { headers });
 
     const url = new URL(request.url);
@@ -481,9 +481,17 @@ async function postComment(
   return { ok: true };
 }
 
-function corsHeaders(env: Env): Record<string, string> {
+function corsHeaders(env: Env, request: Request): Record<string, string> {
+  const allowed = (env.ALLOWED_ORIGIN ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const origin = request.headers.get("Origin") ?? "";
+  const allow =
+    allowed.length === 0 ? "*" : allowed.includes(origin) ? origin : allowed[0];
   return {
-    "Access-Control-Allow-Origin": env.ALLOWED_ORIGIN || "*",
+    "Access-Control-Allow-Origin": allow,
+    Vary: "Origin",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
   };
