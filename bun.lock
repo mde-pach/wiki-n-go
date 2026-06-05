@@ -14,6 +14,7 @@
         "dompurify": "^3.2.4",
         "markdown-it": "^14.1.0",
         "markdown-it-anchor": "^9.2.0",
+        "markdown-it-footnote": "^4.0.0",
         "solid-js": "^1.9.5",
         "tailwindcss": "^4.3.0",
       },
@@ -625,6 +626,8 @@
     "markdown-it": ["markdown-it@14.2.0", "http://registry.npmjs.org/markdown-it/-/markdown-it-14.2.0.tgz", { "dependencies": { "argparse": "^2.0.1", "entities": "^4.4.0", "linkify-it": "^5.0.1", "mdurl": "^2.0.0", "punycode.js": "^2.3.1", "uc.micro": "^2.1.0" }, "bin": { "markdown-it": "bin/markdown-it.mjs" } }, "sha512-1TGiQiJVRQ3NPmZH6sx5Cfnmg6GQm9jvC1ch4TK511NjSJvjzKLzn5pPfZRNZkRPZP0HqCioSndqH8v2nRaWVQ=="],
 
     "markdown-it-anchor": ["markdown-it-anchor@9.2.0", "http://registry.npmjs.org/markdown-it-anchor/-/markdown-it-anchor-9.2.0.tgz", { "peerDependencies": { "@types/markdown-it": "*", "markdown-it": "*" } }, "sha512-sa2ErMQ6kKOA4l31gLGYliFQrMKkqSO0ZJgGhDHKijPf0pNFM9vghjAh3gn26pS4JDRs7Iwa9S36gxm3vgZTzg=="],
+
+    "markdown-it-footnote": ["markdown-it-footnote@4.0.0", "", {}, "sha512-WYJ7urf+khJYl3DqofQpYfEYkZKbmXmwxQV8c8mO/hGIhgZ1wOe7R4HLFNwqx7TjILbnC98fuyeSsin19JdFcQ=="],
 
     "markdown-table": ["markdown-table@3.0.4", "http://registry.npmjs.org/markdown-table/-/markdown-table-3.0.4.tgz", {}, "sha512-wiYz4+JrLyb/DqW2hkFJxP7Vd7JuTDm77fvbM8VfEQdmSMqcImWeeRbHwZjBjIFki/VaMK2BhFi7oUUZeM5bqw=="],
 

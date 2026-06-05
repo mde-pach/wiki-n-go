@@ -40,6 +40,15 @@ html.ready body {
   margin: 0 0 0.6em;
 }
 
+/* Footnote bodies render inside a <p>; flatten it into the reflist grid cell. */
+.ref-list li p {
+  margin: 0;
+}
+.cite-tip p {
+  margin: 0;
+  display: inline;
+}
+
 /* markdown-it-anchor emits a bare `.anchor-link`; reveal it on heading hover. */
 .prose :is(h2, h3, h4) .anchor-link {
   opacity: 0;

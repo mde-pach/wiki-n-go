@@ -19,6 +19,7 @@ export default function WikiPage(props: {
 
   async function decorate() {
     if (!body) return;
+    attachCiteTooltips(body);
     await markRedLinks(body);
     document.dispatchEvent(new CustomEvent("wiki:rendered"));
   }
@@ -81,6 +82,56 @@ function ArticleSkeleton() {
       <div class="sk-bar skeleton" style={{ width: "38%" }} />
     </div>
   );
+}
+
+// Hover popover over a `[N]` citation marker showing the reference text.
+function attachCiteTooltips(root: HTMLElement): void {
+  const refs = root.querySelectorAll<HTMLAnchorElement>("a.cite-ref");
+  if (refs.length === 0) return;
+  root.querySelector(".cite-tip")?.remove();
+
+  const tip = document.createElement("div");
+  tip.className = "cite-tip";
+  tip.style.display = "none";
+  root.appendChild(tip);
+  let hideTimer: number | undefined;
+
+  const show = (ref: HTMLAnchorElement) => {
+    const id = ref.getAttribute("href")?.slice(1);
+    const target = id ? root.querySelector(`#${CSS.escape(id)}`) : null;
+    if (!target) return;
+    const clone = target.cloneNode(true) as HTMLElement;
+    clone.querySelector(".ref-backlink")?.remove();
+    const text = clone.querySelector("p")?.innerHTML ?? clone.innerHTML;
+    tip.innerHTML = `<span class="ct-num">${ref.textContent}.</span> ${text}`;
+    tip.style.display = "block";
+    const r = ref.getBoundingClientRect();
+    const left = Math.max(
+      8,
+      Math.min(
+        r.left + r.width / 2 - tip.offsetWidth / 2,
+        window.innerWidth - tip.offsetWidth - 8,
+      ),
+    );
+    tip.style.left = `${left}px`;
+    tip.style.top = `${r.bottom + 8}px`;
+  };
+  const scheduleHide = () => {
+    hideTimer = window.setTimeout(() => {
+      tip.style.display = "none";
+    }, 150);
+  };
+  const cancelHide = () => clearTimeout(hideTimer);
+
+  for (const ref of refs) {
+    ref.addEventListener("mouseenter", () => {
+      cancelHide();
+      show(ref);
+    });
+    ref.addEventListener("mouseleave", scheduleHide);
+  }
+  tip.addEventListener("mouseenter", cancelHide);
+  tip.addEventListener("mouseleave", scheduleHide);
 }
 
 async function markRedLinks(root: HTMLElement): Promise<void> {

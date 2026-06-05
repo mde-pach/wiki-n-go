@@ -1,5 +1,6 @@
 import MarkdownIt from "markdown-it";
 import anchor from "markdown-it-anchor";
+import footnote from "markdown-it-footnote";
 import { wikilink } from "./wikilink";
 
 // Shared markdown-it instance (no DOMPurify, so it runs at build/SSR too).
@@ -13,7 +14,27 @@ export const md = new MarkdownIt({ html: false, linkify: true, typographer: true
       class: "anchor-link",
     }),
   })
+  .use(footnote)
   .use(wikilink);
+
+// Render footnotes with the design's citation markup so the existing
+// `.cite-ref` / `.ref-list` styles apply (Wikipedia-style `[1]` + reflist).
+const citeMark = (n: number, sub: number) => `cite-${n}-${sub + 1}`;
+md.renderer.rules.footnote_ref = (tokens, idx) => {
+  const n = tokens[idx].meta.id + 1;
+  const mark = citeMark(n, tokens[idx].meta.subId);
+  return `<a class="cite-ref" id="${mark}" href="#ref-${n}" aria-label="Citation ${n}">${n}</a>`;
+};
+md.renderer.rules.footnote_block_open = () =>
+  '<section class="references" aria-label="References"><ol class="ref-list">\n';
+md.renderer.rules.footnote_block_close = () => "</ol></section>\n";
+md.renderer.rules.footnote_open = (tokens, idx) =>
+  `<li id="ref-${tokens[idx].meta.id + 1}" class="ref-target">`;
+md.renderer.rules.footnote_close = () => "</li>\n";
+md.renderer.rules.footnote_anchor = (tokens, idx) => {
+  const n = tokens[idx].meta.id + 1;
+  return ` <a href="#${citeMark(n, tokens[idx].meta.subId)}" class="ref-backlink" aria-label="Back to text">↑</a>`;
+};
 
 function slugifyHeading(s: string): string {
   return s

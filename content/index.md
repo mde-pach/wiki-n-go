@@ -1,8 +1,8 @@
 # Welcome to the Wiki
 
-This page is **served from GitHub via jsDelivr** and rendered in your browser at
+This page is **served from GitHub via jsDelivr**[^cdn] and rendered in your browser at
 runtime. Editing this file and committing it updates the page **with no
-rebuild** — the reader always fetches the latest commit.
+rebuild**[^norebuild] — the reader always fetches the latest commit.
 
 ## How it works
 
@@ -16,3 +16,10 @@ See [[getting-started]] for the next steps — or open a page that doesn't exist
 yet, like [[example draft]], to see a red link you can create.
 
 _Edited live to prove the no-rebuild path._
+
+## References
+
+[^cdn]: jsDelivr serves any file from a public GitHub repo, pinned to a commit
+    SHA — see [jsdelivr.com/github](https://www.jsdelivr.com/github).
+[^norebuild]: Because content is fetched at runtime, a commit is live as soon as
+    the CDN cache refreshes — no site build runs on publish.
