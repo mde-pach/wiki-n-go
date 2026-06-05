@@ -2,6 +2,7 @@ node_modules/
 dist/
 .design/
 .astro/
+.claude/worktrees/
 .DS_Store
 *.log
 .env
