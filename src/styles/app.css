@@ -40,6 +40,22 @@ html.ready body {
   margin: 0 0 0.6em;
 }
 
+.prose figure.figure {
+  margin: 1.4em 0;
+  text-align: center;
+}
+.prose figure.figure img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+.prose figure.figure figcaption {
+  margin-top: 0.5rem;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
 .category-list {
   list-style: none;
   padding: 0;

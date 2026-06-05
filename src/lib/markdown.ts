@@ -1,6 +1,7 @@
 import MarkdownIt from "markdown-it";
 import anchor from "markdown-it-anchor";
 import footnote from "markdown-it-footnote";
+import { figures } from "./figures";
 import { type PageMeta, parseFrontmatter } from "./frontmatter";
 import { wikilink } from "./wikilink";
 
@@ -16,6 +17,7 @@ export const md = new MarkdownIt({ html: false, linkify: true, typographer: true
     }),
   })
   .use(footnote)
+  .use(figures)
   .use(wikilink);
 
 // Render footnotes with the design's citation markup so the existing
