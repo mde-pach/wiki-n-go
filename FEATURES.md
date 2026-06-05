@@ -148,13 +148,139 @@ only **one** level), reusing the same marker trick as `anon-<hash>`.
 ---
 
 ## Already shipped (data + plumbing)
-- ✅ Read path (no-rebuild render), anonymous edit→PR, anonymous Talk/discussion.
-- ✅ Moderation: Turnstile, rate-limit, bans, slug hardening.
-- ✅ Foundation: Tailwind + theme tokens; **page manifest** (`/pages`).
+- ✅ Read path (no-rebuild render), anonymous edit→PR, anonymous Talk/discussion (threaded, topic-organized).
+- ✅ Reading core: heading anchors, `[[wikilinks]]` + red links, TOC (active-section + mobile), last-edited line.
+- ✅ References/footnotes + citation hover tooltips; captioned figures.
+- ✅ Frontmatter layer: infobox, categories (chips + `/category/<tag>`), hatnotes, maintenance banners.
+- ✅ Per-section `[edit]` links; live preview; edit-summary; History (`/history` + `/diff`).
+- ✅ Moderation: Turnstile, rate-limit, `bans.json`, slug hardening. Foundation: Tailwind tokens + skins, `/pages` manifest.
 
-## Next build order (design-independent first, styled when the design lands)
-1. ✅ **Reading core:** heading anchors, **`[[wikilinks]]` + red links**, **TOC** (active-section
-   highlight), **"last edited by `anon-<hash>`"** line.
-2. ✅ **History:** Worker `/history` + `/diff` → revision list (cur/prev diffs) + colored diff view.
-3. **Editor DX (P0, next):** live preview, edit-summary field, create-page polish.
-4. **Then:** section edit, references, infobox, search, categories, Talk threading, skins.
+## Remaining page-level polish (P2)
+- ⬜ Lead-section emphasis / bold title term · ⬜ wikilink **hover page previews** · ⬜ Talk **@mention** linkify
+- ⬜ Named-ref **reuse** + grouped notes · ⬜ citation templates · ⬜ richer full-text search · ⬜ `/design` tokens route
+
+---
+
+# PART II — Beyond the page: autonomous editing, governance & moderation
+
+Research-derived (en.wikipedia.org + mediawiki.org, verified 2024–2025). The owner wants to
+**also** offer a Wikipedia-like *autonomous* model (immediate publish + post-hoc moderation),
+plus an **owner admin dashboard**. Wikipedia's *default* is immediate-publish; approval-before-display
+(Pending Changes) is the selective exception. Today wiki-n-go is the inverse (every edit is a
+reviewed PR). The arc below is: **invert the default, then re-apply review selectively, and give the
+owner the console to run it.**
+
+**Architecture mapping in one breath:** most Wikipedia *actions* (move/delete/protect/revert) become
+**git ops inside a commit/PR**; most *special pages* become **read-time reports the Worker computes from
+the repo tree + git log + parsed `[[links]]`/tags** (cache in KV, recompute on push — no content rebuild);
+most *namespaces* become **directory prefixes**; *talk* is **GitHub Discussions**. New state (trust tiers,
+filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a second service (invariant holds).
+
+**Two standing privacy invariants (record in SPEC):**
+- We store **only an HMAC `ip_hash`, never a raw IP/PII** — *stronger* than Wikipedia, whose 2025
+  "Temporary Accounts" still retains IPs for a privileged reveal. So **CheckUser / IP-reveal cannot exist
+  here by design**, and **CIDR/range-blocking is impossible** (hashing destroys adjacency). Accept as a
+  deliberate cost; lean on PR review + per-hash rate limits + CAPTCHA instead.
+- A fixed salt makes `anon-<hash>` **permanently linkable**. Wikipedia rotates temp names ~90 days →
+  **evaluate periodic salt/epoch rotation** to cap long-horizon profiling.
+
+## K. Editing model — autonomous publish + post-hoc moderation
+| Wikipedia mechanism | Ours (GitHub-backed) | St | Pri |
+|---|---|---|---|
+| **Immediate publish** (most edits go live instantly) | Worker **direct-commit / auto-merge** path to `main` → live on CDN (purge jsDelivr on commit) | ⬜ | P0 |
+| **Pending Changes / FlaggedRevs** (hold untrusted edits on select pages) | the **current PR-review flow**, but made **per-path** not global (see §L protection) | 🟡 | P0 |
+| **Edit conflicts** (base-rev compare → diff3 auto-merge; manual only on overlap) | capture **base commit SHA**; 3-way merge onto `main`; conflict view only on overlapping hunks | ⬜ | P1 |
+| Edit summary · minor-edit flag | commit message / PR title; `Minor:` trailer or label | 🟡 | P1 |
+| **Undo** one edit · **restore to revision** | inverse-patch commit · `git checkout <sha> -- path` | ⬜ | P1 |
+| **Rollback** (1-click revert a contributor's trailing run) | privileged Worker endpoint, gated by tier, rate-limited | ⬜ | P1 |
+| CAPTCHA only for risky/untrusted edits (autoconfirmed exempt) | Turnstile on untrusted `ip_hash` / external-link adds; **exempt trusted tiers** | 🟡 | P1 |
+
+## L. Trust tiers & page protection (earned autonomy)
+| Wikipedia mechanism | Ours | St | Pri |
+|---|---|---|---|
+| **Autoconfirmed** (≥10 edits & ≥4 days) | Worker **trust ledger** on `ip_hash`: N clean merged edits over M days → flips to auto-merge | ⬜ | P0 |
+| **Extended-confirmed** (≥500 & ≥30 days) | higher tier unlocking sensitive paths | ⬜ | P1 |
+| **Autopatrolled / Reviewer / Rollbacker** (human-granted) | maintainer-curated `trusted-editors.json` / GitHub team → auto-merge & approve others | ⬜ | P1 |
+| **Protection levels** (semi / extended-confirmed / full / create / move / cascading; temp vs indefinite) | per-path `protection.json` (required tier + `expires`) the Worker enforces; **full** = branch protection + **CODEOWNERS** | ⬜ | P0 |
+| Protection edit-notices (`{{pp}}`) | per-path "protected / under review" banner (UI metadata) | ⬜ | P2 |
+| *Note:* auto tiers are gameable via IP rotation | keep auto thresholds modest; reserve real power for human-granted tiers | — | — |
+
+## M. Moderation, anti-vandalism & patrol
+| Wikipedia mechanism | Ours | St | Pri |
+|---|---|---|---|
+| **RecentChanges** feed (+ New-Filters: anon/bot/minor/size/namespace/experience/risk) | feed over `git log`/merged PRs; same filter vocabulary as query params | ⬜ | P0 |
+| Live patrol stream (EventStreams) | Worker SSE/webhook fan-out of commit/merge events | ⬜ | P2 |
+| **Patrol flag / autopatrol**; new pages **noindex** until reviewed | per-edit "reviewed" bit + maintainer **patrol queue**; unpatrolled pages get `noindex` | ⬜ | P1 |
+| **New Pages Patrol** + Page Curation toolbar | separate queue for *file-creation* PRs; reviewer overlay (approve / tag / propose-delete / message author) | ⬜ | P1 |
+| **AbuseFilter** (rules: tag/warn/throttle/disallow/auto-ban, pre-publish) | Worker rule engine over the diff (`filters.json`, CODEOWNERS-gated) — **the workhorse of immediate-publish safety** | ⬜ | P0 |
+| Spam/title/link blacklists | versioned blocklist files the Worker checks (refuse spam-domain / bad-title PRs) | ⬜ | P1 |
+| Change **tags** (`mw-blank`, `mw-reverted`, mobile…) | auto-label edits at ingest (new-page, blanking, large-removal, revert, source) → drive RC filters | ⬜ | P1 |
+| **Revert-risk score** (Lift Wing / language-agnostic model, ~80%) | per-diff risk score (heuristics → model): byte/removal ratio, link churn, hash history → gates autopatrol & auto-revert | ⬜ | P1 |
+| **Automoderator / ClueBot** (configurable auto-revert + FP reporting + dashboard) | bot identity auto-reverts high-confidence vandalism; threshold config, trusted allowlist, FP-report Discussion, per-page revert cap | ⬜ | P2 |
+| **3RR** (>3 reverts/24h → block) | Worker detects revert-churn per `ip_hash`/path → throttle / flag / temp-ban | ⬜ | P1 |
+| Assisted-revert UI (Twinkle/Huggle/Ultraviolet) | in-site reviewer action menu (revert · warn · propose-delete · protect · report) over Worker endpoints | ⬜ | P2 |
+| Maintenance tags → backlog categories | `{{citation needed}}`-style markers → Worker-computed cleanup backlogs | ⬜ | P2 |
+| Content **assessment** (Stub→…→GA/FA; ML-predicted) | frontmatter grade + optional quality model; GA = single-reviewer, FA = multi-reviewer sign-off | ⬜ | P2 |
+
+## N. Governance, roles & the **owner admin dashboard**
+| Wikipedia mechanism | Ours | St | Pri |
+|---|---|---|---|
+| **Sysop** (block/delete/protect/view-deleted) | **owner dashboard = the sysop console**: edit `bans.json` / `protection.json`, revert, view git history | ⬜ | P0 |
+| **Bureaucrat** (grant rights) / **Steward** | owner manages GitHub team + CODEOWNERS (dashboard "grant reviewer") | 🟡 | P1 |
+| **Interface-admin** (site JS/CSS is higher-risk than content) | CODEOWNERS-gate Worker/front-end/`filters.json` to a tiny trusted set — treat as strictly more dangerous than content-merge | ⬜ | P1 |
+| **Bot account** (flagged, scoped, auditable) | the Worker's authenticated token *is* this — every anon edit attributed through it | ✅ | — |
+| **Blocks**: sitewide · **partial** (path/namespace) · IP/range · autoblock | `bans.json` entries, **path-scoped** for partial; exact-hash only (no range); autoblock is implicit (hash = the identity) | 🟡 | P1 |
+| **Bans** (community vs ArbCom) as decisions enforced by blocks | record *authority/reason* on `bans.json` entries; lightweight Discussion-consensus to authorize | ⬜ | P2 |
+| **CheckUser** (IP correlation) | **impossible by design** — exact-`ip_hash` match only; document as intentional | ⊘ | — |
+| **Oversight / RevDel / Suppression** (hide revisions even from admins) | render-time **redaction layer** (hide diff/summary/author) + owner-only **hard-purge** (history rewrite + CDN purge + delete source PR/Discussion) — the one place the no-rebuild invariant bends | ⬜ | P1 |
+| **Logs** (block/delete/protect/rights/move/abuse) | git history = most of it **for free**; append-only audit log for dashboard actions; private suppression log | 🟡 | P1 |
+| Dispute resolution: talk → **RfC** → noticeboards (**ANI/AIV/3RR**) → **ArbCom**; **RfA** | Discussions categories (RfC, incidents, vandalism fast-lane); owner = final authority; future EC-gated grant process | ⬜ | P2 |
+
+## O. Content lifecycle (deletion · move · redirect · merge · drafts)
+| Wikipedia mechanism | Ours | St | Pri |
+|---|---|---|---|
+| Deletion: **CSD** (speedy) · **PROD** (7-day quiet) · **AfD** (discussion) | all = a **delete PR**, differing by *who merges* + *wait*: fast-merge label / 7-day auto-merge-unless-objected / Discussion consensus | ⬜ | P1 |
+| **Undeletion** + deletion log | restore from git (`git checkout <sha>^ -- path`) — **trivial advantage**; log = merged delete PRs | ⬜ | P1 |
+| **Move/rename** (leaves redirect; history follows) | `git mv` in a PR — history follows **natively**; write a redirect stub at the old path | 🟡 | P1 |
+| Move-over-redirect / round-robin / **history-merge** | **dissolved by git** (swap = two `git mv`s; `--follow` preserves attribution); lint copy-paste moves | ⬜ | P2 |
+| **Redirects** (`#REDIRECT`); double/broken redirects | redirect frontmatter the Worker honors; reports flag chains>1 & missing targets (auto-fix doubles) | ⬜ | P1 |
+| **Merge / split** (with attribution) | content PR + redirect stub; **attribution is free** in git (no dummy-edit trick); `merged_from:`/`split_from:` frontmatter | ⬜ | P2 |
+| **Drafts** / AfC / sandboxes | the open **PR is already the draft**; or a non-indexed `drafts/` tree promoted via `git mv` | 🟡 | P2 |
+| **Article/creation wizard** (red link → create) | guided Worker UI pre-filling frontmatter (title, short-desc, infobox skeleton, stub refs) | 🟡 | P1 |
+
+## P. Structure: namespaces · templates · special pages · the link graph
+| Wikipedia mechanism | Ours | St | Pri |
+|---|---|---|---|
+| **Namespaces** (Article/Talk/User/Project/Template/Category/File/Help/Draft/Module) | **directory prefixes** (`meta/`, `templates/`, `help/`, `drafts/`, `media/`); Talk = Discussions; decide prefix-vs-frontmatter early | 🟡 | P1 |
+| **Templates / transclusion** (params, `{{subst:}}`) | Markdown **partials/includes** resolved by the Worker; infobox/banners already are templates | 🟡 | P2 |
+| **Navboxes** | bottom link-grid partial driven by a shared data file | ⬜ | P2 |
+| **Lua/Scribunto modules**, full parser functions | **out of scope** (conflicts with single-Worker invariant); minimal magic-words only (`noindex`, `notoc`) | ⊘ | — |
+| **The link graph** (invert `[[links]]`+includes+tags) | **keystone** — one inverted index unlocks ~10 special pages | ⬜ | P0 |
+| **Special pages**: WhatLinksHere · RecentChanges · Random · Stats · Orphaned · Wanted (=red links) · Dead-end · Double/Broken redirects · Long/Short · MostLinked · AllPages · PageInfo | Worker-computed from tree + git log + link graph (cache in KV; recompute on push) | ⬜ | P1 |
+| **Export** | `git clone` **is** the export — already true | ✅ | — |
+| **Permalink to a revision** (`oldid`) | route to a page **at a commit SHA** (`/page@<sha>`) | 🟡 | P1 |
+| **Short description** | frontmatter `description:` → search snippets, `<meta>`, hover previews, disambiguation | ⬜ | P1 |
+| **Citoid** (auto-cite from URL/DOI/ISBN) | Worker endpoint: fetch URL/DOI/ISBN → metadata → citation partial — **high ROI, pure HTTP, no new service** | ⬜ | P1 |
+| Categories: pages · subcats · hidden/maintenance · **intersection** | already have tag chips + `/category`; add member pages, hierarchy, hidden cats, boolean tag intersection | 🟡 | P2 |
+| Files: description pages + **license** metadata; Commons | sidecar frontmatter per asset (source/author/license); Worker flags unlicensed; shared `media/` (serve binaries from CDN/R2, not git) | ⬜ | P2 |
+
+## Q. Identity, notifications & community (two-tier: anon vs GitHub account)
+| Wikipedia mechanism | Ours | St | Pri |
+|---|---|---|---|
+| **Temporary Accounts** (`~2025-NNN`, IP masked, 90-day) | our `anon-<hash>` is the precedent realized **more privately** (no reveal tier); show pseudonym in history/talk | ✅ | — |
+| Account login (optional) / SUL / 2FA / OAuth | **offload entirely to GitHub** ("Sign in with GitHub"); no own credential store | ⬜ | P2 |
+| **User contributions** (per-user history) | filter git log / PRs by author (GitHub handle or `anon-<hash>`) | ⬜ | P1 |
+| **Watchlist** + **Echo notifications** (pings, reverts, thanks) | **account-path only** (needs durable, reachable identity): GitHub watch/subscribe + native @mention/reaction/email; anon has no inbox by design | ⬜ | P2 |
+| **Thanks** / reactions · barnstars/WikiLove | GitHub reactions on commit/PR/Discussion; kudos templated post (account path) | ⬜ | P2 |
+| **Pageview analytics** ("watched by N", with privacy threshold) | edge-counted per-path views (privacy-safe, no identity); apply min-count threshold | ⬜ | P2 |
+| Appearance (dark mode) for **logged-out** readers | already have skins+theme via cookie/localStorage — keep anon-accessible | ✅ | — |
+| Community spaces: Village Pump · Teahouse · WikiProjects | pinned **Discussions categories** (Policy/Proposals/Technical/Help) | 🟡 | P2 |
+| Growth: newcomer homepage · **structured "Add a Link" tasks** · guided tours · mentorship | guided onboarding tour + structured micro-edits (anon-friendly → small PRs); homepage/mentorship are account-path | ⬜ | P2 |
+
+### The "autonomous mode" critical path (smallest set to flip the default safely)
+1. **Direct-commit/auto-merge** path (§K) + jsDelivr purge — the core flip.
+2. **`protection.json` per-path tiers** + CODEOWNERS (§L) — make review *selective*.
+3. **Trust ledger on `ip_hash`** (autoconfirmed analog, §L) — earned autonomy. *Highest leverage.*
+4. **AbuseFilter-style Worker rules + per-hash rate limits** (§M) — pre-publish safety net.
+5. **RecentChanges feed + patrol queue + `noindex`-until-patrolled** (§M) — post-hoc moderation surface.
+6. **Rollback/undo/restore + `bans.json` partial blocks** (§K/§N) — fast cleanup, all in the **owner dashboard** (§N).

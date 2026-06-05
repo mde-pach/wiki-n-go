@@ -186,6 +186,19 @@ trust gradient):
   rate-limit binding, OR derive from git (count recent commits by author), OR
   lean on the PR queue. Decision pending (§9).
 
+**Planned evolution — autonomous mode (Wikipedia-like).** The reviewed-PR default
+above is Wikipedia's *exception* (Pending Changes), not its norm. We will **also**
+offer immediate-publish + post-hoc moderation: `ip_hash` **trust tiers**
+(autoconfirmed/extended-confirmed analogs) earn auto-merge; per-path
+`protection.json` + CODEOWNERS keep review *selective*; an AbuseFilter-style Worker
+rule pass + per-hash rate limits + a RecentChanges/patrol queue (with
+`noindex`-until-patrolled) provide the safety net; an **owner admin dashboard** is
+the sysop console (bans, protection, patrol, rollback, audit log). Full feature
+inventory + GitHub mapping: see `FEATURES.md` **Part II** (§§K–Q). Privacy invariant
+holds and is *stronger* than Wikipedia's: `ip_hash`-only means **no CheckUser /
+IP-reveal can exist** and **range-blocking is impossible** by design — accepted
+costs; consider salt/epoch rotation to limit long-term linkability (M5).
+
 ---
 
 ## 8. Tech Stack
@@ -246,6 +259,36 @@ trust gradient):
 - [x] ✅ Multi-host deploy buttons (Netlify / Vercel / Cloudflare) in README.
 - [ ] ⬜ (Optional) edge-SSR variant for SEO.
 
+### M4.5 — Wikipedia page features ✅ (mostly)
+- [x] ✅ References/footnotes + citation hover tooltips; captioned figures.
+- [x] ✅ Frontmatter layer → infobox, categories (chips + `/category/<tag>`), hatnotes, maintenance banners.
+- [x] ✅ Per-section `[edit]` links; TOC (desktop + mobile); icons; self-hosted fonts.
+- [ ] ⬜ P2 polish: hover page previews, @mention linkify, named-ref reuse, citation templates, richer search.
+
+### M5 — Autonomous editing mode (immediate publish + post-hoc moderation) ⬜
+Invert the default selectively. Critical path (see `FEATURES.md` §§K–N):
+- [ ] ⬜ Worker **direct-commit / auto-merge** path + jsDelivr cache purge on commit.
+- [ ] ⬜ `protection.json` per-path required-tier (+ `expires`) + CODEOWNERS for full protection.
+- [ ] ⬜ **Trust ledger** on `ip_hash` (KV/D1 bound to the Worker): autoconfirmed/extended-confirmed analogs → auto-merge.
+- [ ] ⬜ AbuseFilter-style rule pass (`filters.json`) + spam/title blocklists; per-hash rate limits; change-tagging.
+- [ ] ⬜ Revert-risk heuristic score on diffs; 3RR revert-churn detection.
+- [ ] ⬜ Consider `ip_hash` salt/epoch rotation (cap long-term linkability).
+
+### M6 — Owner admin dashboard & governance ⬜
+The sysop console for the autonomous model (see `FEATURES.md` §N):
+- [ ] ⬜ RecentChanges feed (from `git log`/PRs) + **patrol queue** + `noindex`-until-patrolled.
+- [ ] ⬜ One-click **rollback / undo / restore**; partial (path-scoped) blocks in `bans.json`.
+- [ ] ⬜ Protection & rights management (CODEOWNERS / GitHub team) from the dashboard; append-only audit log.
+- [ ] ⬜ **Oversight/suppression**: render-time redaction + owner-only hard-purge (history rewrite + CDN purge).
+- [ ] ⬜ New-Pages queue + Page-Curation-style reviewer overlay; deletion flow (CSD/PROD/AfD via PR policy).
+
+### M7 — Special pages & content lifecycle ⬜
+Read-time reports + git-native operations (see `FEATURES.md` §§O–P):
+- [ ] ⬜ **Link graph** (invert `[[links]]`+includes+tags) — keystone for WhatLinksHere/orphans/wanted/dead-end/redirects.
+- [ ] ⬜ Special pages: RecentChanges, Random, Stats, AllPages, PageInfo, double/broken redirects, MostLinked.
+- [ ] ⬜ Move/rename (`git mv` + redirect stub); redirects; merge/split; drafts; creation wizard.
+- [ ] ⬜ Short descriptions; permalink-by-SHA (`/page@<sha>`); **Citoid-style auto-cite** (URL/DOI/ISBN).
+
 ---
 
 ## 10. Open Decisions
@@ -283,3 +326,9 @@ trust gradient):
 | 2026-06-04 | Avoid Vercel Hobby (non-commercial only) | Prefer Cloudflare / GitHub Pages / Netlify |
 | 2026-06-05 | Drop giscus for discussion; build anonymous comments on the Worker | giscus required a GitHub login — broke the no-account principle |
 | 2026-06-05 | Talk topic = one titled Discussion; arbitrary-depth replies via a reply-to marker rebuilt client-side | GitHub Discussions nest only one level; markers give Wikipedia-style threads without a DB |
+| 2026-06-05 | Page metadata via YAML **frontmatter** (infobox, tags, hatnote, banner, short-desc) | One declarative source per page; renders at runtime, no rebuild |
+| 2026-06-05 | Adopt Wikipedia's **immediate-publish + post-hoc moderation** as a planned mode (not just reviewed-PR) | Reviewed-PR is Wikipedia's *exception*; autonomy needs the inverted default (M5) |
+| 2026-06-05 | Autonomy = **`ip_hash` trust tiers** + per-path `protection.json`/CODEOWNERS, not a global switch | Mirrors autoconfirmed/Pending-Changes; keeps review selective; highest-leverage piece |
+| 2026-06-05 | **`ip_hash`-only privacy is an invariant, accepted to forgo CheckUser/range-block** | No raw IP exists to reveal — stronger than WP's Temporary Accounts; lean on PR review + rate limits |
+| 2026-06-05 | Owner **admin dashboard** = the sysop console (bans, protection, patrol, rollback, audit, suppression) | Centralizes moderation actions that don't flow through a normal PR (M6) |
+| 2026-06-05 | Lean on **git for free**: undelete, move/merge attribution, logs, permalinks, export | Git dissolves Wikipedia's hardest admin chores — expose, don't reimplement |
