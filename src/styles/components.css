@@ -530,47 +530,74 @@ html[data-width="wide"] .article {
   max-width: none;
 }
 
-/* Appearance menu (color / width / skin) */
+/* Appearance → Text size: scale the reading column. */
+html[data-textsize="small"] {
+  --reading-scale: 0.875;
+}
+html[data-textsize="large"] {
+  --reading-scale: 1.125;
+}
+.article {
+  font-size: calc(var(--text-base) * var(--reading-scale, 1));
+}
+
+/* Appearance rail (Vector-2022 style: text size / width / color / skin) */
 .appearance {
-  position: relative;
-}
-.appearance-btn {
-  gap: 0.35rem;
-}
-.ap-panel {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: var(--z-pop);
-  width: 250px;
-  background: var(--color-surface);
-  border: var(--border-w) solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-pop);
-  padding: 0.85rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-.ap-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-.ap-label {
+  position: sticky;
+  top: calc(var(--header-h) + 18px);
+  margin-top: 1.5rem;
   font-family: var(--font-ui);
+  font-size: var(--text-sm);
+}
+.appearance .ap-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.85rem;
+  border-bottom: var(--border-w) solid var(--color-border);
+}
+.appearance.is-collapsed .ap-head {
+  border-bottom: 0;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+.appearance .ap-title {
+  font-weight: 700;
+  font-size: var(--text-md);
+  color: var(--color-ink);
+}
+.appearance .ap-toggle {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--color-accent);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+}
+.appearance .ap-sec {
+  border: 0;
+  margin: 0 0 1rem;
+  padding: 0;
+}
+.appearance .ap-sec-title {
+  padding: 0;
+  margin-bottom: 0.4rem;
   font-size: var(--text-xs);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--color-ink-subtle);
 }
-.ap-row .seg {
+.appearance .ap-opt {
   display: flex;
-  width: 100%;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.22rem 0;
+  cursor: pointer;
+  color: var(--color-ink);
 }
-.ap-row .seg button {
-  flex: 1;
-  justify-content: center;
+.appearance .ap-opt input {
+  accent-color: var(--color-accent);
 }
 
 /* ---- Table of contents --------------------------------------------------- */

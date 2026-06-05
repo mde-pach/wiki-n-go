@@ -18,8 +18,14 @@ const home = import.meta.env.BASE_URL;
           const d = doc.documentElement;
           const saved = localStorage.getItem("wng-skin");
           d.dataset.skin = skins.includes(saved) ? saved : "wiki-n-go";
-          d.dataset.theme = localStorage.getItem("wng-theme") || "light";
+          const pref = localStorage.getItem("wng-theme") || "light";
+          d.dataset.theme =
+            pref === "dark" ||
+            (pref === "auto" && matchMedia("(prefers-color-scheme: dark)").matches)
+              ? "dark"
+              : "light";
           d.dataset.width = localStorage.getItem("wng-width") || "standard";
+          d.dataset.textsize = localStorage.getItem("wng-textsize") || "standard";
         };
         apply(document);
         const ready = () => document.documentElement.classList.add("ready");

@@ -1,4 +1,5 @@
 ---
+import Appearance from "../components/Appearance.tsx";
 import Infobox from "../components/Infobox.tsx";
 import Toc from "../components/Toc.tsx";
 import TocMobile from "../components/TocMobile.tsx";
@@ -41,6 +42,9 @@ const html = parsed
       <TocMobile initialItems={parsed?.headings ?? []} client:load />
       <WikiPage slug={pageSlug} initialHtml={html} initialRaw={raw} meta={parsed?.meta} client:load />
     </div>
-    <div class="col-info"><Infobox slug={pageSlug} meta={parsed?.meta} client:load /></div>
+    <div class="col-info">
+      <Infobox slug={pageSlug} meta={parsed?.meta} client:load />
+      <Appearance client:load />
+    </div>
   </main>
 </PageShell>

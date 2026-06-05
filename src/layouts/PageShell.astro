@@ -1,7 +1,6 @@
 ---
 import "../styles/app.css";
 import { ClientRouter } from "astro:transitions";
-import Appearance from "../components/Appearance.tsx";
 import PageMeta from "../components/PageMeta.tsx";
 import Search from "../components/Search.tsx";
 import { config } from "../config";
@@ -58,8 +57,12 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
           const d = doc.documentElement;
           const saved = localStorage.getItem("wng-skin");
           d.dataset.skin = skins.includes(saved) ? saved : "wiki-n-go";
-          d.dataset.theme = localStorage.getItem("wng-theme") || "light";
+          const pref = localStorage.getItem("wng-theme") || "light";
+          const dark = pref === "dark" ||
+            (pref === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
+          d.dataset.theme = dark ? "dark" : "light";
           d.dataset.width = localStorage.getItem("wng-width") || "standard";
+          d.dataset.textsize = localStorage.getItem("wng-textsize") || "standard";
         };
         apply(document);
         const ready = () => document.documentElement.classList.add("ready");
@@ -82,7 +85,6 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
           </a>
           <Search client:load />
           <div class="header-actions">
-            <Appearance client:load />
             <button class="btn btn-outline btn-sm signin" disabled>Sign in</button>
           </div>
         </div>
