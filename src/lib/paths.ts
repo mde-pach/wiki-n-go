@@ -15,17 +15,32 @@ export function prettify(slug: string): string {
   return s.replace(/-/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 }
 
-// Map the current URL to a view + slug. The edit/history/talk prefixes select a
-// view; everything else is a read.
-export function parseRoute(): { view: View; slug: string } {
+// URL-safe slug for a category tag, e.g. "Wiki software" → "wiki-software".
+export function slugifyTag(tag: string): string {
+  return tag
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-");
+}
+
+export function categoryHref(tag: string): string {
+  return `${BASE}/category/${slugifyTag(tag)}`;
+}
+
+// Map the current URL to a view + slug. The edit/history/talk/category prefixes
+// select a view; everything else is a read.
+export function parseRoute(): { view: View | "category"; slug: string } {
   let path = window.location.pathname;
   if (BASE && path.startsWith(BASE)) path = path.slice(BASE.length);
   path = path.replace(/^\/+/, "").replace(/\/+$/, "");
-  for (const v of ["edit", "history", "talk"] as const) {
+  for (const v of ["edit", "history", "talk", "category"] as const) {
     if (path === v || path.startsWith(`${v}/`)) {
       return {
         view: v,
-        slug: path.slice(v.length).replace(/^\/+/, "") || config.homeSlug,
+        slug:
+          path.slice(v.length).replace(/^\/+/, "") ||
+          (v === "category" ? "" : config.homeSlug),
       };
     }
   }

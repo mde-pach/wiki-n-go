@@ -40,6 +40,19 @@ html.ready body {
   margin: 0 0 0.6em;
 }
 
+.category-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  columns: 2;
+  gap: 2rem;
+  font-family: var(--font-ui);
+}
+.category-list li {
+  padding: 0.3rem 0;
+  break-inside: avoid;
+}
+
 /* Hatnote: italic disambiguation note above the lead (Wikipedia convention). */
 .hatnote {
   font-family: var(--font-ui);

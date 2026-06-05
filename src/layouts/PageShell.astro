@@ -5,14 +5,15 @@ import PageMeta from "../components/PageMeta.tsx";
 import Search from "../components/Search.tsx";
 import ThemeToggle from "../components/ThemeToggle.tsx";
 import { config } from "../config";
-import { BASE, prettify, readHref, type View } from "../lib/paths";
+import { BASE, categoryHref, prettify, readHref, type View } from "../lib/paths";
 
 interface Props {
   slug: string;
   view: View;
   title?: string;
+  categories?: string[];
 }
-const { slug, view, title } = Astro.props;
+const { slug, view, title, categories } = Astro.props;
 
 const read = readHref(slug);
 const href = {
@@ -105,10 +106,18 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
 
       <footer class="site-footer">
         <div class="footer-inner">
-          <div class="cat-row">
-            <span class="cat-label">Categories</span>
-            <span class="chip">Wiki</span>
-          </div>
+          {
+            categories && categories.length > 0 && (
+              <div class="cat-row">
+                <span class="cat-label">Categories</span>
+                {categories.map((c) => (
+                  <a class="chip chip-link" href={categoryHref(c)}>
+                    {c}
+                  </a>
+                ))}
+              </div>
+            )
+          }
           <div class="footer-bottom">
             <p class="fb-license">
               Text is available under the CC BY-SA 4.0 license; the wiki-n-go software is

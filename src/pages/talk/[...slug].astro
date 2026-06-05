@@ -10,9 +10,9 @@ export function getStaticPaths() {
 
 const { slug } = Astro.params;
 const raw = rawPage(slug);
-const title = raw ? parsePage(raw).title : undefined;
+const parsed = raw ? parsePage(raw) : null;
 ---
 
-<PageShell slug={slug} view="talk" title={title}>
+<PageShell slug={slug} view="talk" title={parsed?.title} categories={parsed?.meta?.tags}>
   <main id="main" class="view-wrap"><Discussion slug={slug} client:load /></main>
 </PageShell>
