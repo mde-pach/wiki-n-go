@@ -5,6 +5,7 @@ import PageMeta from "../components/PageMeta.tsx";
 import Search from "../components/Search.tsx";
 import ThemeToggle from "../components/ThemeToggle.tsx";
 import { config } from "../config";
+import { gitRevisions } from "../lib/git";
 import { BASE, categoryHref, prettify, readHref, type View } from "../lib/paths";
 
 interface Props {
@@ -15,6 +16,7 @@ interface Props {
 }
 const { slug, view, title, categories } = Astro.props;
 
+const revisions = gitRevisions(slug);
 const read = readHref(slug);
 const href = {
   read,
@@ -84,7 +86,7 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
           </nav>
           <h1 class="page-title">{display}</h1>
           <div class="page-meta-slot">
-            <PageMeta slug={slug} base={BASE} client:load />
+            <PageMeta slug={slug} base={BASE} initial={revisions} client:load />
           </div>
           <nav class="tabbar" aria-label="Page views">
             {

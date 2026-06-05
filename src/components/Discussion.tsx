@@ -44,12 +44,31 @@ export default function Discussion(props: { slug?: string }) {
   });
 
   const [openId, setOpenId] = createSignal<string>();
-  const [thread, { refetch: refetchThread }] = createResource(openId, getThread);
+  // Cache fetched threads so re-opening a topic is instant — without it the
+  // panel blinks back through a skeleton on every open. A cached thread does no
+  // network at all; `reconcile` keeps row identity so a post-reply refresh
+  // updates in place rather than re-rendering (and re-flashing) the whole tree.
+  const [threads, setThreads] = createStore<Record<string, Thread>>({});
+  const thread = () => {
+    const id = openId();
+    return id ? threads[id] : undefined;
+  };
+
+  async function loadThread(id: string, force = false) {
+    if (!force && threads[id]) return;
+    setThreads(id, reconcile(await getThread(id), { key: "id" }));
+  }
+  function refetchThread() {
+    const id = openId();
+    if (id) loadThread(id, true);
+  }
   const [composer, setComposer] = createSignal<ComposerState>(null);
 
   function toggle(id: string) {
     setComposer(null);
-    setOpenId(openId() === id ? undefined : id);
+    const next = openId() === id ? undefined : id;
+    setOpenId(next);
+    if (next) loadThread(next);
   }
 
   async function submitTopic(text: string, token: string | undefined, title: string) {

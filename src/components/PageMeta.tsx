@@ -1,9 +1,15 @@
 import { createResource, Show } from "solid-js";
 import { isServer } from "solid-js/web";
-import { getHistory } from "../lib/history";
+import { getHistory, type Revision } from "../lib/history";
 
-export default function PageMeta(props: { slug: string; base: string }) {
-  const [hist] = createResource(() => (isServer ? undefined : props.slug), getHistory);
+export default function PageMeta(props: {
+  slug: string;
+  base: string;
+  initial?: Revision[];
+}) {
+  const [hist] = createResource(() => (isServer ? undefined : props.slug), getHistory, {
+    initialValue: props.initial,
+  });
   const last = () => hist()?.[0];
   const historyHref = `${props.base}/history/${props.slug}`;
 

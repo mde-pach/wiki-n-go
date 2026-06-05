@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseDiff } from "./diff";
 import { md, parsePage, splitTitle } from "./markdown";
 import { prettify } from "./paths";
+import { markRedLinksHtml } from "./wikilink";
 
 describe("prettify", () => {
   it("title-cases the last path segment", () => {
@@ -58,6 +59,30 @@ describe("wikilink", () => {
     const html = md.render("[[home|Go home]]");
     expect(html).toContain('data-slug="home"');
     expect(html).toContain(">Go home<");
+  });
+  it("renders [[w:Title]] as an interwiki link out to Wikipedia", () => {
+    const html = md.render("see [[w:Content delivery network]]");
+    expect(html).toContain('class="wikilink interwiki"');
+    expect(html).toContain(
+      'href="https://en.wikipedia.org/wiki/Content_delivery_network"',
+    );
+    expect(html).toContain(">Content delivery network<");
+    expect(html).not.toContain("data-slug");
+  });
+  it("supports the wikipedia: prefix and a custom label", () => {
+    const html = md.render("[[wikipedia:Espresso|coffee]]");
+    expect(html).toContain('href="https://en.wikipedia.org/wiki/Espresso"');
+    expect(html).toContain(">coffee<");
+  });
+});
+
+describe("markRedLinksHtml", () => {
+  it("marks links whose target is missing and leaves existing ones blue", () => {
+    const html = md.render("[[getting-started]] and [[Ghost Page]]");
+    const out = markRedLinksHtml(html, new Set(["getting-started"]));
+    expect(out).toContain('class="wikilink" data-slug="getting-started"');
+    expect(out).toContain('class="wikilink is-red"');
+    expect(out).toContain('data-slug="ghost-page"');
   });
 });
 

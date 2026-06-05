@@ -19,7 +19,7 @@ export function createHeadings(initial: Heading[] = []) {
     setItems(
       heads.map((h) => ({
         id: h.id,
-        text: (h.textContent ?? "").replace(/#\s*$/, "").trim(),
+        text: headingText(h),
         level: h.tagName === "H2" ? 2 : 3,
       })),
     );
@@ -55,4 +55,12 @@ export function createHeadings(initial: Heading[] = []) {
   });
 
   return { items, active, progress };
+}
+
+// The heading text alone — the rendered `[edit]` link and the `#` permalink
+// anchor are appended into the heading after render, so strip them out.
+function headingText(h: HTMLElement): string {
+  const clone = h.cloneNode(true) as HTMLElement;
+  for (const el of clone.querySelectorAll(".section-edit, .anchor-link")) el.remove();
+  return (clone.textContent ?? "").trim();
 }

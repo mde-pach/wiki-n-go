@@ -15,8 +15,8 @@ rebuild**[^norebuild] — the reader always fetches the latest commit.
 ## How it works
 
 - Content lives as Markdown in a GitHub repo (the database).
-- The site (this interface) fetches it from the CDN, pinned to the latest commit
-  SHA, and renders it client-side.
+- The site (this interface) fetches it from the [[w:Content delivery network|CDN]],
+  pinned to the latest commit SHA, and renders it client-side.
 - Soon: edit **in this site** with Wikipedia-level friction — no account, no
   token.
 

@@ -702,6 +702,15 @@
   margin-left: 1px;
   vertical-align: super;
 }
+.wikilink.interwiki::after {
+  content: "W";
+  font-size: 0.62em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--color-ink-subtle);
+  margin-left: 2px;
+  vertical-align: super;
+}
 
 .preview-card {
   position: fixed;
