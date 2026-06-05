@@ -9,6 +9,7 @@ infobox:
     link: https://github.com/mde-pach/wiki-n-go/blob/main/content/getting-started.md
 kicker: Guide
 image: screenshot — read view
+protection: maintainer
 tags:
   - Guides
   - Getting started
