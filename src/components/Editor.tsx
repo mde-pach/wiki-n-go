@@ -6,7 +6,7 @@ import { fetchMarkdown, PageNotFoundError, renderMarkdown } from "../lib/content
 import { slugifyHeading } from "../lib/markdown";
 import { prettify, readHref } from "../lib/paths";
 import { slugFromLocation } from "../lib/slug";
-import { renderTurnstile } from "../lib/turnstile";
+import { renderTurnstile, resetTurnstile } from "../lib/turnstile";
 import { errMessage } from "../lib/util";
 import { Icons } from "./Icons";
 
@@ -90,11 +90,14 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     ta.focus();
   }
 
+  let widgetId: string | undefined;
   function mountWidget(el: HTMLDivElement) {
     if (!config.turnstileSiteKey) return;
-    renderTurnstile(el, config.turnstileSiteKey, setToken).catch((e) =>
-      setError(errMessage(e)),
-    );
+    renderTurnstile(el, config.turnstileSiteKey, setToken)
+      .then((id) => {
+        widgetId = id;
+      })
+      .catch((e) => setError(errMessage(e)));
   }
 
   function openConfirm() {
@@ -113,6 +116,10 @@ export default function Editor(props: { slug?: string; initialContent?: string }
       setModal(false);
     } catch (e) {
       setError(errMessage(e));
+      // Turnstile tokens are single-use; reset so the editor can retry.
+      resetTurnstile(widgetId);
+      setToken(undefined);
+      setModal(false);
     } finally {
       setBusy(false);
     }
