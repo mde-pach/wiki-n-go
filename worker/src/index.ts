@@ -41,6 +41,10 @@ interface CommentBody {
   token?: unknown;
 }
 
+interface PatrolBody {
+  sha?: unknown;
+}
+
 type GhInit = { method?: string; body?: string; allow404?: boolean };
 
 class HttpError extends Error {
@@ -75,8 +79,11 @@ export default {
       "GET /topics": () => listTopics(env, q.get("slug") ?? ""),
       "GET /topic": () => getThread(env, q.get("id") ?? ""),
       "GET /whoami": () => whoami(env, request),
+      "GET /changes": () => listChanges(env, q.get("limit") ?? ""),
       "POST /edit": async () =>
         proposeEdit(env, request, (await request.json()) as EditBody),
+      "POST /patrol": async () =>
+        patrol(env, request, (await request.json()) as PatrolBody),
       "POST /topic": async () =>
         createTopic(env, request, (await request.json()) as TopicBody),
       "POST /comment": async () =>
@@ -173,6 +180,91 @@ async function history(env: Env, slug: string) {
       message: c.commit.message.split("\n")[0],
     })),
   };
+}
+
+// ── RecentChanges feed + patrol (post-hoc moderation surface) ─────────────
+interface ChangeDetail {
+  slugs: string[];
+  additions: number;
+  deletions: number;
+}
+
+interface OutChange extends ChangeDetail {
+  sha: string;
+  author: string;
+  isAnon: boolean;
+  date: string;
+  message: string;
+  patrolled: boolean;
+}
+
+const SHA_RE = /^[0-9a-f]{7,40}$/;
+
+// Per-commit files + byte stats. A commit is immutable, so cache it forever.
+async function changeDetail(env: Env, sha: string): Promise<ChangeDetail> {
+  const key = `change:${sha}`;
+  const cached = await env.RATE_LIMIT?.get(key);
+  if (cached) return JSON.parse(cached) as ChangeDetail;
+  const d = await gh<{
+    stats?: { additions: number; deletions: number };
+    files?: { filename: string }[];
+  }>(env, `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits/${sha}`);
+  const prefix = `${env.CONTENT_DIR}/`;
+  const detail: ChangeDetail = {
+    slugs: (d.files ?? [])
+      .filter((f) => f.filename.startsWith(prefix) && f.filename.endsWith(".md"))
+      .map((f) => f.filename.slice(prefix.length, -3)),
+    additions: d.stats?.additions ?? 0,
+    deletions: d.stats?.deletions ?? 0,
+  };
+  await env.RATE_LIMIT?.put(key, JSON.stringify(detail));
+  return detail;
+}
+
+async function listChanges(
+  env: Env,
+  limitStr: string,
+): Promise<{ changes: OutChange[] }> {
+  const limit = Math.min(Math.max(Number.parseInt(limitStr, 10) || 30, 1), 100);
+  const commits = await gh<CommitItem[]>(
+    env,
+    `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits?path=${env.CONTENT_DIR}&sha=${env.BRANCH}&per_page=${limit}`,
+  );
+  const changes = await Promise.all(
+    commits.map(async (c) => {
+      const [detail, patrolled] = await Promise.all([
+        changeDetail(env, c.sha),
+        env.RATE_LIMIT?.get(`patrol:${c.sha}`).then(Boolean) ?? Promise.resolve(false),
+      ]);
+      return {
+        sha: c.sha,
+        author: c.commit.author.name,
+        isAnon: c.commit.author.name.startsWith("anon-"),
+        date: c.commit.author.date,
+        message: c.commit.message.split("\n")[0],
+        patrolled,
+        ...detail,
+      };
+    }),
+  );
+  return { changes };
+}
+
+// Mark a commit reviewed. Maintainer-only, by ip_hash tier — no token needed
+// (it only flips a flag).
+async function patrol(
+  env: Env,
+  request: Request,
+  body: PatrolBody,
+): Promise<{ ok: true }> {
+  const sha = String(body.sha ?? "");
+  if (!SHA_RE.test(sha)) throw new HttpError(400, "Invalid revision.");
+  const ip = request.headers.get("CF-Connecting-IP") ?? "0.0.0.0";
+  const author = `anon-${await ipHash(env.HASH_SECRET, ip)}`;
+  if ((await editorTier(env, author)) !== "maintainer")
+    throw new HttpError(403, "Patrolling requires maintainer access.");
+  await env.RATE_LIMIT?.put(`patrol:${sha}`, "1");
+  return { ok: true };
 }
 
 async function diff(env: Env, slug: string, base: string, head: string) {

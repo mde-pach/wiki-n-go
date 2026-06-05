@@ -28,12 +28,15 @@ export function categoryHref(tag: string): string {
   return `${BASE}/category/${slugifyTag(tag)}`;
 }
 
-// Map the current URL to a view + slug. The edit/history/talk/category prefixes
-// select a view; everything else is a read.
-export function parseRoute(): { view: View | "category"; slug: string } {
+export const changesHref = `${BASE}/changes`;
+
+// Map the current URL to a view + slug. The edit/history/talk/category/changes
+// prefixes select a view; everything else is a read.
+export function parseRoute(): { view: View | "category" | "changes"; slug: string } {
   let path = window.location.pathname;
   if (BASE && path.startsWith(BASE)) path = path.slice(BASE.length);
   path = path.replace(/^\/+/, "").replace(/\/+$/, "");
+  if (path === "changes") return { view: "changes", slug: "" };
   for (const v of ["edit", "history", "talk", "category"] as const) {
     if (path === v || path.startsWith(`${v}/`)) {
       return {
