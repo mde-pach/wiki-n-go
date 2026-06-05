@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { frontmatter, ipHash, pageTier, SLUG_RE } from "./index";
+import { frontmatter, ipHash, lastPage, pageTier, SLUG_RE } from "./index";
 
 type Env = Parameters<typeof pageTier>[0];
 const env = (DEFAULT_EDIT_TIER?: string) => ({ DEFAULT_EDIT_TIER }) as Env;
@@ -33,6 +33,19 @@ describe("frontmatter", () => {
       tags: ["a"],
     });
     expect(frontmatter("# No frontmatter")).toEqual({});
+  });
+});
+
+describe("lastPage (commit count from the Link header)", () => {
+  it("reads the rel=last page number = total count at per_page=1", () => {
+    const link =
+      '<https://api.github.com/...&page=2>; rel="next", ' +
+      '<https://api.github.com/...&page=42>; rel="last"';
+    expect(lastPage(link)).toBe(42);
+  });
+  it("returns 1 when there is no last link (a single page)", () => {
+    expect(lastPage("")).toBe(1);
+    expect(lastPage('<https://api.github.com/...&page=2>; rel="next"')).toBe(1);
   });
 });
 

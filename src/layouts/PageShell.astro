@@ -6,7 +6,14 @@ import Search from "../components/Search.tsx";
 import ThemeToggle from "../components/ThemeToggle.tsx";
 import { config } from "../config";
 import { gitRevisions } from "../lib/git";
-import { BASE, categoryHref, prettify, readHref, type View } from "../lib/paths";
+import {
+  BASE,
+  categoryHref,
+  changesHref,
+  prettify,
+  readHref,
+  type View,
+} from "../lib/paths";
 
 interface Props {
   slug: string;
@@ -120,6 +127,9 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
               </div>
             )
           }
+          <div class="footer-tools">
+            <a href={changesHref}>Recent changes</a>
+          </div>
           <div class="footer-bottom">
             <p class="fb-license">
               Text is available under the CC BY-SA 4.0 license; the wiki-n-go software is

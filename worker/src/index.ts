@@ -41,6 +41,10 @@ interface CommentBody {
   token?: unknown;
 }
 
+interface PatrolBody {
+  sha?: unknown;
+}
+
 type GhInit = { method?: string; body?: string; allow404?: boolean };
 
 class HttpError extends Error {
@@ -75,8 +79,11 @@ export default {
       "GET /topics": () => listTopics(env, q.get("slug") ?? ""),
       "GET /topic": () => getThread(env, q.get("id") ?? ""),
       "GET /whoami": () => whoami(env, request),
+      "GET /changes": () => listChanges(env, q.get("limit") ?? ""),
       "POST /edit": async () =>
         proposeEdit(env, request, (await request.json()) as EditBody),
+      "POST /patrol": async () =>
+        patrol(env, request, (await request.json()) as PatrolBody),
       "POST /topic": async () =>
         createTopic(env, request, (await request.json()) as TopicBody),
       "POST /comment": async () =>
@@ -175,6 +182,91 @@ async function history(env: Env, slug: string) {
   };
 }
 
+// ── RecentChanges feed + patrol (post-hoc moderation surface) ─────────────
+interface ChangeDetail {
+  slugs: string[];
+  additions: number;
+  deletions: number;
+}
+
+interface OutChange extends ChangeDetail {
+  sha: string;
+  author: string;
+  isAnon: boolean;
+  date: string;
+  message: string;
+  patrolled: boolean;
+}
+
+const SHA_RE = /^[0-9a-f]{7,40}$/;
+
+// Per-commit files + byte stats. A commit is immutable, so cache it forever.
+async function changeDetail(env: Env, sha: string): Promise<ChangeDetail> {
+  const key = `change:${sha}`;
+  const cached = await env.RATE_LIMIT?.get(key);
+  if (cached) return JSON.parse(cached) as ChangeDetail;
+  const d = await gh<{
+    stats?: { additions: number; deletions: number };
+    files?: { filename: string }[];
+  }>(env, `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits/${sha}`);
+  const prefix = `${env.CONTENT_DIR}/`;
+  const detail: ChangeDetail = {
+    slugs: (d.files ?? [])
+      .filter((f) => f.filename.startsWith(prefix) && f.filename.endsWith(".md"))
+      .map((f) => f.filename.slice(prefix.length, -3)),
+    additions: d.stats?.additions ?? 0,
+    deletions: d.stats?.deletions ?? 0,
+  };
+  await env.RATE_LIMIT?.put(key, JSON.stringify(detail));
+  return detail;
+}
+
+async function listChanges(
+  env: Env,
+  limitStr: string,
+): Promise<{ changes: OutChange[] }> {
+  const limit = Math.min(Math.max(Number.parseInt(limitStr, 10) || 30, 1), 100);
+  const commits = await gh<CommitItem[]>(
+    env,
+    `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits?path=${env.CONTENT_DIR}&sha=${env.BRANCH}&per_page=${limit}`,
+  );
+  const changes = await Promise.all(
+    commits.map(async (c) => {
+      const [detail, patrolled] = await Promise.all([
+        changeDetail(env, c.sha),
+        env.RATE_LIMIT?.get(`patrol:${c.sha}`).then(Boolean) ?? Promise.resolve(false),
+      ]);
+      return {
+        sha: c.sha,
+        author: c.commit.author.name,
+        isAnon: c.commit.author.name.startsWith("anon-"),
+        date: c.commit.author.date,
+        message: c.commit.message.split("\n")[0],
+        patrolled,
+        ...detail,
+      };
+    }),
+  );
+  return { changes };
+}
+
+// Mark a commit reviewed. Maintainer-only, by ip_hash tier — no token needed
+// (it only flips a flag).
+async function patrol(
+  env: Env,
+  request: Request,
+  body: PatrolBody,
+): Promise<{ ok: true }> {
+  const sha = String(body.sha ?? "");
+  if (!SHA_RE.test(sha)) throw new HttpError(400, "Invalid revision.");
+  const ip = request.headers.get("CF-Connecting-IP") ?? "0.0.0.0";
+  const author = `anon-${await ipHash(env.HASH_SECRET, ip)}`;
+  if ((await editorTier(env, author)) !== "maintainer")
+    throw new HttpError(403, "Patrolling requires maintainer access.");
+  await env.RATE_LIMIT?.put(`patrol:${sha}`, "1");
+  return { ok: true };
+}
+
 async function diff(env: Env, slug: string, base: string, head: string) {
   if (!SLUG_RE.test(slug)) throw new HttpError(400, "Invalid slug.");
   if (!/^[0-9a-f]{7,40}$/.test(base) || !/^[0-9a-f]{7,40}$/.test(head)) {
@@ -217,9 +309,12 @@ const TIER_RANK: Record<Tier, number> = {
 const asTier = (s: string | undefined, fallback: Tier): Tier =>
   s && s in TIER_RANK ? (s as Tier) : fallback;
 
-interface LedgerEntry {
-  n: number; // accepted (directly-committed or merged) edits
-  first: number; // epoch ms first seen
+// An editor's accepted-edit record, derived from git history (cached). Both
+// direct commits and merged PRs land on the branch as commits authored by the
+// pseudonym, so counting them is the single source of truth — no ledger to keep.
+interface TrustStats {
+  n: number; // accepted edits authored by this pseudonym on the live branch
+  firstMs: number; // epoch ms of their earliest such commit
 }
 
 // Privileged page properties: changing one needs at least this tier. (Most
@@ -296,13 +391,12 @@ async function whoami(
   return { author, tier: await editorTier(env, author) };
 }
 
+const TRUST_TTL_S = 3600;
+
 async function editorTier(env: Env, author: string): Promise<Tier> {
   if ((await trustedEditors(env)).includes(author)) return "maintainer";
-  if (!env.RATE_LIMIT) return "open";
-  const raw = await env.RATE_LIMIT.get(`trust:${author}`);
-  if (!raw) return "open";
-  const { n, first } = JSON.parse(raw) as LedgerEntry;
-  const days = (Date.now() - first) / 86_400_000;
+  const { n, firstMs } = await trustStats(env, author);
+  const days = (Date.now() - firstMs) / 86_400_000;
   const num = (v: string | undefined, d: number) => Number.parseInt(v ?? "", 10) || d;
   if (n >= num(env.EXTENDED_EDITS, 500) && days >= num(env.EXTENDED_DAYS, 30))
     return "extended";
@@ -311,16 +405,48 @@ async function editorTier(env: Env, author: string): Promise<Tier> {
   return "open";
 }
 
-async function bumpLedger(env: Env, author: string): Promise<void> {
-  if (!env.RATE_LIMIT) return;
-  const raw = await env.RATE_LIMIT.get(`trust:${author}`);
-  const prev: LedgerEntry = raw
-    ? (JSON.parse(raw) as LedgerEntry)
-    : { n: 0, first: Date.now() };
-  await env.RATE_LIMIT.put(
-    `trust:${author}`,
-    JSON.stringify({ n: prev.n + 1, first: prev.first }),
-  );
+// Read the pseudonym's accepted-edit stats, cached briefly in KV to spare the
+// GitHub API on every edit.
+async function trustStats(env: Env, author: string): Promise<TrustStats> {
+  const key = `trust:${author}`;
+  const cached = await env.RATE_LIMIT?.get(key);
+  if (cached) {
+    const s = JSON.parse(cached) as Partial<TrustStats>;
+    if (typeof s.n === "number" && typeof s.firstMs === "number")
+      return s as TrustStats;
+  }
+  const stats = await countAuthored(env, author);
+  await env.RATE_LIMIT?.put(key, JSON.stringify(stats), { expirationTtl: TRUST_TTL_S });
+  return stats;
+}
+
+// `?author=<email>` filters commits by the pseudonym's authoring email; with
+// per_page=1 the Link header's `rel="last"` page number is the total count, and
+// that last page holds the earliest commit (first-seen).
+export function lastPage(link: string): number {
+  const m = link.match(/[?&]page=(\d+)>;\s*rel="last"/);
+  return m ? Number(m[1]) : 1;
+}
+
+async function countAuthored(env: Env, author: string): Promise<TrustStats> {
+  const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
+  const base = `https://api.github.com/repos/${repo}/commits?author=${encodeURIComponent(
+    `${author}@anon.invalid`,
+  )}&sha=${env.BRANCH}&per_page=1`;
+  const res = await fetch(base, { headers: ghHeaders(env) });
+  if (!res.ok) return { n: 0, firstMs: Date.now() };
+  const page = (await res.json()) as CommitItem[];
+  if (page.length === 0) return { n: 0, firstMs: Date.now() };
+  const n = lastPage(res.headers.get("Link") ?? "");
+  let firstMs = new Date(page[0].commit.author.date).getTime();
+  if (n > 1) {
+    const oldest = await fetch(`${base}&page=${n}`, { headers: ghHeaders(env) });
+    if (oldest.ok) {
+      const last = (await oldest.json()) as CommitItem[];
+      if (last[0]) firstMs = new Date(last[0].commit.author.date).getTime();
+    }
+  }
+  return { n, firstMs };
 }
 
 // Current file on the live branch: blob sha (for the next commit) + raw text
@@ -382,10 +508,11 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
       `/repos/${repo}/contents/${path}`,
       { method: "PUT", body: filePut(env.BRANCH) },
     );
-    await bumpLedger(env, author);
-    // Invalidate the cached pointers so the edit is live on the next read.
+    // Invalidate cached pointers so the edit is live on the next read, and the
+    // author's trust stats so this new commit counts immediately.
     await env.RATE_LIMIT?.delete("meta:latest-sha");
     await env.RATE_LIMIT?.delete("meta:pages");
+    await env.RATE_LIMIT?.delete(`trust:${author}`);
     return { live: true, sha: res.commit.sha, url: res.commit.html_url, author };
   }
 
@@ -416,16 +543,20 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
   return { live: false, prUrl: pr.html_url, author };
 }
 
+function ghHeaders(env: Env): Record<string, string> {
+  return {
+    Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+    Accept: "application/vnd.github+json",
+    "User-Agent": `${env.REPO_NAME}-worker`,
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+}
+
 async function gh<T = unknown>(env: Env, path: string, init: GhInit = {}): Promise<T> {
   const res = await fetch(`https://api.github.com${path}`, {
     method: init.method,
     body: init.body,
-    headers: {
-      Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-      Accept: "application/vnd.github+json",
-      "User-Agent": `${env.REPO_NAME}-worker`,
-      "X-GitHub-Api-Version": "2022-11-28",
-    },
+    headers: ghHeaders(env),
   });
   if (res.status === 404 && init.allow404) return undefined as T;
   if (!res.ok) throw new HttpError(502, `GitHub ${res.status}: ${await res.text()}`);

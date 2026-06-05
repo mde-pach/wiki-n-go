@@ -124,6 +124,93 @@ html.ready body {
   }
 }
 
+/* Recent changes feed (post-hoc moderation surface). */
+.footer-tools {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  margin-bottom: 0.6rem;
+}
+.rc-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+  margin-bottom: 0.9rem;
+  cursor: pointer;
+}
+.rc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+}
+.rc-row {
+  display: grid;
+  grid-template-columns: 4.5rem auto 3rem 1fr auto;
+  gap: 0.65rem;
+  align-items: baseline;
+  padding: 0.5rem 0;
+  border-top: var(--border-w) solid var(--color-border);
+}
+.rc-row.is-reviewed {
+  opacity: 0.62;
+}
+.rc-time {
+  color: var(--color-ink-subtle);
+  white-space: nowrap;
+}
+.rc-pages {
+  font-weight: 600;
+}
+.rc-delta {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+  text-align: right;
+}
+.rc-delta.pos {
+  color: var(--color-add-ink);
+}
+.rc-delta.neg {
+  color: var(--color-remove-ink);
+}
+.rc-author {
+  color: var(--color-ink-muted);
+}
+.rc-author.anon {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+}
+.rc-summary {
+  color: var(--color-ink-muted);
+  grid-column: 2 / -1;
+}
+.rc-badge {
+  font-size: 0.78em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-warn-ink);
+  white-space: nowrap;
+}
+.rc-badge.reviewed {
+  color: var(--color-ink-subtle);
+}
+.rc-patrol {
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+@media (max-width: 700px) {
+  .rc-row {
+    grid-template-columns: auto 1fr auto;
+  }
+  .rc-delta,
+  .rc-author {
+    display: none;
+  }
+}
+
 /* Hatnote: italic disambiguation note above the lead (Wikipedia convention). */
 .hatnote {
   font-family: var(--font-ui);

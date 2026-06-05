@@ -268,12 +268,12 @@ costs; consider salt/epoch rotation to limit long-term linkability (M5).
 ### M5 — Autonomous editing mode (immediate publish + post-hoc moderation) 🟡
 Invert the default selectively. Critical path (see `FEATURES.md` §§K–N):
 - [x] ✅ Worker **direct-commit** path → live branch; busts `meta:latest-sha`/`meta:pages` cache (live, no rebuild).
-- [x] ✅ **Trust ledger** on `ip_hash` (KV): accepted-edits + first-seen → open/auto/extended tiers; `trusted-editors.json` = maintainer.
+- [x] ✅ **Trust tiers** on `ip_hash`, **derived from git history** (not a ledger): count + first-seen of commits the pseudonym authored on the branch → open/auto/extended; `trusted-editors.json` = maintainer. Covers direct commits **and merged PRs** (both are commits by the pseudonym), so PR-only contributors earn trust too — no webhook, single source of truth. KV caches stats (1 h TTL, busted on the author's own commit).
 - [x] ✅ Page protection = a `protection:` **frontmatter field** (env default when unset); a privileged page-property, gated per-field on save (can't raise above / lower from above your tier). Replaced `protection.json`+globs. TODO: `expires`, CODEOWNERS.
 - [x] ✅ Verified end-to-end: anon edit to an `open` page **published live** (no PR); flipping its `protection` rejected 403; protected pages still PR.
 - [ ] ⬜ AbuseFilter-style rule pass (`filters.json`) + spam/title blocklists; change-tagging. (per-hash rate limit already live)
 - [ ] ⬜ Revert-risk heuristic score on diffs; 3RR revert-churn detection.
-- [ ] ⬜ Ledger increment for **merged PRs** (webhook) so PR-only contributors also earn tiers.
+- [x] ✅ PR-only contributors earn tiers — solved by deriving from git history (above), no webhook needed.
 - [ ] ⬜ Consider `ip_hash` salt/epoch rotation (cap long-term linkability).
 
 ### M6 — Owner admin dashboard & governance ⬜
@@ -335,3 +335,5 @@ Read-time reports + git-native operations (see `FEATURES.md` §§O–P):
 | 2026-06-05 | Owner **admin dashboard** = the sysop console (bans, protection, patrol, rollback, audit, suppression) | Centralizes moderation actions that don't flow through a normal PR (M6) |
 | 2026-06-05 | Lean on **git for free**: undelete, move/merge attribution, logs, permalinks, export | Git dissolves Wikipedia's hardest admin chores — expose, don't reimplement |
 | 2026-06-05 | Page protection = a `protection:` frontmatter field, not a central `protection.json` | Keeps the page URL stable, edits in-site like content, no glob upkeep; first of a per-field-permissioned **page-property** scheme |
+| 2026-06-05 | Trust tiers **derived from git history**, not a KV ledger or a merge webhook | Direct commits and merged PRs both land as commits by the pseudonym → one source of truth, PR-only contributors earn trust, no webhook/state to drift (KV is just a cache) |
+| 2026-06-05 | One worktree per session; enforced in CLAUDE.md | Parallel Claude sessions share the checkout and collided; isolate each on its own branch |
