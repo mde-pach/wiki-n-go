@@ -1,6 +1,7 @@
 import MarkdownIt from "markdown-it";
 import anchor from "markdown-it-anchor";
 import footnote from "markdown-it-footnote";
+import { type PageMeta, parseFrontmatter } from "./frontmatter";
 import { wikilink } from "./wikilink";
 
 // Shared markdown-it instance (no DOMPurify, so it runs at build/SSR too).
@@ -54,19 +55,29 @@ export interface ParsedPage {
   title: string;
   html: string;
   headings: Heading[];
+  meta: PageMeta;
 }
 
-// The leading `# Title` lives in the chrome, not the body. Split it off so both
-// the SSR pages and the client renderer share one rule.
-export function splitTitle(raw: string): { title: string; body: string } {
-  const m = raw.match(/^#\s+(.+?)\s*$/m);
-  return { title: m ? m[1] : "", body: m ? raw.replace(m[0], "").trimStart() : raw };
+// Strip frontmatter, then split the leading `# Title` (it lives in the chrome,
+// not the body) so the SSR pages and the client renderer share one rule.
+export function splitTitle(raw: string): {
+  title: string;
+  body: string;
+  meta: PageMeta;
+} {
+  const { meta, body: afterMeta } = parseFrontmatter(raw);
+  const m = afterMeta.match(/^#\s+(.+?)\s*$/m);
+  return {
+    title: m ? m[1] : "",
+    body: m ? afterMeta.replace(m[0], "").trimStart() : afterMeta,
+    meta,
+  };
 }
 
 // Render the body and pull out the heading outline so the TOC can render
 // server-side too.
 export function parsePage(raw: string): ParsedPage {
-  const { title, body } = splitTitle(raw);
+  const { title, body, meta } = splitTitle(raw);
   const html = md.render(body);
   const headings: Heading[] = [];
   const re = /<h([23]) id="([^"]+)"[^>]*>(.*?)<\/h\1>/g;
@@ -82,5 +93,5 @@ export function parsePage(raw: string): ParsedPage {
     });
     h = re.exec(html);
   }
-  return { title, html, headings };
+  return { title, html, headings, meta };
 }

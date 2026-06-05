@@ -1,3 +1,17 @@
+---
+kicker: Guide
+image: screenshot — read view
+infobox:
+  Type: How-to guide
+  Audience: New editors
+  Reading time: ~2 min
+  Source:
+    v: getting-started.md
+    mono: true
+    link: https://github.com/mde-pach/wiki-n-go/blob/main/content/getting-started.md
+tags: [Guides, Getting started]
+---
+
 # Getting started
 
 This second page exists to demonstrate **routing** and the **no-rebuild** read
