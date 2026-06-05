@@ -13,5 +13,5 @@ const { slug } = Astro.params;
 ---
 
 <PageShell slug={slug} view="edit">
-  <main id="main" class="view-wrap"><Editor slug={slug} open client:only="solid-js" /></main>
+  <main id="main" class="view-wrap"><Editor slug={slug} client:only="solid-js" /></main>
 </PageShell>

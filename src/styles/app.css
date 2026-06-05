@@ -2,9 +2,10 @@
 @import "./tokens.css";
 @import "./base.css";
 @import "./components.css";
+@import "./views.css";
 
 /* Transition shim: old token names → design tokens, for widgets not yet ported
-   to the design's own view styles (editor, discussion, history/diff). */
+   to the design's own classes (the talk/discussion thread). */
 :root {
   --text: var(--color-ink);
   --bg: var(--color-canvas);
@@ -12,13 +13,9 @@
   --muted: var(--color-ink-muted);
   --accent: var(--color-accent);
   --border: var(--color-border);
-  --redlink: var(--color-redlink);
-  --ok: var(--color-add-ink);
-  --err: var(--color-remove-ink);
 }
 
-/* Page title: design puts it in chrome; our markdown starts with `# Title`, so
-   style the in-prose title (used inside views, not the read article). */
+/* Page title for the in-prose title (used in the 404 read fallback). */
 .prose h1 {
   font-family: var(--font-display);
   font-size: var(--text-2xl);
@@ -36,19 +33,6 @@
 .prose :is(h2, h3, h4):hover .anchor-link,
 .prose :is(h2, h3, h4):focus-within .anchor-link {
   opacity: 1;
-}
-
-/* Non-read views (edit / history / talk) sit in a centered column. */
-.view-wrap {
-  max-width: 62rem;
-  margin: 0 auto;
-  padding: 1.6rem 1.25rem 3rem;
-}
-.view-title {
-  font-family: var(--font-display);
-  font-size: var(--text-xl);
-  font-weight: var(--weight-bold);
-  margin: 0 0 1.1rem;
 }
 
 .wiki-status {
@@ -69,117 +53,24 @@
   color: var(--color-ink-subtle);
   cursor: default;
 }
-
-/* ── Editor (own view styles until edit.jsx is ported) ────────────────────── */
-.editor {
+.editor-ok {
+  color: var(--color-add-ink);
   font-family: var(--font-ui);
 }
-.editor button {
-  font: inherit;
-  font-weight: 600;
-  padding: 0.5rem 0.9rem;
-  border: var(--border-w) solid transparent;
-  border-radius: var(--radius-md);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  cursor: pointer;
+.editor-err {
+  color: var(--color-remove-ink);
+  font-family: var(--font-ui);
 }
-.editor button.ghost {
-  background: transparent;
-  color: var(--color-ink);
-  border-color: var(--color-border-strong);
-}
-.editor button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-.editor-area {
-  width: 100%;
-  box-sizing: border-box;
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  padding: 0.85rem;
-  border: var(--border-w) solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: var(--color-ink);
+.editor-widget {
+  margin-top: 0.85rem;
 }
 .editor-actions {
   display: flex;
   gap: 0.5rem;
   margin-top: 0.7rem;
 }
-.editor-widget {
-  margin-top: 0.75rem;
-}
-.editor-ok {
-  color: var(--color-add-ink);
-}
-.editor-err {
-  color: var(--color-remove-ink);
-}
 
-/* ── History / diff (own view styles until history.jsx is ported) ─────────── */
-.history {
-  margin: 0 0 1.5rem;
-  padding-left: 0;
-  list-style: none;
-  font-family: var(--font-ui);
-  font-size: var(--text-sm);
-}
-.rev {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  padding: 0.45rem 0;
-  border-top: var(--border-w) solid var(--color-border);
-}
-.rev-actions {
-  display: flex;
-  gap: 0.4rem;
-}
-.rev-author {
-  font-weight: 600;
-}
-.rev-msg {
-  color: var(--color-ink-muted);
-}
-.diff {
-  border: var(--border-w) solid var(--color-border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  margin-bottom: 1.5rem;
-}
-.diff-head {
-  padding: 0.45rem 0.8rem;
-  background: var(--color-surface-sunken);
-  border-bottom: var(--border-w) solid var(--color-border);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-}
-.diff-body {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  overflow-x: auto;
-}
-.diff-line {
-  padding: 0 0.8rem;
-  white-space: pre-wrap;
-}
-.diff-line.add {
-  background: var(--color-add-bg);
-  color: var(--color-add-ink);
-}
-.diff-line.del {
-  background: var(--color-remove-bg);
-  color: var(--color-remove-ink);
-}
-.diff-line.hunk {
-  color: var(--color-ink-muted);
-}
-
-/* ── Discussion (own view styles until talk view is ported) ───────────────── */
+/* ── Discussion / Talk thread (own styles until the talk view is ported) ──── */
 .discussion {
   font-family: var(--font-ui);
 }

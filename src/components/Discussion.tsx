@@ -89,7 +89,7 @@ export default function Discussion(props: { slug?: string }) {
       />
       <div class="editor-widget" ref={mountWidget} />
       <div class="editor-actions">
-        <button type="button" disabled={busy()} onClick={send}>
+        <button type="button" class="btn btn-primary" disabled={busy()} onClick={send}>
           {busy() ? "Posting…" : "Post comment"}
         </button>
       </div>

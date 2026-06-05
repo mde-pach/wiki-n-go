@@ -29,7 +29,7 @@ export default function Route404() {
         </article>
       </Show>
       <Show when={view === "edit"}>
-        <Editor slug={slug} open />
+        <Editor slug={slug} />
       </Show>
       <Show when={view === "history"}>
         <History slug={slug} />
