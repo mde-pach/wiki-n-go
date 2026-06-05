@@ -1,20 +1,34 @@
 import { createSignal, onMount, Show } from "solid-js";
+import { createStore } from "solid-js/store";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
-import { type EditResult, submitEdit } from "../lib/api";
+import { type EditResult, getWhoami, submitEdit, type Tier } from "../lib/api";
 import { fetchMarkdown, PageNotFoundError, renderMarkdown } from "../lib/content";
+import { splitFrontmatter, withFrontmatter } from "../lib/frontmatter";
 import { slugifyHeading } from "../lib/markdown";
 import { prettify, readHref } from "../lib/paths";
 import { slugFromLocation } from "../lib/slug";
 import { renderTurnstile, resetTurnstile } from "../lib/turnstile";
 import { errMessage } from "../lib/util";
 import { Icons } from "./Icons";
+import PageProperties, {
+  assemble,
+  extraFrom,
+  type Fields,
+  fieldsFrom,
+} from "./PageProperties";
 
 export default function Editor(props: { slug?: string; initialContent?: string }) {
   if (!config.workerUrl) return null;
 
   const slug = () => props.slug ?? slugFromLocation();
-  const [draft, setDraft] = createSignal(props.initialContent ?? "");
+  // The textarea edits the body; the properties form edits the frontmatter;
+  // they recombine into the saved document. `extra` keeps frontmatter keys the
+  // form doesn't model (e.g. infobox) so they survive the round-trip.
+  const init = splitFrontmatter(props.initialContent ?? "");
+  const [body, setBody] = createSignal(init.body);
+  const [fields, setFields] = createStore<Fields>(fieldsFrom(init.data));
+  const [extra, setExtra] = createSignal<Record<string, unknown>>(extraFrom(init.data));
   const [original, setOriginal] = createSignal(props.initialContent ?? "");
   const [summary, setSummary] = createSignal("");
   const [busy, setBusy] = createSignal(false);
@@ -22,13 +36,24 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   const [error, setError] = createSignal<string>();
   const [result, setResult] = createSignal<EditResult>();
   const [modal, setModal] = createSignal(false);
+  const [who, setWho] = createSignal<{ author: string; tier: Tier }>();
   let ta: HTMLTextAreaElement | undefined;
 
+  const content = () => withFrontmatter(assemble(extra(), fields), body());
+
   onMount(async () => {
+    getWhoami()
+      .then(setWho)
+      .catch(() => {});
     try {
       const raw = await fetchMarkdown(slug());
       setOriginal(raw);
-      if (raw !== props.initialContent) setDraft(raw);
+      if (raw !== props.initialContent) {
+        const fresh = splitFrontmatter(raw);
+        setBody(fresh.body);
+        setFields(fieldsFrom(fresh.data));
+        setExtra(extraFrom(fresh.data));
+      }
     } catch (e) {
       if (!(e instanceof PageNotFoundError)) setError(errMessage(e));
     }
@@ -40,10 +65,10 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     if (isServer || !ta) return;
     const section = new URLSearchParams(window.location.search).get("section");
     if (!section) return;
-    const lines = draft().split("\n");
+    const lines = body().split("\n");
     let offset = 0;
     let start = -1;
-    let end = draft().length;
+    let end = body().length;
     let heading = "";
     for (const line of lines) {
       const m = line.match(/^#{2,3}\s+(.+?)\s*$/);
@@ -62,20 +87,20 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     if (!summary().trim()) setSummary(`Edit ${heading} section`);
     ta.focus();
     ta.setSelectionRange(start, end);
-    ta.scrollTop = (start / Math.max(1, draft().length)) * ta.scrollHeight;
+    ta.scrollTop = (start / Math.max(1, body().length)) * ta.scrollHeight;
   }
 
   const preview = () =>
-    isServer ? "" : renderMarkdown(draft() || "_Nothing to preview yet._");
+    isServer ? "" : renderMarkdown(body() || "_Nothing to preview yet._");
   const cancelHref = () => readHref(slug());
-  const delta = () => draft().length - original().length;
+  const delta = () => content().length - original().length;
 
   function wrap(before: string, after = before) {
     if (!ta) return;
     const s = ta.selectionStart;
     const e = ta.selectionEnd;
-    const v = draft();
-    setDraft(v.slice(0, s) + before + v.slice(s, e) + after + v.slice(e));
+    const v = body();
+    setBody(v.slice(0, s) + before + v.slice(s, e) + after + v.slice(e));
     ta.focus();
     queueMicrotask(() => {
       if (ta) ta.selectionStart = ta.selectionEnd = e + before.length + after.length;
@@ -84,9 +109,9 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   function prefixLine(prefix: string) {
     if (!ta) return;
     const s = ta.selectionStart;
-    const v = draft();
+    const v = body();
     const lineStart = v.lastIndexOf("\n", s - 1) + 1;
-    setDraft(v.slice(0, lineStart) + prefix + v.slice(lineStart));
+    setBody(v.slice(0, lineStart) + prefix + v.slice(lineStart));
     ta.focus();
   }
 
@@ -112,7 +137,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     setBusy(true);
     setError();
     try {
-      setResult(await submitEdit(slug(), draft(), token(), summary()));
+      setResult(await submitEdit(slug(), content(), token(), summary()));
       setModal(false);
     } catch (e) {
       setError(errMessage(e));
@@ -134,6 +159,12 @@ export default function Editor(props: { slug?: string; initialContent?: string }
           open a reviewed pull request that a maintainer merges.
         </p>
       </div>
+
+      <PageProperties
+        fields={fields}
+        setField={(k, v) => setFields(k, v)}
+        tier={who()?.tier}
+      />
 
       <div class="editor-shell">
         <div class="editor-pane">
@@ -212,9 +243,9 @@ export default function Editor(props: { slug?: string; initialContent?: string }
             ref={ta}
             class="editor-textarea"
             rows={20}
-            value={draft()}
+            value={body()}
             placeholder="Write Markdown…"
-            onInput={(e) => setDraft(e.currentTarget.value)}
+            onInput={(e) => setBody(e.currentTarget.value)}
           />
         </div>
 
@@ -241,7 +272,11 @@ export default function Editor(props: { slug?: string; initialContent?: string }
             onInput={(e) => setSummary(e.currentTarget.value)}
           />
           <div class="attribution-row" style={{ "margin-top": "0.8rem" }}>
-            Signed as <span class="pseudonym">anon · your IP, hashed</span>
+            Signed as{" "}
+            <span class="pseudonym">{who()?.author ?? "anon · your IP, hashed"}</span>
+            <Show when={who()}>
+              {(w) => <span class="tier-badge"> · {w().tier}</span>}
+            </Show>
           </div>
           <Show when={config.turnstileSiteKey}>
             <div class="editor-widget" ref={mountWidget} />
@@ -250,7 +285,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
             <button
               type="button"
               class="btn btn-primary"
-              disabled={busy() || !draft().trim()}
+              disabled={busy() || !body().trim()}
               onClick={openConfirm}
             >
               Publish…
@@ -308,7 +343,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
               <p>
                 Size:{" "}
                 <span class="mono">
-                  {original().length} → {draft().length} chars (
+                  {original().length} → {content().length} chars (
                   {delta() >= 0 ? "+" : ""}
                   {delta()})
                 </span>

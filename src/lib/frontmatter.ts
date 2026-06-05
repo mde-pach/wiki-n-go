@@ -1,4 +1,4 @@
-import { parse } from "yaml";
+import { parse, stringify } from "yaml";
 
 export interface InfoboxRow {
   v: string;
@@ -35,4 +35,30 @@ export function parseFrontmatter(raw: string): { meta: PageMeta; body: string } 
 
 export function normalizeRow(value: string | InfoboxRow): InfoboxRow {
   return typeof value === "string" ? { v: value } : value;
+}
+
+// Split a page into its raw frontmatter object (all keys, including ones we
+// don't model) and its body — the basis for editing properties via a form
+// while preserving everything else on round-trip.
+export function splitFrontmatter(raw: string): {
+  data: Record<string, unknown>;
+  body: string;
+} {
+  const m = raw.match(FRONTMATTER_RE);
+  if (!m) return { data: {}, body: raw };
+  try {
+    const parsed = parse(m[1]);
+    const data =
+      parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+    return { data, body: raw.slice(m[0].length) };
+  } catch {
+    return { data: {}, body: raw.slice(m[0].length) };
+  }
+}
+
+// Reassemble a markdown doc from a frontmatter object + body. An empty object
+// yields no frontmatter block (so plain pages stay plain).
+export function withFrontmatter(data: Record<string, unknown>, body: string): string {
+  if (Object.keys(data).length === 0) return body;
+  return `---\n${stringify(data)}---\n\n${body.replace(/^\s+/, "")}`;
 }

@@ -7,6 +7,19 @@ export interface EditResult {
   url?: string; // commit URL when live === true
 }
 
+export type Tier = "open" | "auto" | "extended" | "maintainer";
+
+export interface WhoAmI {
+  author: string;
+  tier: Tier;
+}
+
+export async function getWhoami(): Promise<WhoAmI> {
+  const res = await fetch(`${config.workerUrl}/whoami`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Request failed (${res.status})`);
+  return (await res.json()) as WhoAmI;
+}
+
 export async function submitEdit(
   slug: string,
   content: string,

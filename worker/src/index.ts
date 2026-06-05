@@ -74,6 +74,7 @@ export default {
         diff(env, q.get("slug") ?? "", q.get("base") ?? "", q.get("head") ?? ""),
       "GET /topics": () => listTopics(env, q.get("slug") ?? ""),
       "GET /topic": () => getThread(env, q.get("id") ?? ""),
+      "GET /whoami": () => whoami(env, request),
       "POST /edit": async () =>
         proposeEdit(env, request, (await request.json()) as EditBody),
       "POST /topic": async () =>
@@ -282,6 +283,17 @@ async function trustedEditors(env: Env): Promise<string[]> {
   } catch {
     return [];
   }
+}
+
+// The caller's pseudonym + trust tier, so the editor can show identity and
+// gate privileged controls (e.g. the protection picker). No write, no token.
+async function whoami(
+  env: Env,
+  request: Request,
+): Promise<{ author: string; tier: Tier }> {
+  const ip = request.headers.get("CF-Connecting-IP") ?? "0.0.0.0";
+  const author = `anon-${await ipHash(env.HASH_SECRET, ip)}`;
+  return { author, tier: await editorTier(env, author) };
 }
 
 async function editorTier(env: Env, author: string): Promise<Tier> {

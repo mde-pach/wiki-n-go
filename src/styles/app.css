@@ -69,6 +69,61 @@ html.ready body {
   break-inside: avoid;
 }
 
+/* Editor "Page properties" form — the friendly face over frontmatter. */
+.props-panel {
+  border: var(--border-w) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  margin-bottom: 1.1rem;
+  font-family: var(--font-ui);
+}
+.props-panel > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 0.7rem 1rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-weight: 600;
+}
+.props-panel > summary::-webkit-details-marker {
+  display: none;
+}
+.props-hint {
+  font-weight: 400;
+  font-size: var(--text-sm);
+  color: var(--color-ink-subtle);
+}
+.props-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem 1rem;
+  padding: 0 1rem 1rem;
+}
+.props-grid .field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.props-grid .props-wide {
+  grid-column: 1 / -1;
+}
+.field-hint {
+  font-size: var(--text-xs);
+  color: var(--color-ink-subtle);
+}
+.tier-badge {
+  color: var(--color-ink-muted);
+  text-transform: uppercase;
+  font-size: 0.78em;
+  letter-spacing: 0.04em;
+}
+@media (max-width: 700px) {
+  .props-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Hatnote: italic disambiguation note above the lead (Wikipedia convention). */
 .hatnote {
   font-family: var(--font-ui);
