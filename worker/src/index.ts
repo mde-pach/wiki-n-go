@@ -37,7 +37,7 @@ class HttpError extends Error {
 }
 
 const MAX_CONTENT_BYTES = 100_000;
-const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/;
+export const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/;
 const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW_S = 600;
 
@@ -303,7 +303,7 @@ async function isBanned(env: Env, author: string): Promise<boolean> {
   }
 }
 
-async function ipHash(secret: string, ip: string): Promise<string> {
+export async function ipHash(secret: string, ip: string): Promise<string> {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret),

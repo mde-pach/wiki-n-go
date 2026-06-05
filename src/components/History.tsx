@@ -1,16 +1,10 @@
 import { createResource, createSignal, For, Show } from "solid-js";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
+import { type DLine, parseDiff } from "../lib/diff";
 import { getDiff, getHistory, type Revision } from "../lib/history";
 import { slugFromLocation } from "../lib/slug";
 import { errMessage } from "../lib/util";
-
-interface DLine {
-  num: string;
-  sign: string;
-  text: string;
-  cls: string;
-}
 
 export default function History(props: { slug?: string }) {
   if (!config.workerUrl) return null;
@@ -178,35 +172,6 @@ function RevSkeleton() {
       </For>
     </ol>
   );
-}
-
-function parseDiff(patch: string): DLine[] {
-  const out: DLine[] = [];
-  let oldLn = 0;
-  let newLn = 0;
-  for (const line of patch.split("\n")) {
-    if (line.startsWith("@@")) {
-      const m = line.match(/@@ -(\d+),?\d* \+(\d+),?\d* @@/);
-      if (m) {
-        oldLn = Number(m[1]);
-        newLn = Number(m[2]);
-      }
-      out.push({ num: "", sign: "", text: line, cls: "hunk" });
-    } else if (line.startsWith("+") && !line.startsWith("+++")) {
-      out.push({ num: String(newLn++), sign: "+", text: line.slice(1), cls: "add" });
-    } else if (line.startsWith("-") && !line.startsWith("---")) {
-      out.push({ num: String(oldLn++), sign: "-", text: line.slice(1), cls: "del" });
-    } else if (!/^(\+\+\+|---|diff |index )/.test(line)) {
-      out.push({
-        num: String(newLn++),
-        sign: " ",
-        text: line.replace(/^ /, ""),
-        cls: "",
-      });
-      oldLn++;
-    }
-  }
-  return out;
 }
 
 function short(sha: string): string {
