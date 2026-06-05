@@ -1,18 +1,22 @@
 import { createSignal, onMount, Show } from "solid-js";
 import { fetchMarkdown, PageNotFoundError, renderMarkdown } from "../lib/content";
+import type { PageMeta } from "../lib/frontmatter";
 import { pageSet } from "../lib/manifest";
 import { splitTitle } from "../lib/markdown";
 import { BASE } from "../lib/paths";
 import { slugFromLocation } from "../lib/slug";
 import { errMessage } from "../lib/util";
+import { Icons } from "./Icons";
 
 export default function WikiPage(props: {
   slug?: string;
   initialHtml?: string;
   initialRaw?: string;
+  meta?: PageMeta;
 }) {
   const slug = () => props.slug ?? slugFromLocation();
   const [html, setHtml] = createSignal(props.initialHtml);
+  const [meta, setMeta] = createSignal<PageMeta>(props.meta ?? {});
   const [notFound, setNotFound] = createSignal(false);
   const [err, setErr] = createSignal<string>();
   let body: HTMLDivElement | undefined;
@@ -29,7 +33,8 @@ export default function WikiPage(props: {
     try {
       const raw = await fetchMarkdown(slug());
       if (raw === props.initialRaw) return; // unchanged since build → keep SSR content (no shift)
-      const { title, body } = splitTitle(raw);
+      const { title, body, meta: fresh } = splitTitle(raw);
+      setMeta(fresh);
       setHtml(renderMarkdown(body));
       const heading = title || slug();
       document.title = heading;
@@ -56,6 +61,19 @@ export default function WikiPage(props: {
           </div>
         }
       >
+        <Show when={meta().hatnote}>
+          <div class="hatnote">{meta().hatnote}</div>
+        </Show>
+        <Show when={meta().banner}>
+          {(banner) => (
+            <div class={`notice notice-${banner().kind ?? "info"}`}>
+              <Show when={banner().kind === "warn"} fallback={<Icons.Info />}>
+                <Icons.Warn />
+              </Show>
+              <span>{banner().text}</span>
+            </div>
+          )}
+        </Show>
         <Show when={html()} fallback={<ArticleSkeleton />}>
           <div
             ref={(el) => {

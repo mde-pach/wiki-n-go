@@ -40,6 +40,19 @@ html.ready body {
   margin: 0 0 0.6em;
 }
 
+/* Hatnote: italic disambiguation note above the lead (Wikipedia convention). */
+.hatnote {
+  font-family: var(--font-ui);
+  font-style: italic;
+  color: var(--color-ink-muted);
+  padding: 0.1rem 0 0.6rem 1.4rem;
+  border-bottom: var(--border-w) solid var(--color-border);
+  margin-bottom: 1.1rem;
+}
+.notice {
+  margin-bottom: 1.1rem;
+}
+
 /* Footnote bodies render inside a <p>; flatten it into the reflist grid cell. */
 .ref-list li p {
   margin: 0;

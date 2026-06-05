@@ -32,7 +32,7 @@ const parsed = raw ? parsePage(raw) : null;
     </div>
     <div class="col-main">
       <TocMobile initialItems={parsed?.headings ?? []} client:load />
-      <WikiPage slug={pageSlug} initialHtml={parsed?.html} initialRaw={raw} client:load />
+      <WikiPage slug={pageSlug} initialHtml={parsed?.html} initialRaw={raw} meta={parsed?.meta} client:load />
     </div>
     <div class="col-info"><Infobox slug={pageSlug} meta={parsed?.meta} client:load /></div>
   </main>

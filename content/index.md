@@ -1,3 +1,11 @@
+---
+hatnote: This is the project home page. For setup steps, see Getting started.
+banner:
+  kind: info
+  text: This wiki is a work in progress — anyone can edit, every change is reviewed.
+tags: [Reference, Wiki software]
+---
+
 # Welcome to the Wiki
 
 This page is **served from GitHub via jsDelivr**[^cdn] and rendered in your browser at
