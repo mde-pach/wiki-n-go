@@ -42,9 +42,16 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
     <meta name="generator" content={Astro.generator} />
     <title>{pretty} · wiki-n-go</title>
     <script is:inline>
-      const d = document.documentElement;
-      d.dataset.skin = localStorage.getItem("wng-skin") || "editorial";
-      d.dataset.theme = localStorage.getItem("wng-theme") || "light";
+      (() => {
+        const apply = (doc) => {
+          const d = doc.documentElement;
+          d.dataset.skin = localStorage.getItem("wng-skin") || "editorial";
+          d.dataset.theme = localStorage.getItem("wng-theme") || "light";
+        };
+        apply(document);
+        // Re-apply on View Transition navigation (the swapped-in doc carries the SSR defaults).
+        document.addEventListener("astro:before-swap", (e) => apply(e.newDocument));
+      })();
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -77,7 +84,9 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
             <a href={readHref}>Main</a><span class="sep">/</span><span>Article</span>
           </nav>
           <h1 class="page-title">{pretty}</h1>
-          <PageMeta slug={slug} base={base} client:only="solid-js" />
+          <div class="page-meta-slot">
+            <PageMeta slug={slug} base={base} client:only="solid-js" />
+          </div>
           <nav class="tabbar" aria-label="Page views">
             {
               tabs.map(([id, label]) => (

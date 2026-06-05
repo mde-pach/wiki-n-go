@@ -43,7 +43,7 @@ export default function WikiPage(props: { slug?: string }) {
           </div>
         )}
       >
-        <Suspense fallback={<p class="wiki-status">Loading…</p>}>
+        <Suspense fallback={<ArticleSkeleton />}>
           <div
             ref={(el) => {
               body = el;
@@ -53,6 +53,21 @@ export default function WikiPage(props: { slug?: string }) {
         </Suspense>
       </ErrorBoundary>
     </article>
+  );
+}
+
+function ArticleSkeleton() {
+  return (
+    <div class="sk-article" aria-hidden="true">
+      <div
+        class="sk-bar skeleton"
+        style={{ height: "2.1rem", width: "55%", "margin-bottom": "0.6rem" }}
+      />
+      <div class="sk-bar skeleton" style={{ width: "94%" }} />
+      <div class="sk-bar skeleton" style={{ width: "89%" }} />
+      <div class="sk-bar skeleton" style={{ width: "92%" }} />
+      <div class="sk-bar skeleton" style={{ width: "38%" }} />
+    </div>
   );
 }
 

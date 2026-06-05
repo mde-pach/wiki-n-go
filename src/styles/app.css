@@ -35,6 +35,43 @@
   opacity: 1;
 }
 
+/* Reserve space so client:only islands don't collapse-then-expand on load/nav. */
+.page-meta-slot {
+  min-height: 2rem;
+}
+.col-main {
+  min-height: 50vh;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-sunken) 25%,
+    color-mix(in oklab, var(--color-border) 70%, transparent) 37%,
+    var(--color-surface-sunken) 63%
+  );
+  background-size: 400% 100%;
+  animation: sk-shimmer 1.4s ease infinite;
+  border-radius: var(--radius-sm);
+}
+@keyframes sk-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+.sk-article {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding-top: 0.4rem;
+}
+.sk-bar {
+  height: 1.05rem;
+}
+
 .wiki-status {
   color: var(--color-ink-muted);
   font-style: italic;

@@ -12,9 +12,15 @@ const home = import.meta.env.BASE_URL;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>wiki-n-go</title>
     <script is:inline>
-      const d = document.documentElement;
-      d.dataset.skin = localStorage.getItem("wng-skin") || "editorial";
-      d.dataset.theme = localStorage.getItem("wng-theme") || "light";
+      (() => {
+        const apply = (doc) => {
+          const d = doc.documentElement;
+          d.dataset.skin = localStorage.getItem("wng-skin") || "editorial";
+          d.dataset.theme = localStorage.getItem("wng-theme") || "light";
+        };
+        apply(document);
+        document.addEventListener("astro:before-swap", (e) => apply(e.newDocument));
+      })();
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
