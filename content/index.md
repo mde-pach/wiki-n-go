@@ -9,7 +9,7 @@ banner:
   text: This wiki is a work in progress — anyone can edit, every change is reviewed.
 ---
 
-# Welcome to the Wiki
+# Welcome to the wikiwiki
 
 This page is **served from GitHub via jsDelivr**[^cdn] and rendered in your browser at
 runtime. Editing this file and committing it updates the page **with no
