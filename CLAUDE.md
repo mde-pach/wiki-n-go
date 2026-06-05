@@ -2,6 +2,11 @@
 
 How to write code in this repo. **What** we're building lives in `SPEC.md` — read it for architecture and decisions; don't duplicate it here.
 
+## Worktrees (parallel sessions — do this first)
+- Multiple Claude sessions run against this repo at once. **Never edit the primary checkout directly** — sessions would collide.
+- At the start of any session that will change files, **create and enter a dedicated git worktree** (`EnterWorktree`) before the first edit, and do all work there. One worktree per session, on its own branch.
+- Commit on the worktree branch; merge to `main` when the work is verified. Read-only inspection needs no worktree.
+
 ## Commands
 - Install: `bun install`
 - Dev: `bun run dev`
