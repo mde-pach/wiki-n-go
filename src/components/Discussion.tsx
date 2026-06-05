@@ -12,7 +12,7 @@ import {
   type Topic,
 } from "../lib/comments";
 import { slugFromLocation } from "../lib/slug";
-import { renderTurnstile, resetTurnstile } from "../lib/turnstile";
+import { createTurnstile } from "../lib/turnstile";
 import { errMessage } from "../lib/util";
 import { Icons } from "./Icons";
 
@@ -329,18 +329,10 @@ function Composer(props: {
   const [title, setTitle] = createSignal("");
   const [draft, setDraft] = createSignal("");
   const [busy, setBusy] = createSignal(false);
-  const [token, setToken] = createSignal<string>();
   const [error, setError] = createSignal<string>();
-  let widgetId: string | undefined;
-
-  function mountWidget(el: HTMLDivElement) {
-    if (!config.turnstileSiteKey) return;
-    renderTurnstile(el, config.turnstileSiteKey, setToken)
-      .then((id) => {
-        widgetId = id;
-      })
-      .catch((e) => setError(errMessage(e)));
-  }
+  const turnstile = config.turnstileSiteKey
+    ? createTurnstile(config.turnstileSiteKey)
+    : null;
 
   async function submit() {
     if (props.withTitle && !title().trim()) {
@@ -348,18 +340,15 @@ function Composer(props: {
       return;
     }
     if (!draft().trim()) return;
-    if (config.turnstileSiteKey && !token()) {
-      setError("Please complete the bot check.");
-      return;
-    }
     setBusy(true);
     setError();
     try {
-      await props.onSubmit(draft(), token(), title().trim());
+      // Verify under the hood — no visible bot-check widget.
+      const tok = turnstile ? await turnstile.getToken() : undefined;
+      await props.onSubmit(draft(), tok, title().trim());
     } catch (e) {
       setError(errMessage(e));
-      resetTurnstile(widgetId);
-      setToken(undefined);
+      turnstile?.reset();
     } finally {
       setBusy(false);
     }
@@ -382,9 +371,6 @@ function Composer(props: {
         value={draft()}
         onInput={(e) => setDraft(e.currentTarget.value)}
       />
-      <Show when={config.turnstileSiteKey}>
-        <div class="editor-widget" ref={mountWidget} />
-      </Show>
       <div class="editor-actions">
         <button
           type="button"

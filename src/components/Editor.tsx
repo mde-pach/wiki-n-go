@@ -1,4 +1,4 @@
-import { createSignal, onMount, Show } from "solid-js";
+import { createEffect, createSignal, onMount, Show } from "solid-js";
 import { createStore } from "solid-js/store";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
@@ -8,7 +8,7 @@ import { splitFrontmatter, withFrontmatter } from "../lib/frontmatter";
 import { slugifyHeading } from "../lib/markdown";
 import { prettify, readHref } from "../lib/paths";
 import { slugFromLocation } from "../lib/slug";
-import { renderTurnstile, resetTurnstile } from "../lib/turnstile";
+import { createTurnstile } from "../lib/turnstile";
 import { errMessage } from "../lib/util";
 import { Icons } from "./Icons";
 import PageProperties, {
@@ -32,14 +32,19 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   const [original, setOriginal] = createSignal(props.initialContent ?? "");
   const [summary, setSummary] = createSignal("");
   const [busy, setBusy] = createSignal(false);
-  const [token, setToken] = createSignal<string>();
   const [error, setError] = createSignal<string>();
   const [result, setResult] = createSignal<EditResult>();
   const [modal, setModal] = createSignal(false);
   const [who, setWho] = createSignal<{ author: string; tier: Tier }>();
+  const [ready, setReady] = createSignal(false);
+  const [restored, setRestored] = createSignal(false);
   let ta: HTMLTextAreaElement | undefined;
 
+  const turnstile = config.turnstileSiteKey
+    ? createTurnstile(config.turnstileSiteKey)
+    : null;
   const content = () => withFrontmatter(assemble(extra(), fields), body());
+  const draftKey = () => `wng-draft:${slug()}`;
 
   onMount(async () => {
     getWhoami()
@@ -57,7 +62,36 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     } catch (e) {
       if (!(e instanceof PageNotFoundError)) setError(errMessage(e));
     }
+    restoreDraft();
+    setReady(true);
     queueMicrotask(focusSection);
+  });
+
+  // Survive a reload: persist the in-progress edit per slug, restore it on mount
+  // (over the freshly fetched content), and clear it once the edit is submitted.
+  function restoreDraft() {
+    const saved = localStorage.getItem(draftKey());
+    if (!saved) return;
+    try {
+      const d = JSON.parse(saved) as { content?: string; summary?: string };
+      if (!d.content || d.content === content()) return;
+      const s = splitFrontmatter(d.content);
+      setBody(s.body);
+      setFields(fieldsFrom(s.data));
+      setExtra(extraFrom(s.data));
+      if (d.summary) setSummary(d.summary);
+      setRestored(true);
+    } catch {
+      localStorage.removeItem(draftKey());
+    }
+  }
+
+  createEffect(() => {
+    const c = content();
+    const s = summary();
+    if (isServer || !ready()) return;
+    if (c === original() && !s.trim()) localStorage.removeItem(draftKey());
+    else localStorage.setItem(draftKey(), JSON.stringify({ content: c, summary: s }));
   });
 
   // Deep-link from a heading's `[edit]`: select that section and seed a summary.
@@ -115,35 +149,22 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     ta.focus();
   }
 
-  let widgetId: string | undefined;
-  function mountWidget(el: HTMLDivElement) {
-    if (!config.turnstileSiteKey) return;
-    renderTurnstile(el, config.turnstileSiteKey, setToken)
-      .then((id) => {
-        widgetId = id;
-      })
-      .catch((e) => setError(errMessage(e)));
-  }
-
   function openConfirm() {
     setError();
-    if (config.turnstileSiteKey && !token()) {
-      setError("Please complete the bot check.");
-      return;
-    }
     setModal(true);
   }
   async function confirmSubmit() {
     setBusy(true);
     setError();
     try {
-      setResult(await submitEdit(slug(), content(), token(), summary()));
+      // Verify under the hood — the user just waits, never sees a widget.
+      const tok = turnstile ? await turnstile.getToken() : undefined;
+      setResult(await submitEdit(slug(), content(), tok, summary()));
+      localStorage.removeItem(draftKey());
       setModal(false);
     } catch (e) {
       setError(errMessage(e));
-      // Turnstile tokens are single-use; reset so the editor can retry.
-      resetTurnstile(widgetId);
-      setToken(undefined);
+      turnstile?.reset();
       setModal(false);
     } finally {
       setBusy(false);
@@ -278,8 +299,8 @@ export default function Editor(props: { slug?: string; initialContent?: string }
               {(w) => <span class="tier-badge"> · {w().tier}</span>}
             </Show>
           </div>
-          <Show when={config.turnstileSiteKey}>
-            <div class="editor-widget" ref={mountWidget} />
+          <Show when={restored()}>
+            <p class="editor-hint">Restored your unsaved draft from this device.</p>
           </Show>
           <div class="editor-actions" style={{ "margin-top": "0.9rem" }}>
             <button

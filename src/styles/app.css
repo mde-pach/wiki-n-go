@@ -267,8 +267,11 @@ html.ready body {
   color: var(--color-remove-ink);
   font-family: var(--font-ui);
 }
-.editor-widget {
-  margin-top: 0.85rem;
+.editor-hint {
+  margin-top: 0.6rem;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-ink-subtle);
 }
 .editor-actions {
   display: flex;
