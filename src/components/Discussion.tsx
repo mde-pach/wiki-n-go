@@ -3,6 +3,7 @@ import { config } from "../config";
 import { type Comment, listComments, postComment } from "../lib/comments";
 import { slugFromLocation } from "../lib/slug";
 import { renderTurnstile, resetTurnstile } from "../lib/turnstile";
+import { errMessage } from "../lib/util";
 
 export default function Discussion(props: { slug?: string }) {
   if (!config.workerUrl) return null;
@@ -20,7 +21,7 @@ export default function Discussion(props: { slug?: string }) {
     try {
       setComments(await listComments(slug()));
     } catch (e) {
-      setError(message(e));
+      setError(errMessage(e));
     } finally {
       setLoaded(true);
     }
@@ -33,7 +34,7 @@ export default function Discussion(props: { slug?: string }) {
       .then((id) => {
         widgetId = id;
       })
-      .catch((e) => setError(message(e)));
+      .catch((e) => setError(errMessage(e)));
   }
 
   async function send() {
@@ -51,7 +52,7 @@ export default function Discussion(props: { slug?: string }) {
       resetTurnstile(widgetId);
       await load();
     } catch (e) {
-      setError(message(e));
+      setError(errMessage(e));
     } finally {
       setBusy(false);
     }
@@ -124,8 +125,4 @@ function CommentSkeleton() {
       </For>
     </ul>
   );
-}
-
-function message(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
 }

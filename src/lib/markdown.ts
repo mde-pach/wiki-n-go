@@ -35,11 +35,17 @@ export interface ParsedPage {
   headings: Heading[];
 }
 
-// Split off the leading `# Title` (it lives in the chrome), render the rest, and
-// pull out the heading outline so the TOC can render server-side too.
-export function parsePage(raw: string): ParsedPage {
+// The leading `# Title` lives in the chrome, not the body. Split it off so both
+// the SSR pages and the client renderer share one rule.
+export function splitTitle(raw: string): { title: string; body: string } {
   const m = raw.match(/^#\s+(.+?)\s*$/m);
-  const body = m ? raw.replace(m[0], "").trimStart() : raw;
+  return { title: m ? m[1] : "", body: m ? raw.replace(m[0], "").trimStart() : raw };
+}
+
+// Render the body and pull out the heading outline so the TOC can render
+// server-side too.
+export function parsePage(raw: string): ParsedPage {
+  const { title, body } = splitTitle(raw);
   const html = md.render(body);
   const headings: Heading[] = [];
   const re = /<h([23]) id="([^"]+)"[^>]*>(.*?)<\/h\1>/g;
@@ -55,5 +61,5 @@ export function parsePage(raw: string): ParsedPage {
     });
     h = re.exec(html);
   }
-  return { title: m ? m[1] : "", html, headings };
+  return { title, html, headings };
 }

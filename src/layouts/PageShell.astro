@@ -5,21 +5,21 @@ import PageMeta from "../components/PageMeta.tsx";
 import Search from "../components/Search.tsx";
 import ThemeToggle from "../components/ThemeToggle.tsx";
 import { config } from "../config";
+import { BASE, prettify, readHref, type View } from "../lib/paths";
 
 interface Props {
   slug: string;
-  view: "read" | "edit" | "history" | "talk";
+  view: View;
   title?: string;
 }
 const { slug, view, title } = Astro.props;
 
-const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-const readHref = slug === config.homeSlug ? `${base}/` : `${base}/${slug}`;
+const read = readHref(slug);
 const href = {
-  read: readHref,
-  edit: `${base}/edit/${slug}`,
-  history: `${base}/history/${slug}`,
-  talk: `${base}/talk/${slug}`,
+  read,
+  edit: `${BASE}/edit/${slug}`,
+  history: `${BASE}/history/${slug}`,
+  talk: `${BASE}/talk/${slug}`,
 };
 const tabs = [
   ["read", "Read"],
@@ -28,10 +28,7 @@ const tabs = [
   ["talk", "Talk"],
 ] as const;
 
-const pretty = (slug.split("/").pop() ?? slug)
-  .replace(/-/g, " ")
-  .replace(/^\w/, (c) => c.toUpperCase());
-const display = title ?? pretty;
+const display = title ?? prettify(slug);
 const source = `${config.contentDir}/${slug}.md`;
 const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blob/${config.branch}/${source}`;
 ---
@@ -71,7 +68,7 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
       <a class="skip-link" href="#main">Skip to content</a>
       <header class="header" transition:persist>
         <div class="header-inner">
-          <a class="wordmark" href={readHref}>
+          <a class="wordmark" href={read}>
             <span>wiki</span><span class="wm-accent">-n-</span><span>go</span><span class="wm-dot"></span>
             <span class="wordmark-sub">the open reference</span>
           </a>
@@ -86,11 +83,11 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
       <div class="page-head">
         <div class="page-head-inner">
           <nav class="breadcrumb" aria-label="Breadcrumb">
-            <a href={readHref}>Main</a><span class="sep">/</span><span>Article</span>
+            <a href={read}>Main</a><span class="sep">/</span><span>Article</span>
           </nav>
           <h1 class="page-title">{display}</h1>
           <div class="page-meta-slot">
-            <PageMeta slug={slug} base={base} client:load />
+            <PageMeta slug={slug} base={BASE} client:load />
           </div>
           <nav class="tabbar" aria-label="Page views">
             {

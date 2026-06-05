@@ -1,6 +1,5 @@
 import type MarkdownIt from "markdown-it";
-
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+import { BASE } from "./paths";
 
 // `[[Target]]` / `[[Target|Label]]` → internal link carrying a data-slug, which
 // the reader uses to flag red links (pages that don't exist yet).

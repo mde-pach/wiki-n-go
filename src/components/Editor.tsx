@@ -3,15 +3,10 @@ import { isServer } from "solid-js/web";
 import { config } from "../config";
 import { submitEdit } from "../lib/api";
 import { fetchMarkdown, PageNotFoundError, renderMarkdown } from "../lib/content";
+import { prettify, readHref } from "../lib/paths";
 import { slugFromLocation } from "../lib/slug";
 import { renderTurnstile } from "../lib/turnstile";
-
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
-
-function prettify(slug: string): string {
-  const s = slug.split("/").pop() ?? slug;
-  return s.replace(/-/g, " ").replace(/^\w/, (c) => c.toUpperCase());
-}
+import { errMessage } from "../lib/util";
 
 export default function Editor(props: { slug?: string; initialContent?: string }) {
   if (!config.workerUrl) return null;
@@ -33,13 +28,13 @@ export default function Editor(props: { slug?: string; initialContent?: string }
       setOriginal(raw);
       if (raw !== props.initialContent) setDraft(raw);
     } catch (e) {
-      if (!(e instanceof PageNotFoundError)) setError(message(e));
+      if (!(e instanceof PageNotFoundError)) setError(errMessage(e));
     }
   });
 
   const preview = () =>
     isServer ? "" : renderMarkdown(draft() || "_Nothing to preview yet._");
-  const readHref = `${BASE}/${slug() === config.homeSlug ? "" : slug()}`;
+  const cancelHref = () => readHref(slug());
   const delta = () => draft().length - original().length;
 
   function wrap(before: string, after = before) {
@@ -65,7 +60,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   function mountWidget(el: HTMLDivElement) {
     if (!config.turnstileSiteKey) return;
     renderTurnstile(el, config.turnstileSiteKey, setToken).catch((e) =>
-      setError(message(e)),
+      setError(errMessage(e)),
     );
   }
 
@@ -85,7 +80,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
       setPrUrl(result.prUrl);
       setModal(false);
     } catch (e) {
-      setError(message(e));
+      setError(errMessage(e));
     } finally {
       setBusy(false);
     }
@@ -213,7 +208,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
             >
               Publish…
             </button>
-            <a class="btn btn-ghost" href={readHref}>
+            <a class="btn btn-ghost" href={cancelHref()}>
               Cancel
             </a>
           </div>
@@ -279,8 +274,4 @@ export default function Editor(props: { slug?: string; initialContent?: string }
       </Show>
     </div>
   );
-}
-
-function message(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
 }

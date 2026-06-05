@@ -3,6 +3,7 @@ import { isServer } from "solid-js/web";
 import { config } from "../config";
 import { getDiff, getHistory, type Revision } from "../lib/history";
 import { slugFromLocation } from "../lib/slug";
+import { errMessage } from "../lib/util";
 
 interface DLine {
   num: string;
@@ -38,7 +39,7 @@ export default function History(props: { slug?: string }) {
         lines: patch ? parseDiff(patch) : null,
       });
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      setErr(errMessage(e));
     }
   }
 

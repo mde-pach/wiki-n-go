@@ -1,9 +1,8 @@
 import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
-import { config } from "../config";
 import { pageSet } from "../lib/manifest";
+import { readHref } from "../lib/paths";
 
 export default function Search() {
-  const base = import.meta.env.BASE_URL.replace(/\/$/, "");
   const [q, setQ] = createSignal("");
   const [open, setOpen] = createSignal(false);
   const [all, setAll] = createSignal<string[]>([]);
@@ -31,8 +30,6 @@ export default function Search() {
     onCleanup(() => window.removeEventListener("keydown", onKey));
   });
 
-  const href = (p: string) => `${base}/${p === config.homeSlug ? "" : p}`;
-
   return (
     <div class={`search${open() ? " is-open" : ""}`} role="search">
       <div class="search-field">
@@ -54,7 +51,7 @@ export default function Search() {
         <div class="search-results" role="listbox">
           <For each={results()}>
             {(p) => (
-              <a class="search-result" href={href(p)} role="option">
+              <a class="search-result" href={readHref(p)} role="option">
                 <span class="sr-title">{p}</span>
               </a>
             )}

@@ -8,7 +8,23 @@ export interface Revision {
   message: string;
 }
 
-export async function getHistory(slug: string): Promise<Revision[]> {
+// Memoised per slug so the read view's PageMeta + Infobox share one request.
+// Drop a rejected lookup so a transient failure can be retried on the next call.
+const cache = new Map<string, Promise<Revision[]>>();
+
+export function getHistory(slug: string): Promise<Revision[]> {
+  let p = cache.get(slug);
+  if (!p) {
+    p = loadHistory(slug).catch((e) => {
+      cache.delete(slug);
+      throw e;
+    });
+    cache.set(slug, p);
+  }
+  return p;
+}
+
+async function loadHistory(slug: string): Promise<Revision[]> {
   const res = await fetch(
     `${config.workerUrl}/history?slug=${encodeURIComponent(slug)}`,
     {

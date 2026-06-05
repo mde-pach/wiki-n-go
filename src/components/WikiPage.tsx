@@ -1,9 +1,10 @@
 import { createSignal, onMount, Show } from "solid-js";
 import { fetchMarkdown, PageNotFoundError, renderMarkdown } from "../lib/content";
 import { pageSet } from "../lib/manifest";
+import { splitTitle } from "../lib/markdown";
+import { BASE } from "../lib/paths";
 import { slugFromLocation } from "../lib/slug";
-
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+import { errMessage } from "../lib/util";
 
 export default function WikiPage(props: {
   slug?: string;
@@ -27,18 +28,17 @@ export default function WikiPage(props: {
     try {
       const raw = await fetchMarkdown(slug());
       if (raw === props.initialRaw) return; // unchanged since build → keep SSR content (no shift)
-      const m = raw.match(/^#\s+(.+?)\s*$/m);
-      const bodyMd = m ? raw.replace(m[0], "").trimStart() : raw;
-      setHtml(renderMarkdown(bodyMd));
-      const title = m ? m[1] : slug();
-      document.title = title;
+      const { title, body } = splitTitle(raw);
+      setHtml(renderMarkdown(body));
+      const heading = title || slug();
+      document.title = heading;
       const el = document.querySelector(".page-title");
-      if (el) el.textContent = title;
+      if (el) el.textContent = heading;
       queueMicrotask(decorate);
     } catch (e) {
       if (props.initialHtml) return; // page existed at build; keep it on a transient error
       if (e instanceof PageNotFoundError) setNotFound(true);
-      else setErr(e instanceof Error ? e.message : String(e));
+      else setErr(errMessage(e));
     }
   });
 

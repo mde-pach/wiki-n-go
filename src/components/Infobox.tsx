@@ -2,11 +2,7 @@ import { createResource, For } from "solid-js";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
 import { getHistory } from "../lib/history";
-
-function prettify(slug: string): string {
-  const s = slug.split("/").pop() ?? slug;
-  return s.replace(/-/g, " ").replace(/^\w/, (c) => c.toUpperCase());
-}
+import { prettify } from "../lib/paths";
 
 export default function Infobox(props: { slug: string }) {
   const [hist] = createResource(() => (isServer ? undefined : props.slug), getHistory);

@@ -2,22 +2,14 @@
 import Editor from "../../components/Editor.tsx";
 import PageShell from "../../layouts/PageShell.astro";
 import { parsePage } from "../../lib/markdown";
-
-const rawPages = import.meta.glob("../../../content/**/*.md", {
-  query: "?raw",
-  import: "default",
-  eager: true,
-}) as Record<string, string>;
+import { rawPage, staticPaths } from "../../lib/pages";
 
 export function getStaticPaths() {
-  const files = import.meta.glob("../../../content/**/*.md");
-  return Object.keys(files).map((p) => ({
-    params: { slug: p.replace("../../../content/", "").replace(/\.md$/, "") },
-  }));
+  return staticPaths();
 }
 
 const { slug } = Astro.params;
-const raw = rawPages[`../../../content/${slug}.md`];
+const raw = rawPage(slug);
 const title = raw ? parsePage(raw).title : undefined;
 ---
 
