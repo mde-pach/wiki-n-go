@@ -456,6 +456,21 @@ html.ready body {
   margin-top: 0.7rem;
 }
 
+/* Invisible Turnstile host: nothing until Cloudflare needs an interactive
+   challenge, then a centered modal so the user can actually solve it. */
+.turnstile-host {
+  display: none;
+}
+.turnstile-host.is-visible {
+  display: flex;
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in oklab, var(--color-ink) 45%, transparent);
+}
+
 /* ── Discussion / Talk thread (own styles until the talk view is ported) ──── */
 .discussion {
   font-family: var(--font-ui);
