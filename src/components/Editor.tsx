@@ -156,16 +156,16 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   async function confirmSubmit() {
     setBusy(true);
     setError();
+    // Close the confirm dialog first so an in-panel bot-check (if Cloudflare
+    // asks for one) is reachable rather than behind the modal backdrop.
+    setModal(false);
     try {
-      // Verify under the hood — the user just waits, never sees a widget.
       const tok = turnstile ? await turnstile.getToken() : undefined;
       setResult(await submitEdit(slug(), content(), tok, summary()));
       localStorage.removeItem(draftKey());
-      setModal(false);
     } catch (e) {
       setError(errMessage(e));
       turnstile?.reset();
-      setModal(false);
     } finally {
       setBusy(false);
     }
@@ -301,6 +301,9 @@ export default function Editor(props: { slug?: string; initialContent?: string }
           </div>
           <Show when={restored()}>
             <p class="editor-hint">Restored your unsaved draft from this device.</p>
+          </Show>
+          <Show when={config.turnstileSiteKey}>
+            <div class="editor-widget" ref={(el) => turnstile?.mount(el)} />
           </Show>
           <div class="editor-actions" style={{ "margin-top": "0.9rem" }}>
             <button
