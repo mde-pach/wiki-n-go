@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseDiff } from "./diff";
 import { md, parsePage, splitTitle } from "./markdown";
 import { prettify } from "./paths";
+import { search, slugifyQuery, splitHighlight, toPlainText } from "./search";
 import { markRedLinksHtml } from "./wikilink";
 
 describe("prettify", () => {
@@ -107,5 +108,56 @@ describe("parseDiff", () => {
     });
     expect(lines.find((l) => l.cls === "del")).toMatchObject({ sign: "-", num: "2" });
     expect(lines.find((l) => l.cls === "")).toMatchObject({ text: "kept", num: "1" });
+  });
+});
+
+describe("search", () => {
+  const docs = [
+    {
+      slug: "espresso",
+      title: "Espresso",
+      text: "A concentrated coffee brewed under pressure.",
+    },
+    {
+      slug: "coffee",
+      title: "Coffee",
+      text: "A drink made from roasted beans, like espresso.",
+    },
+    { slug: "tea", title: "Tea", text: "A drink made by steeping leaves." },
+  ];
+
+  it("toPlainText strips markdown syntax but keeps heading text (searchable)", () => {
+    expect(toPlainText("## Brewing\n\nA **bold** [link](/x) and [[Page|p]].")).toBe(
+      "Brewing A bold link and p.",
+    );
+  });
+
+  it("requires every term and boosts title matches over body matches", () => {
+    const hits = search(docs, "espresso");
+    expect(hits[0].slug).toBe("espresso"); // title hit outranks coffee's body hit
+    expect(hits.map((h) => h.slug)).toContain("coffee");
+    expect(hits.map((h) => h.slug)).not.toContain("tea");
+  });
+
+  it("returns a snippet with surrounding context", () => {
+    const [hit] = search(docs, "roasted");
+    expect(hit.slug).toBe("coffee");
+    expect(hit.snippet).toContain("roasted");
+  });
+
+  it("AND-matches multi-term queries", () => {
+    expect(search(docs, "drink leaves").map((h) => h.slug)).toEqual(["tea"]);
+    expect(search(docs, "drink nonexistent")).toEqual([]);
+  });
+
+  it("splitHighlight flags matching runs case-insensitively", () => {
+    expect(splitHighlight("Espresso is strong", "espresso")).toEqual([
+      { t: "Espresso", hit: true },
+      { t: " is strong", hit: false },
+    ]);
+  });
+
+  it("slugifyQuery makes a safe slug", () => {
+    expect(slugifyQuery("New Page Idea!")).toBe("new-page-idea");
   });
 });
