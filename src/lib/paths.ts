@@ -29,14 +29,19 @@ export function categoryHref(tag: string): string {
 }
 
 export const changesHref = `${BASE}/changes`;
+export const reviewHref = `${BASE}/review`;
 
-// Map the current URL to a view + slug. The edit/history/talk/category/changes
-// prefixes select a view; everything else is a read.
-export function parseRoute(): { view: View | "category" | "changes"; slug: string } {
+// Map the current URL to a view + slug. The edit/history/talk/category/changes/
+// review prefixes select a view; everything else is a read.
+export function parseRoute(): {
+  view: View | "category" | "changes" | "review";
+  slug: string;
+} {
   let path = window.location.pathname;
   if (BASE && path.startsWith(BASE)) path = path.slice(BASE.length);
   path = path.replace(/^\/+/, "").replace(/\/+$/, "");
   if (path === "changes") return { view: "changes", slug: "" };
+  if (path === "review") return { view: "review", slug: "" };
   for (const v of ["edit", "history", "talk", "category"] as const) {
     if (path === v || path.startsWith(`${v}/`)) {
       return {

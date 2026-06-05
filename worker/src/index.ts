@@ -46,6 +46,11 @@ interface PatrolBody {
   sha?: unknown;
 }
 
+interface ReviewBody {
+  number?: unknown;
+  action?: unknown; // "merge" | "close"
+}
+
 type GhInit = { method?: string; body?: string; allow404?: boolean };
 
 class HttpError extends Error {
@@ -81,10 +86,14 @@ export default {
       "GET /topic": () => getThread(env, q.get("id") ?? ""),
       "GET /whoami": () => whoami(env, request),
       "GET /changes": () => listChanges(env, q.get("limit") ?? ""),
+      "GET /pending": () => listPending(env),
+      "GET /pending-diff": () => pendingDiff(env, q.get("number") ?? ""),
       "POST /edit": async () =>
         proposeEdit(env, request, (await request.json()) as EditBody),
       "POST /patrol": async () =>
         patrol(env, request, (await request.json()) as PatrolBody),
+      "POST /review": async () =>
+        review(env, request, (await request.json()) as ReviewBody),
       "POST /topic": async () =>
         createTopic(env, request, (await request.json()) as TopicBody),
       "POST /comment": async () =>
@@ -270,6 +279,126 @@ async function patrol(
   if ((await editorTier(env, author)) !== "maintainer")
     throw new HttpError(403, "Patrolling requires maintainer access.");
   await env.RATE_LIMIT?.put(`patrol:${sha}`, "1");
+  return { ok: true };
+}
+
+// ── In-UI review of pending anonymous edits (open PRs) ────────────────────
+interface OutPending {
+  number: number;
+  author: string;
+  slug: string;
+  title: string;
+  createdAt: string;
+  additions: number;
+  deletions: number;
+}
+
+interface PrItem {
+  number: number;
+  title: string;
+  created_at: string;
+  head: { ref: string };
+}
+
+interface PrFile {
+  filename: string;
+  additions: number;
+  deletions: number;
+  patch?: string;
+}
+
+const anonAuthor = (ref: string) => ref.split("/")[0]; // "anon-<hash>/slug-uuid" → "anon-<hash>"
+
+async function prContentFiles(env: Env, number: number): Promise<PrFile[]> {
+  const files = await gh<PrFile[]>(
+    env,
+    `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/pulls/${number}/files`,
+  );
+  const prefix = `${env.CONTENT_DIR}/`;
+  return files.filter(
+    (f) => f.filename.startsWith(prefix) && f.filename.endsWith(".md"),
+  );
+}
+
+async function listPending(env: Env): Promise<{ pending: OutPending[] }> {
+  const prs = await gh<PrItem[]>(
+    env,
+    `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/pulls?state=open&base=${env.BRANCH}&per_page=50`,
+  );
+  const anon = prs.filter((p) => p.head.ref.startsWith("anon-"));
+  const prefix = `${env.CONTENT_DIR}/`;
+  const pending = await Promise.all(
+    anon.map(async (p) => {
+      const files = await prContentFiles(env, p.number);
+      return {
+        number: p.number,
+        author: anonAuthor(p.head.ref),
+        slug: files[0] ? files[0].filename.slice(prefix.length, -3) : "",
+        title: p.title,
+        createdAt: p.created_at,
+        additions: files.reduce((a, f) => a + f.additions, 0),
+        deletions: files.reduce((a, f) => a + f.deletions, 0),
+      };
+    }),
+  );
+  return { pending };
+}
+
+async function pendingDiff(
+  env: Env,
+  numberStr: string,
+): Promise<{ patch: string | null }> {
+  const number = Number.parseInt(numberStr, 10);
+  if (!Number.isInteger(number) || number <= 0)
+    throw new HttpError(400, "Invalid pull request.");
+  const files = await prContentFiles(env, number);
+  return { patch: files[0]?.patch ?? null };
+}
+
+// Merge (squash → live) or close a pending edit. Maintainer-only, by ip_hash.
+async function review(
+  env: Env,
+  request: Request,
+  body: ReviewBody,
+): Promise<{ ok: true }> {
+  const number = Number(body.number);
+  const action = String(body.action ?? "");
+  if (!Number.isInteger(number) || number <= 0)
+    throw new HttpError(400, "Invalid pull request.");
+  if (action !== "merge" && action !== "close")
+    throw new HttpError(400, "Invalid action.");
+
+  const ip = request.headers.get("CF-Connecting-IP") ?? "0.0.0.0";
+  const reviewer = `anon-${await ipHash(env.HASH_SECRET, ip)}`;
+  if ((await editorTier(env, reviewer)) !== "maintainer")
+    throw new HttpError(403, "Reviewing requires maintainer access.");
+
+  const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
+  const pr = await gh<{ head: { ref: string }; title: string }>(
+    env,
+    `/repos/${repo}/pulls/${number}`,
+  );
+  if (!pr.head.ref.startsWith("anon-"))
+    throw new HttpError(400, "Not an anonymous edit.");
+
+  if (action === "merge") {
+    await gh(env, `/repos/${repo}/pulls/${number}/merge`, {
+      method: "PUT",
+      body: JSON.stringify({ merge_method: "squash", commit_title: pr.title }),
+    });
+    await env.RATE_LIMIT?.delete("meta:latest-sha");
+    await env.RATE_LIMIT?.delete("meta:pages");
+    await env.RATE_LIMIT?.delete(`trust:${anonAuthor(pr.head.ref)}`);
+  } else {
+    await gh(env, `/repos/${repo}/pulls/${number}`, {
+      method: "PATCH",
+      body: JSON.stringify({ state: "closed" }),
+    });
+  }
+  await gh(env, `/repos/${repo}/git/refs/heads/${pr.head.ref}`, {
+    method: "DELETE",
+    allow404: true,
+  });
   return { ok: true };
 }
 

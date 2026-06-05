@@ -1,17 +1,11 @@
-import { createMemo, createResource, createSignal, For, Show } from "solid-js";
+import { createResource, createSignal, For, Show } from "solid-js";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
-import {
-  type DLine,
-  diffStats,
-  parseDiff,
-  type SplitCell,
-  type SplitRow,
-  splitDiff,
-} from "../lib/diff";
+import { type DLine, parseDiff } from "../lib/diff";
 import { getDiff, getHistory, type Revision } from "../lib/history";
 import { slugFromLocation } from "../lib/slug";
 import { errMessage } from "../lib/util";
+import DiffView from "./DiffView";
 
 export default function History(props: { slug?: string }) {
   if (!config.workerUrl) return null;
@@ -24,18 +18,7 @@ export default function History(props: { slug?: string }) {
     lines: DLine[] | null;
   }>();
   const [err, setErr] = createSignal<string>();
-  const [mode, setMode] = createSignal<"split" | "unified">("split");
   const latest = () => revs()?.[0]?.sha;
-
-  const lines = () => diff()?.lines ?? null;
-  const rows = createMemo<SplitRow[] | null>(() => {
-    const l = lines();
-    return l ? splitDiff(l) : null;
-  });
-  const stats = () => {
-    const l = lines();
-    return l ? diffStats(l) : null;
-  };
 
   async function show(base: string | null, head: string) {
     setErr();
@@ -120,92 +103,7 @@ export default function History(props: { slug?: string }) {
       </Show>
 
       <Show when={diff()}>
-        <div class="diff-card">
-          <div class="diff-head">
-            <div class="dh-side">
-              <span class="dh-rev">{diff()?.a}</span>
-              <span class="dh-meta">old</span>
-            </div>
-            <span class="dh-arrow">→</span>
-            <div class="dh-side">
-              <span class="dh-rev">{diff()?.b}</span>
-              <span class="dh-meta">new</span>
-            </div>
-            <Show when={stats()}>
-              {(s) => (
-                <span class="diff-stats">
-                  <span class="ds-add">+{s().add}</span>
-                  <span class="ds-del">−{s().del}</span>
-                </span>
-              )}
-            </Show>
-            <div class="diff-modes" role="group" aria-label="Diff layout">
-              <button
-                type="button"
-                class={`dm-btn${mode() === "split" ? " is-active" : ""}`}
-                aria-pressed={mode() === "split"}
-                onClick={() => setMode("split")}
-              >
-                Split
-              </button>
-              <button
-                type="button"
-                class={`dm-btn${mode() === "unified" ? " is-active" : ""}`}
-                aria-pressed={mode() === "unified"}
-                onClick={() => setMode("unified")}
-              >
-                Unified
-              </button>
-            </div>
-          </div>
-          <Show
-            when={diff()?.lines}
-            fallback={
-              <p class="wiki-status" style={{ padding: "1rem" }}>
-                No change to this page in that range.
-              </p>
-            }
-          >
-            <Show
-              when={mode() === "split"}
-              fallback={
-                <div class="diff-body">
-                  <For each={diff()?.lines}>
-                    {(l) => (
-                      <div class={`diff-line ${l.cls}`}>
-                        <span class="dl-num">{l.num}</span>
-                        <span class="dl-sign">{l.sign}</span>
-                        <span class="dl-text">{l.text}</span>
-                      </div>
-                    )}
-                  </For>
-                </div>
-              }
-            >
-              <div class="diff-split">
-                <For each={rows()}>
-                  {(row) => (
-                    <Show
-                      when={row.cls !== "hunk"}
-                      fallback={<div class="ds-hunk">{row.text}</div>}
-                    >
-                      <div class={`ds-row ${row.cls}`}>
-                        <span class="ds-num">{row.left?.num}</span>
-                        <span class={`ds-cell ds-left${row.left ? "" : " is-empty"}`}>
-                          <Segs cell={row.left} side="del-mark" />
-                        </span>
-                        <span class="ds-num">{row.right?.num}</span>
-                        <span class={`ds-cell ds-right${row.right ? "" : " is-empty"}`}>
-                          <Segs cell={row.right} side="ins" />
-                        </span>
-                      </div>
-                    </Show>
-                  )}
-                </For>
-              </div>
-            </Show>
-          </Show>
-        </div>
+        {(d) => <DiffView lines={d().lines} a={d().a} b={d().b} />}
       </Show>
       <Show when={err()}>
         <p class="editor-err">{err()}</p>
@@ -232,18 +130,6 @@ function RevSkeleton() {
         )}
       </For>
     </ol>
-  );
-}
-
-function Segs(props: { cell: SplitCell | null; side: "ins" | "del-mark" }) {
-  return (
-    <Show when={props.cell}>
-      {(c) => (
-        <For each={c().segs}>
-          {(s) => (s.changed ? <span class={props.side}>{s.t}</span> : s.t)}
-        </For>
-      )}
-    </Show>
   );
 }
 
