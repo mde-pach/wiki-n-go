@@ -38,6 +38,7 @@ export interface Turnstile {
 
 export function createTurnstile(sitekey: string): Turnstile {
   let widgetId: string | undefined;
+  let host: HTMLElement | undefined;
   let waiters: { ok: (t: string) => void; err: (e: Error) => void }[] = [];
   let starting: Promise<void> | undefined;
 
@@ -46,23 +47,33 @@ export function createTurnstile(sitekey: string): Turnstile {
     waiters = [];
     for (const w of pending) fn(w);
   };
+  // Invisible normally, but if Cloudflare escalates to an interactive challenge
+  // the widget must be visible to render — otherwise it fails (the 401 case).
+  const reveal = (on: boolean) => host?.classList.toggle("is-visible", on);
 
   function start(): Promise<void> {
     if (!starting) {
       starting = loadScript().then(() => {
-        const host = document.createElement("div");
-        host.style.display = "none";
+        host = document.createElement("div");
+        host.className = "turnstile-host";
         document.body.appendChild(host);
         widgetId = window.turnstile?.render(host, {
           sitekey,
           action: "turnstile-spin-v1",
           size: "invisible",
           execution: "execute",
-          callback: (t: string) => drain((w) => w.ok(t)),
-          "error-callback": () =>
+          callback: (t: string) => {
+            reveal(false);
+            drain((w) => w.ok(t));
+          },
+          "error-callback": () => {
+            reveal(false);
             drain((w) =>
               w.err(new Error("Couldn’t verify you’re human. Please try again.")),
-            ),
+            );
+          },
+          "before-interactive-callback": () => reveal(true),
+          "after-interactive-callback": () => reveal(false),
         });
       });
     }
