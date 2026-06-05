@@ -25,7 +25,7 @@ interface CommentBody {
   token?: unknown;
 }
 
-type GhInit = { method?: string; body?: string };
+type GhInit = { method?: string; body?: string; allow404?: boolean };
 
 class HttpError extends Error {
   constructor(
@@ -47,48 +47,24 @@ export default {
     if (request.method === "OPTIONS") return new Response(null, { headers });
 
     const url = new URL(request.url);
+    const q = url.searchParams;
+    const routes: Record<string, () => Promise<unknown>> = {
+      "GET /latest": () => latestSha(env),
+      "GET /pages": () => listPages(env),
+      "GET /history": () => history(env, q.get("slug") ?? ""),
+      "GET /diff": () =>
+        diff(env, q.get("slug") ?? "", q.get("base") ?? "", q.get("head") ?? ""),
+      "GET /comments": () => listComments(env, q.get("slug") ?? ""),
+      "POST /edit": async () =>
+        proposeEdit(env, request, (await request.json()) as EditBody),
+      "POST /comment": async () =>
+        postComment(env, request, (await request.json()) as CommentBody),
+    };
+
+    const handler = routes[`${request.method} ${url.pathname}`];
+    if (!handler) return json({ error: "Not found" }, 404, headers);
     try {
-      if (request.method === "GET" && url.pathname === "/latest") {
-        return json(await latestSha(env), 200, headers);
-      }
-      if (request.method === "GET" && url.pathname === "/pages") {
-        return json(await listPages(env), 200, headers);
-      }
-      if (request.method === "GET" && url.pathname === "/history") {
-        return json(
-          await history(env, url.searchParams.get("slug") ?? ""),
-          200,
-          headers,
-        );
-      }
-      if (request.method === "GET" && url.pathname === "/diff") {
-        return json(
-          await diff(
-            env,
-            url.searchParams.get("slug") ?? "",
-            url.searchParams.get("base") ?? "",
-            url.searchParams.get("head") ?? "",
-          ),
-          200,
-          headers,
-        );
-      }
-      if (request.method === "POST" && url.pathname === "/edit") {
-        const body = (await request.json()) as EditBody;
-        return json(await proposeEdit(env, request, body), 200, headers);
-      }
-      if (request.method === "GET" && url.pathname === "/comments") {
-        return json(
-          await listComments(env, url.searchParams.get("slug") ?? ""),
-          200,
-          headers,
-        );
-      }
-      if (request.method === "POST" && url.pathname === "/comment") {
-        const body = (await request.json()) as CommentBody;
-        return json(await postComment(env, request, body), 200, headers);
-      }
-      return json({ error: "Not found" }, 404, headers);
+      return json(await handler(), 200, headers);
     } catch (err) {
       const status = err instanceof HttpError ? err.status : 500;
       return json({ error: message(err) }, status, headers);
@@ -96,56 +72,60 @@ export default {
   },
 };
 
-// Latest commit SHA, briefly cached in KV so many readers share one GitHub call.
-async function latestSha(env: Env): Promise<{ sha: string }> {
-  const key = "meta:latest-sha";
-  if (env.RATE_LIMIT) {
-    const raw = await env.RATE_LIMIT.get(key);
+// Read-through KV cache so many readers share one GitHub call. KV is the
+// RATE_LIMIT binding; until it's bound, every call goes straight to `produce`.
+async function cached<T>(
+  env: Env,
+  key: string,
+  ttlMs: number,
+  produce: () => Promise<T>,
+): Promise<T> {
+  const kv = env.RATE_LIMIT;
+  if (kv) {
+    const raw = await kv.get(key);
     if (raw) {
-      const cached = JSON.parse(raw) as { sha: string; ts: number };
-      if (Date.now() - cached.ts < 20_000) return { sha: cached.sha };
+      const hit = JSON.parse(raw) as { v: T; ts: number };
+      if (Date.now() - hit.ts < ttlMs) return hit.v;
     }
   }
-  const res = await fetch(
-    `https://api.github.com/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits/${env.BRANCH}`,
-    {
-      headers: {
-        Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-        Accept: "application/vnd.github.sha",
-        "User-Agent": `${env.REPO_NAME}-worker`,
+  const v = await produce();
+  if (kv) await kv.put(key, JSON.stringify({ v, ts: Date.now() }));
+  return v;
+}
+
+// Latest commit SHA, briefly cached so many readers share one GitHub call.
+async function latestSha(env: Env): Promise<{ sha: string }> {
+  const sha = await cached(env, "meta:latest-sha", 20_000, async () => {
+    const res = await fetch(
+      `https://api.github.com/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits/${env.BRANCH}`,
+      {
+        headers: {
+          Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+          Accept: "application/vnd.github.sha",
+          "User-Agent": `${env.REPO_NAME}-worker`,
+        },
       },
-    },
-  );
-  if (!res.ok) throw new HttpError(502, `GitHub ${res.status}`);
-  const sha = (await res.text()).trim();
-  if (env.RATE_LIMIT)
-    await env.RATE_LIMIT.put(key, JSON.stringify({ sha, ts: Date.now() }));
+    );
+    if (!res.ok) throw new HttpError(502, `GitHub ${res.status}`);
+    return (await res.text()).trim();
+  });
   return { sha };
 }
 
-// All page slugs under content/, briefly KV-cached so it's fresh without rebuilds.
+// All page slugs under content/, briefly cached so it's fresh without rebuilds.
 async function listPages(env: Env): Promise<{ pages: string[] }> {
-  const key = "meta:pages";
-  if (env.RATE_LIMIT) {
-    const raw = await env.RATE_LIMIT.get(key);
-    if (raw) {
-      const cached = JSON.parse(raw) as { pages: string[]; ts: number };
-      if (Date.now() - cached.ts < 60_000) return { pages: cached.pages };
-    }
-  }
-  const tree = await gh<{ tree: { path: string; type: string }[] }>(
-    env,
-    `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/git/trees/${env.BRANCH}?recursive=1`,
-  );
-  const prefix = `${env.CONTENT_DIR}/`;
-  const pages = tree.tree
-    .filter(
-      (n) => n.type === "blob" && n.path.startsWith(prefix) && n.path.endsWith(".md"),
-    )
-    .map((n) => n.path.slice(prefix.length, -3));
-  if (env.RATE_LIMIT) {
-    await env.RATE_LIMIT.put(key, JSON.stringify({ pages, ts: Date.now() }));
-  }
+  const pages = await cached(env, "meta:pages", 60_000, async () => {
+    const tree = await gh<{ tree: { path: string; type: string }[] }>(
+      env,
+      `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/git/trees/${env.BRANCH}?recursive=1`,
+    );
+    const prefix = `${env.CONTENT_DIR}/`;
+    return tree.tree
+      .filter(
+        (n) => n.type === "blob" && n.path.startsWith(prefix) && n.path.endsWith(".md"),
+      )
+      .map((n) => n.path.slice(prefix.length, -3));
+  });
   return { pages };
 }
 
@@ -186,6 +166,21 @@ async function diff(env: Env, slug: string, base: string, head: string) {
   return { patch: cmp.files?.find((f) => f.filename === path)?.patch ?? null };
 }
 
+// The shared anonymous-write gate: bot check, derive the pseudonym, reject bans,
+// enforce the rate limit. Both edits and comments must pass through here.
+async function authenticateAnon(
+  env: Env,
+  request: Request,
+  token: unknown,
+): Promise<string> {
+  const ip = request.headers.get("CF-Connecting-IP") ?? "0.0.0.0";
+  await verifyTurnstile(env, ip, token ? String(token) : "");
+  const author = `anon-${await ipHash(env.HASH_SECRET, ip)}`;
+  if (await isBanned(env, author)) throw new HttpError(403, "This source is blocked.");
+  await enforceRateLimit(env, author);
+  return author;
+}
+
 async function proposeEdit(env: Env, request: Request, body: EditBody) {
   const slug = String(body.slug ?? "");
   const content = String(body.content ?? "");
@@ -196,11 +191,7 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
   if (utf8Bytes(content) > MAX_CONTENT_BYTES)
     throw new HttpError(413, "Content too large.");
 
-  const ip = request.headers.get("CF-Connecting-IP") ?? "0.0.0.0";
-  await verifyTurnstile(env, ip, body.token ? String(body.token) : "");
-  const author = `anon-${await ipHash(env.HASH_SECRET, ip)}`;
-  if (await isBanned(env, author)) throw new HttpError(403, "This source is blocked.");
-  await enforceRateLimit(env, author);
+  const author = await authenticateAnon(env, request, body.token);
 
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
   const path = `${env.CONTENT_DIR}/${slug}.md`;
@@ -251,6 +242,7 @@ async function gh<T = unknown>(env: Env, path: string, init: GhInit = {}): Promi
       "X-GitHub-Api-Version": "2022-11-28",
     },
   });
+  if (res.status === 404 && init.allow404) return undefined as T;
   if (!res.ok) throw new HttpError(502, `GitHub ${res.status}: ${await res.text()}`);
   return (await res.json()) as T;
 }
@@ -261,19 +253,12 @@ async function currentFileSha(
   repo: string,
   path: string,
 ): Promise<string | undefined> {
-  const res = await fetch(
-    `https://api.github.com/repos/${repo}/contents/${path}?ref=${env.BRANCH}`,
-    {
-      headers: {
-        Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-        Accept: "application/vnd.github+json",
-        "User-Agent": `${env.REPO_NAME}-worker`,
-      },
-    },
+  const file = await gh<{ sha: string } | undefined>(
+    env,
+    `/repos/${repo}/contents/${path}?ref=${env.BRANCH}`,
+    { allow404: true },
   );
-  if (res.status === 404) return undefined;
-  if (!res.ok) throw new HttpError(502, `GitHub ${res.status}`);
-  return ((await res.json()) as { sha: string }).sha;
+  return file?.sha;
 }
 
 async function verifyTurnstile(env: Env, ip: string, token: string): Promise<void> {
@@ -467,11 +452,7 @@ async function postComment(
   if (utf8Bytes(text) > MAX_CONTENT_BYTES)
     throw new HttpError(413, "Comment too large.");
 
-  const ip = request.headers.get("CF-Connecting-IP") ?? "0.0.0.0";
-  await verifyTurnstile(env, ip, body.token ? String(body.token) : "");
-  const author = `anon-${await ipHash(env.HASH_SECRET, ip)}`;
-  if (await isBanned(env, author)) throw new HttpError(403, "This source is blocked.");
-  await enforceRateLimit(env, author);
+  const author = await authenticateAnon(env, request, body.token);
 
   const discussionId = await ensureDiscussion(env, slug);
   await ghGraphQL(env, ADD_COMMENT, {
