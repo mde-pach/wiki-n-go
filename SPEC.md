@@ -271,7 +271,7 @@ Invert the default selectively. Critical path (see `FEATURES.md` §§K–N):
 - [x] ✅ **Trust tiers** on `ip_hash`, **derived from git history** (not a ledger): count + first-seen of commits the pseudonym authored on the branch → open/auto/extended; `trusted-editors.json` = maintainer. Covers direct commits **and merged PRs** (both are commits by the pseudonym), so PR-only contributors earn trust too — no webhook, single source of truth. KV caches stats (1 h TTL, busted on the author's own commit).
 - [x] ✅ Page protection = a `protection:` **frontmatter field** (env default when unset); a privileged page-property, gated per-field on save (can't raise above / lower from above your tier). Replaced `protection.json`+globs. TODO: `expires`, CODEOWNERS.
 - [x] ✅ Verified end-to-end: anon edit to an `open` page **published live** (no PR); flipping its `protection` rejected 403; protected pages still PR.
-- [ ] ⬜ AbuseFilter-style rule pass (`filters.json`) + spam/title blocklists; change-tagging. (per-hash rate limit already live)
+- [x] ✅ AbuseFilter-style pre-publish rule pass (`filters.json`): built-in checks (blanking, added-bytes, added-link count, blocked domains) + maintainer regex rules; actions `disallow` (422) / `tag` (KV `tag:<sha>` → RecentChanges badge + PR body). Trusted tiers exempt. Pure `evaluateFilters` unit-tested.
 - [ ] ⬜ Revert-risk heuristic score on diffs; 3RR revert-churn detection.
 - [x] ✅ PR-only contributors earn tiers — solved by deriving from git history (above), no webhook needed.
 - [ ] ⬜ Consider `ip_hash` salt/epoch rotation (cap long-term linkability).

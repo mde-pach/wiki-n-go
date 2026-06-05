@@ -1,4 +1,5 @@
 import { parse as parseYaml } from "yaml";
+import { evaluateFilters, type FilterConfig } from "./filters";
 
 interface Env {
   GITHUB_TOKEN: string;
@@ -196,6 +197,7 @@ interface OutChange extends ChangeDetail {
   date: string;
   message: string;
   patrolled: boolean;
+  tags: string[];
 }
 
 const SHA_RE = /^[0-9a-f]{7,40}$/;
@@ -232,9 +234,12 @@ async function listChanges(
   );
   const changes = await Promise.all(
     commits.map(async (c) => {
-      const [detail, patrolled] = await Promise.all([
+      const [detail, patrolled, tags] = await Promise.all([
         changeDetail(env, c.sha),
         env.RATE_LIMIT?.get(`patrol:${c.sha}`).then(Boolean) ?? Promise.resolve(false),
+        env.RATE_LIMIT?.get(`tag:${c.sha}`).then((t) =>
+          t ? (JSON.parse(t) as string[]) : [],
+        ) ?? Promise.resolve([] as string[]),
       ]);
       return {
         sha: c.sha,
@@ -243,6 +248,7 @@ async function listChanges(
         date: c.commit.author.date,
         message: c.commit.message.split("\n")[0],
         patrolled,
+        tags,
         ...detail,
       };
     }),
@@ -380,6 +386,32 @@ async function trustedEditors(env: Env): Promise<string[]> {
   }
 }
 
+// A JSON config file from the repo root (same store as bans/trusted-editors).
+async function repoJson<T>(env: Env, file: string): Promise<T | null> {
+  const res = await fetch(
+    `https://raw.githubusercontent.com/${env.REPO_OWNER}/${env.REPO_NAME}/${env.BRANCH}/${file}`,
+  );
+  if (!res.ok) return null;
+  try {
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+// Pre-publish abuse filter. Trusted tiers are exempt (abuse concentrates in
+// open-tier edits); everyone else's edit is scored against filters.json.
+async function runFilters(env: Env, tier: Tier, oldRaw: string, newContent: string) {
+  const cfg = await repoJson<FilterConfig>(env, "filters.json");
+  if (!cfg) return { action: "allow" as const, tags: [] as string[] };
+  if (
+    cfg.exemptTier &&
+    TIER_RANK[tier] >= TIER_RANK[asTier(cfg.exemptTier, "maintainer")]
+  )
+    return { action: "allow" as const, tags: [] as string[] };
+  return evaluateFilters(cfg, { oldRaw, newContent });
+}
+
 // The caller's pseudonym + trust tier, so the editor can show identity and
 // gate privileged controls (e.g. the protection picker). No write, no token.
 async function whoami(
@@ -491,6 +523,10 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
   enforceFieldPermissions(env, tier, oldMeta, frontmatter(content));
   const required = pageTier(env, oldMeta);
 
+  const verdict = await runFilters(env, tier, current?.raw ?? "", content);
+  if (verdict.action === "disallow")
+    throw new HttpError(422, verdict.message ?? "This edit was blocked by a filter.");
+
   const filePut = (branch: string) =>
     JSON.stringify({
       message: summary || `Edit ${slug}`,
@@ -513,6 +549,8 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
     await env.RATE_LIMIT?.delete("meta:latest-sha");
     await env.RATE_LIMIT?.delete("meta:pages");
     await env.RATE_LIMIT?.delete(`trust:${author}`);
+    if (verdict.tags.length)
+      await env.RATE_LIMIT?.put(`tag:${res.commit.sha}`, JSON.stringify(verdict.tags));
     return { live: true, sha: res.commit.sha, url: res.commit.html_url, author };
   }
 
@@ -536,7 +574,9 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
       title: summary || `Anonymous edit: ${slug}`,
       head: branch,
       base: env.BRANCH,
-      body: `Proposed in-site by \`${author}\`.`,
+      body:
+        `Proposed in-site by \`${author}\`.` +
+        (verdict.tags.length ? `\n\nFilter tags: ${verdict.tags.join(", ")}` : ""),
     }),
   });
 
