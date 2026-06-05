@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@import "@fontsource-variable/source-serif-4/wght.css";
+@import "@fontsource-variable/source-serif-4/wght-italic.css";
+@import "@fontsource-variable/libre-franklin/wght.css";
+@import "@fontsource-variable/jetbrains-mono/wght.css";
 @import "./tokens.css";
 @import "./base.css";
 @import "./components.css";
@@ -182,4 +186,96 @@ html.ready body {
   border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-ink);
+}
+
+/* ── Talk: topics + arbitrarily-nested replies ───────────────────────────── */
+.talk {
+  font-family: var(--font-ui);
+}
+.talk-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.talk-head .discussion-title {
+  margin: 0;
+}
+.topic-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.topic {
+  border-top: var(--border-w) solid var(--color-border);
+}
+.topic-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.85rem 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: var(--color-ink);
+}
+.topic-caret {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--color-ink-subtle);
+  transition: transform var(--transition-fast);
+}
+.topic-title {
+  font-weight: 600;
+  font-size: var(--text-md);
+}
+.topic-meta {
+  margin-left: auto;
+  color: var(--color-ink-muted);
+  font-size: 0.8em;
+  white-space: nowrap;
+}
+.thread {
+  padding: 0 0 1rem 1.7rem;
+}
+.comment-root {
+  padding-top: 0;
+  border-bottom: none;
+}
+.comment-date {
+  text-decoration: none;
+}
+.comment-date:hover {
+  text-decoration: underline;
+}
+.comment-actions {
+  margin: 0.1rem 0 0.4rem;
+}
+.comment-actions .link-btn {
+  font-size: 0.85em;
+}
+.reply-list {
+  list-style: none;
+  margin: 0;
+  padding-left: 1.4rem;
+  border-left: var(--border-w) solid var(--color-border);
+}
+.reply .comment {
+  border-bottom: none;
+  padding: 0.5rem 0 0;
+}
+.composer {
+  margin: 0.4rem 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.composer .input {
+  width: 100%;
+  box-sizing: border-box;
 }

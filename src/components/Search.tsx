@@ -1,6 +1,7 @@
 import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { pageSet } from "../lib/manifest";
 import { readHref } from "../lib/paths";
+import { Icons } from "./Icons";
 
 export default function Search() {
   const [q, setQ] = createSignal("");
@@ -33,6 +34,7 @@ export default function Search() {
   return (
     <div class={`search${open() ? " is-open" : ""}`} role="search">
       <div class="search-field">
+        <Icons.Search />
         <input
           ref={field}
           value={q()}

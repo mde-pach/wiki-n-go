@@ -1,6 +1,7 @@
 ---
 import Infobox from "../components/Infobox.tsx";
 import Toc from "../components/Toc.tsx";
+import TocMobile from "../components/TocMobile.tsx";
 import WikiPage from "../components/WikiPage.tsx";
 import { config } from "../config";
 import PageShell from "../layouts/PageShell.astro";
@@ -30,6 +31,7 @@ const parsed = raw ? parsePage(raw) : null;
       <Toc editHref={`${BASE}/edit/${pageSlug}`} initialItems={parsed?.headings ?? []} client:load />
     </div>
     <div class="col-main">
+      <TocMobile initialItems={parsed?.headings ?? []} client:load />
       <WikiPage slug={pageSlug} initialHtml={parsed?.html} initialRaw={raw} client:load />
     </div>
     <div class="col-info"><Infobox slug={pageSlug} client:load /></div>

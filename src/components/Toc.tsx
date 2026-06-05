@@ -1,58 +1,9 @@
-import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
+import { For, Show } from "solid-js";
+import { createHeadings, type Heading } from "../lib/toc";
+import { Icons } from "./Icons";
 
-interface Item {
-  id: string;
-  text: string;
-  level: number;
-}
-
-export default function Toc(props: { editHref?: string; initialItems?: Item[] }) {
-  const [items, setItems] = createSignal<Item[]>(props.initialItems ?? []);
-  const [active, setActive] = createSignal<string>();
-  const [progress, setProgress] = createSignal(0);
-  let observer: IntersectionObserver | undefined;
-
-  function build() {
-    const heads = Array.from(
-      document.querySelectorAll<HTMLElement>(".prose :is(h2, h3)[id]"),
-    );
-    setItems(
-      heads.map((h) => ({
-        id: h.id,
-        text: (h.textContent ?? "").replace(/#\s*$/, "").trim(),
-        level: h.tagName === "H2" ? 2 : 3,
-      })),
-    );
-    observer?.disconnect();
-    observer = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries)
-          if (e.isIntersecting) setActive((e.target as HTMLElement).id);
-      },
-      { rootMargin: "0px 0px -70% 0px" },
-    );
-    for (const h of heads) observer.observe(h);
-  }
-
-  function onScroll() {
-    const d = document.documentElement;
-    const total = d.scrollHeight - d.clientHeight;
-    setProgress(
-      total > 0 ? Math.min(100, Math.max(0, (d.scrollTop / total) * 100)) : 0,
-    );
-  }
-
-  onMount(() => {
-    document.addEventListener("wiki:rendered", build);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    build();
-    onScroll();
-    onCleanup(() => {
-      document.removeEventListener("wiki:rendered", build);
-      window.removeEventListener("scroll", onScroll);
-      observer?.disconnect();
-    });
-  });
+export default function Toc(props: { editHref?: string; initialItems?: Heading[] }) {
+  const { items, active, progress } = createHeadings(props.initialItems ?? []);
 
   return (
     <Show when={items().length > 0}>
@@ -87,6 +38,7 @@ export default function Toc(props: { editHref?: string; initialItems?: Item[] })
               style={{ "justify-content": "flex-start" }}
               href={props.editHref}
             >
+              <Icons.Edit />
               Edit this page
             </a>
           </Show>
@@ -96,6 +48,7 @@ export default function Toc(props: { editHref?: string; initialItems?: Item[] })
             style={{ "justify-content": "flex-start" }}
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           >
+            <Icons.Chevron style={{ transform: "rotate(180deg)" }} />
             Back to top
           </button>
         </div>

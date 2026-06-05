@@ -1,9 +1,0 @@
-- generic [active] [ref=e1]:
-  - banner [ref=e2]:
-    - link "wiki-n-go" [ref=e3] [cursor=pointer]:
-      - /url: /wiki-n-go
-    - generic [ref=e4]:
-      - button "Skin" [ref=e5] [cursor=pointer]
-      - button "Theme" [ref=e6] [cursor=pointer]
-  - main [ref=e7]
-  - contentinfo [ref=e8]: Content served from GitHub via jsDelivr · no rebuild on edit

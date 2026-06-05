@@ -7,6 +7,7 @@ import { prettify, readHref } from "../lib/paths";
 import { slugFromLocation } from "../lib/slug";
 import { renderTurnstile } from "../lib/turnstile";
 import { errMessage } from "../lib/util";
+import { Icons } from "./Icons";
 
 export default function Editor(props: { slug?: string; initialContent?: string }) {
   if (!config.workerUrl) return null;
@@ -105,48 +106,55 @@ export default function Editor(props: { slug?: string; initialContent?: string }
                 type="button"
                 class="md-btn"
                 title="Bold"
+                aria-label="Bold"
                 onClick={() => wrap("**")}
               >
-                B
+                <Icons.Bold />
               </button>
               <button
                 type="button"
                 class="md-btn"
                 title="Italic"
+                aria-label="Italic"
                 onClick={() => wrap("_")}
               >
-                I
+                <Icons.Italic />
               </button>
               <span class="md-sep" />
               <button
                 type="button"
                 class="md-btn"
                 title="Heading"
+                aria-label="Heading"
                 onClick={() => prefixLine("## ")}
               >
-                H
+                <Icons.H2 />
               </button>
               <button
                 type="button"
                 class="md-btn"
                 title="List"
+                aria-label="List"
                 onClick={() => prefixLine("- ")}
               >
-                •
+                <Icons.List />
               </button>
               <button
                 type="button"
                 class="md-btn"
                 title="Quote"
+                aria-label="Quote"
                 onClick={() => prefixLine("> ")}
               >
-                ”
+                <Icons.Quote />
               </button>
               <span class="md-sep" />
               <button
                 type="button"
                 class="md-btn"
                 title="Wiki link"
+                aria-label="Insert wiki link"
+                style={{ "font-family": "var(--font-mono)" }}
                 onClick={() => wrap("[[", "]]")}
               >
                 [[ ]]
@@ -155,9 +163,10 @@ export default function Editor(props: { slug?: string; initialContent?: string }
                 type="button"
                 class="md-btn"
                 title="Code"
+                aria-label="Code"
                 onClick={() => wrap("`")}
               >
-                {"`"}
+                <Icons.Code />
               </button>
             </div>
           </div>

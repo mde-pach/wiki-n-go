@@ -1,4 +1,5 @@
 import { createSignal, onMount } from "solid-js";
+import { Icons } from "./Icons";
 
 export default function ThemeToggle() {
   // Render a stable default on the server / first client paint; the actual theme
@@ -46,7 +47,7 @@ export default function ThemeToggle() {
         title="Toggle light/dark"
         onClick={() => setTheme(theme() === "dark" ? "light" : "dark")}
       >
-        {theme() === "dark" ? "☀" : "☾"}
+        {theme() === "dark" ? <Icons.Sun /> : <Icons.Moon />}
       </button>
     </>
   );
