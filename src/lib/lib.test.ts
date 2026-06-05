@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { diffStats, parseDiff, splitDiff, wordDiff } from "./diff";
+import { computeGraph } from "./linkgraph";
 import { md, parsePage, splitTitle } from "./markdown";
 import { prettify } from "./paths";
 import { search, slugifyQuery, splitHighlight, toPlainText } from "./search";
@@ -144,6 +145,30 @@ describe("diff split + word diff", () => {
     expect(left.filter((s) => s.changed).map((s) => s.t)).toEqual(["quick"]);
     expect(right.filter((s) => s.changed).map((s) => s.t)).toEqual(["slow"]);
     expect(left.find((s) => !s.changed)?.t).toBe("the ");
+  });
+});
+
+describe("computeGraph", () => {
+  const g = computeGraph(
+    [
+      { slug: "index", title: "Home", out: ["getting-started", "example-draft"] },
+      { slug: "getting-started", title: "Getting started", out: [] },
+      { slug: "sandbox/playground", title: "Playground", out: [] },
+    ],
+    "index",
+  );
+
+  it("inverts links into backlinks", () => {
+    expect(g.backlinks["getting-started"]).toEqual(["index"]);
+  });
+  it("lists wanted (linked-but-missing) pages with their sources", () => {
+    expect(g.wanted).toEqual([{ slug: "example-draft", by: ["index"] }]);
+  });
+  it("finds orphans with no incoming links, excluding the home page", () => {
+    expect(g.orphans).toEqual(["sandbox/playground"]);
+  });
+  it("finds dead-end pages with no outgoing internal links", () => {
+    expect(g.deadends).toEqual(["getting-started", "sandbox/playground"]);
   });
 });
 

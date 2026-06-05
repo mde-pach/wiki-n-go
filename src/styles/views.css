@@ -1025,3 +1025,58 @@
     display: none;
   }
 }
+
+/* Special pages (link-graph reports) */
+.special-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1.1rem;
+  border-bottom: var(--border-w) solid var(--color-border);
+  padding-bottom: 0.7rem;
+}
+.special-tabs .sp-tab {
+  border: var(--border-w) solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-ink-muted);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.special-tabs .sp-tab.is-active {
+  background: var(--color-accent-subtle);
+  color: var(--color-ink);
+  border-color: var(--color-accent);
+  font-weight: 600;
+}
+.sp-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+}
+.sp-picker .input {
+  max-width: 22rem;
+}
+.special-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.special-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-family: var(--font-ui);
+}
+.special-list .sp-count {
+  color: var(--color-ink-subtle);
+  font-size: var(--text-xs);
+}
