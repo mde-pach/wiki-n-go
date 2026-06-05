@@ -902,10 +902,8 @@
     grid-column: 1 / -1;
     order: 3;
   }
-  .infobox {
+  .col-info .appearance {
     position: static;
-    max-width: var(--measure);
-    margin-top: 1.5rem;
   }
   .editor-shell {
     grid-template-columns: minmax(0, 1fr);
@@ -952,8 +950,11 @@
   .toc-mobile .toc-list {
     margin: 0 1rem 1rem;
   }
-  .infobox {
-    margin-top: 1.5rem;
+  .col-main .infobox {
+    float: none;
+    width: auto;
+    max-width: var(--measure);
+    margin: 0 0 1.5rem;
   }
   .search-kbd {
     display: none;

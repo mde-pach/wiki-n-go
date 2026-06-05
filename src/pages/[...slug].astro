@@ -40,10 +40,10 @@ const html = parsed
     </div>
     <div class="col-main">
       <TocMobile initialItems={parsed?.headings ?? []} client:load />
+      <Infobox slug={pageSlug} meta={parsed?.meta} client:load />
       <WikiPage slug={pageSlug} initialHtml={html} initialRaw={raw} meta={parsed?.meta} client:load />
     </div>
     <div class="col-info">
-      <Infobox slug={pageSlug} meta={parsed?.meta} client:load />
       <Appearance client:load />
     </div>
   </main>
