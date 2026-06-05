@@ -8,6 +8,7 @@ import {
   getThread,
   listTopics,
   postReply,
+  type Thread,
   type Topic,
 } from "../lib/comments";
 import { slugFromLocation } from "../lib/slug";
@@ -99,6 +100,15 @@ export default function Discussion(props: { slug?: string }) {
         </button>
       </div>
 
+      <div class="notice notice-info talk-guidelines">
+        <Icons.Info />
+        <span>
+          This is the place to discuss the page — propose changes, ask questions, and
+          reach consensus. Be civil, stay on topic, and sign nothing: every post is
+          attributed automatically.
+        </span>
+      </div>
+
       <Show when={composer()?.mode === "topic"}>
         <Composer
           withTitle
@@ -142,6 +152,14 @@ export default function Discussion(props: { slug?: string }) {
                       <Show when={thread()} fallback={<CommentSkeleton />}>
                         {(data) => (
                           <>
+                            <div class="thread-meta">
+                              {data().comments.length + 1}{" "}
+                              {data().comments.length === 0 ? "message" : "messages"} ·{" "}
+                              {participantsOf(data())}{" "}
+                              {participantsOf(data()) === 1
+                                ? "participant"
+                                : "participants"}
+                            </div>
                             <CommentView comment={data().root} root />
                             <ReplyTools
                               comment={data().root}
@@ -394,6 +412,10 @@ function CommentSkeleton() {
       />
     </div>
   );
+}
+
+function participantsOf(thread: Thread): number {
+  return new Set([thread.root.author, ...thread.comments.map((c) => c.author)]).size;
 }
 
 function timeAgo(iso: string): string {
