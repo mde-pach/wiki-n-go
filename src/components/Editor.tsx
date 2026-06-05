@@ -1,4 +1,5 @@
 import { createSignal, onMount, Show } from "solid-js";
+import { isServer } from "solid-js/web";
 import { config } from "../config";
 import { submitEdit } from "../lib/api";
 import { fetchMarkdown, PageNotFoundError, renderMarkdown } from "../lib/content";
@@ -12,12 +13,12 @@ function prettify(slug: string): string {
   return s.replace(/-/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 }
 
-export default function Editor(props: { slug?: string }) {
+export default function Editor(props: { slug?: string; initialContent?: string }) {
   if (!config.workerUrl) return null;
 
   const slug = () => props.slug ?? slugFromLocation();
-  const [draft, setDraft] = createSignal("");
-  const [original, setOriginal] = createSignal("");
+  const [draft, setDraft] = createSignal(props.initialContent ?? "");
+  const [original, setOriginal] = createSignal(props.initialContent ?? "");
   const [summary, setSummary] = createSignal("");
   const [busy, setBusy] = createSignal(false);
   const [token, setToken] = createSignal<string>();
@@ -29,14 +30,15 @@ export default function Editor(props: { slug?: string }) {
   onMount(async () => {
     try {
       const raw = await fetchMarkdown(slug());
-      setDraft(raw);
       setOriginal(raw);
+      if (raw !== props.initialContent) setDraft(raw);
     } catch (e) {
       if (!(e instanceof PageNotFoundError)) setError(message(e));
     }
   });
 
-  const preview = () => renderMarkdown(draft() || "_Nothing to preview yet._");
+  const preview = () =>
+    isServer ? "" : renderMarkdown(draft() || "_Nothing to preview yet._");
   const readHref = `${BASE}/${slug() === config.homeSlug ? "" : slug()}`;
   const delta = () => draft().length - original().length;
 

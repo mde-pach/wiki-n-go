@@ -51,6 +51,9 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
           d.dataset.theme = localStorage.getItem("wng-theme") || "light";
         };
         apply(document);
+        const ready = () => document.documentElement.classList.add("ready");
+        if (document.readyState === "complete") ready();
+        else addEventListener("load", ready, { once: true });
         // Re-apply on View Transition navigation (the swapped-in doc carries the SSR defaults).
         document.addEventListener("astro:before-swap", (e) => apply(e.newDocument));
       })();

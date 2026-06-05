@@ -9,6 +9,7 @@ export default function Discussion(props: { slug?: string }) {
 
   const slug = () => props.slug ?? slugFromLocation();
   const [comments, setComments] = createSignal<Comment[]>([]);
+  const [loaded, setLoaded] = createSignal(false);
   const [draft, setDraft] = createSignal("");
   const [busy, setBusy] = createSignal(false);
   const [token, setToken] = createSignal<string>();
@@ -20,6 +21,8 @@ export default function Discussion(props: { slug?: string }) {
       setComments(await listComments(slug()));
     } catch (e) {
       setError(message(e));
+    } finally {
+      setLoaded(true);
     }
   }
   onMount(load);
@@ -57,29 +60,31 @@ export default function Discussion(props: { slug?: string }) {
   return (
     <section class="discussion">
       <h2 class="discussion-title">Discussion</h2>
-      <Show when={comments().length === 0}>
-        <p class="wiki-status">No comments yet — start the discussion.</p>
+      <Show when={loaded()} fallback={<CommentSkeleton />}>
+        <Show when={comments().length === 0}>
+          <p class="wiki-status">No comments yet — start the discussion.</p>
+        </Show>
+        <ul class="comment-list">
+          <For each={comments()}>
+            {(c) => (
+              <li class="comment">
+                <div class="comment-meta">
+                  <Show when={c.avatarUrl}>
+                    <img class="comment-avatar" src={c.avatarUrl ?? ""} alt="" />
+                  </Show>
+                  <span class="comment-author" classList={{ anon: c.isAnon }}>
+                    {c.author}
+                  </span>
+                  <span class="comment-date">
+                    {new Date(c.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <div class="comment-body" innerHTML={c.bodyHtml} />
+              </li>
+            )}
+          </For>
+        </ul>
       </Show>
-      <ul class="comment-list">
-        <For each={comments()}>
-          {(c) => (
-            <li class="comment">
-              <div class="comment-meta">
-                <Show when={c.avatarUrl}>
-                  <img class="comment-avatar" src={c.avatarUrl ?? ""} alt="" />
-                </Show>
-                <span class="comment-author" classList={{ anon: c.isAnon }}>
-                  {c.author}
-                </span>
-                <span class="comment-date">
-                  {new Date(c.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-              <div class="comment-body" innerHTML={c.bodyHtml} />
-            </li>
-          )}
-        </For>
-      </ul>
       <textarea
         class="comment-input"
         rows={3}
@@ -97,6 +102,27 @@ export default function Discussion(props: { slug?: string }) {
         <p class="editor-err">{error()}</p>
       </Show>
     </section>
+  );
+}
+
+function CommentSkeleton() {
+  return (
+    <ul class="comment-list" aria-hidden="true">
+      <For each={[0, 1]}>
+        {() => (
+          <li class="comment">
+            <span
+              class="sk-bar skeleton"
+              style={{ width: "8rem", height: "0.85rem" }}
+            />
+            <div
+              class="sk-bar skeleton"
+              style={{ width: "70%", height: "0.9rem", "margin-top": "0.5rem" }}
+            />
+          </li>
+        )}
+      </For>
+    </ul>
   );
 }
 

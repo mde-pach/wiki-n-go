@@ -19,6 +19,9 @@ const home = import.meta.env.BASE_URL;
           d.dataset.theme = localStorage.getItem("wng-theme") || "light";
         };
         apply(document);
+        const ready = () => document.documentElement.classList.add("ready");
+        if (document.readyState === "complete") ready();
+        else addEventListener("load", ready, { once: true });
         document.addEventListener("astro:before-swap", (e) => apply(e.newDocument));
       })();
     </script>

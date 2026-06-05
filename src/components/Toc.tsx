@@ -6,8 +6,8 @@ interface Item {
   level: number;
 }
 
-export default function Toc(props: { editHref?: string }) {
-  const [items, setItems] = createSignal<Item[]>([]);
+export default function Toc(props: { editHref?: string; initialItems?: Item[] }) {
+  const [items, setItems] = createSignal<Item[]>(props.initialItems ?? []);
   const [active, setActive] = createSignal<string>();
   const [progress, setProgress] = createSignal(0);
   let observer: IntersectionObserver | undefined;

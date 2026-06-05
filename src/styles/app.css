@@ -15,6 +15,17 @@
   --border: var(--color-border);
 }
 
+/* No transitions until the page is ready, so the theme doesn't fade-in (blink)
+   on first paint. Re-enabled after load for smooth theme toggling. */
+body {
+  transition: none;
+}
+html.ready body {
+  transition:
+    background var(--transition),
+    color var(--transition);
+}
+
 /* Page title for the in-prose title (used in the 404 read fallback). */
 .prose h1 {
   font-family: var(--font-display);

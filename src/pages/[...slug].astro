@@ -37,7 +37,9 @@ const pretty = (pageSlug.split("/").pop() ?? pageSlug)
 
 <PageShell slug={pageSlug} view="read" title={parsed?.title || pretty}>
   <main id="main" class="read-grid">
-    <div class="col-toc"><Toc editHref={`${base}/edit/${pageSlug}`} client:load /></div>
+    <div class="col-toc">
+      <Toc editHref={`${base}/edit/${pageSlug}`} initialItems={parsed?.headings ?? []} client:load />
+    </div>
     <div class="col-main">
       <WikiPage slug={pageSlug} initialHtml={parsed?.html} initialRaw={raw} client:load />
     </div>

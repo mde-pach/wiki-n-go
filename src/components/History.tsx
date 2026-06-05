@@ -1,4 +1,5 @@
 import { createResource, createSignal, For, Show } from "solid-js";
+import { isServer } from "solid-js/web";
 import { config } from "../config";
 import { getDiff, getHistory, type Revision } from "../lib/history";
 import { slugFromLocation } from "../lib/slug";
@@ -14,7 +15,7 @@ export default function History(props: { slug?: string }) {
   if (!config.workerUrl) return null;
 
   const slug = () => props.slug ?? slugFromLocation();
-  const [revs] = createResource(slug, getHistory);
+  const [revs] = createResource(() => (isServer ? undefined : slug()), getHistory);
   const [diff, setDiff] = createSignal<{
     a: string;
     b: string;
@@ -51,7 +52,7 @@ export default function History(props: { slug?: string }) {
         </p>
       </div>
 
-      <Show when={revs()} fallback={<p class="wiki-status">Loading…</p>}>
+      <Show when={revs()} fallback={<RevSkeleton />}>
         <ol class="rev-list">
           <For each={revs()}>
             {(r: Revision, i) => (
@@ -154,6 +155,27 @@ export default function History(props: { slug?: string }) {
         <p class="editor-err">{err()}</p>
       </Show>
     </div>
+  );
+}
+
+function RevSkeleton() {
+  return (
+    <ol class="rev-list">
+      <For each={[0, 1, 2, 3, 4]}>
+        {() => (
+          <li class="rev-row">
+            <div class="rev-actions" />
+            <div class="rev-main">
+              <div
+                class="sk-bar skeleton"
+                style={{ width: "55%", height: "0.95rem", "margin-bottom": "0.4rem" }}
+              />
+              <div class="sk-bar skeleton" style={{ width: "82%", height: "0.8rem" }} />
+            </div>
+          </li>
+        )}
+      </For>
+    </ol>
   );
 }
 

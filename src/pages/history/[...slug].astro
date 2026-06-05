@@ -1,6 +1,13 @@
 ---
 import History from "../../components/History.tsx";
 import PageShell from "../../layouts/PageShell.astro";
+import { parsePage } from "../../lib/markdown";
+
+const rawPages = import.meta.glob("../../../content/**/*.md", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
 
 export function getStaticPaths() {
   const files = import.meta.glob("../../../content/**/*.md");
@@ -10,8 +17,10 @@ export function getStaticPaths() {
 }
 
 const { slug } = Astro.params;
+const raw = rawPages[`../../../content/${slug}.md`];
+const title = raw ? parsePage(raw).title : undefined;
 ---
 
-<PageShell slug={slug} view="history">
-  <main id="main" class="view-wrap"><History slug={slug} client:only="solid-js" /></main>
+<PageShell slug={slug} view="history" title={title}>
+  <main id="main" class="view-wrap"><History slug={slug} client:load /></main>
 </PageShell>
