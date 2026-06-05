@@ -1,6 +1,4 @@
 ---
-kicker: Guide
-image: screenshot — read view
 infobox:
   Type: How-to guide
   Audience: New editors
@@ -9,19 +7,19 @@ infobox:
     v: getting-started.md
     mono: true
     link: https://github.com/mde-pach/wiki-n-go/blob/main/content/getting-started.md
-tags: [Guides, Getting started]
+kicker: Guide
+image: screenshot — read view
+tags:
+  - Guides
+  - Getting started
 ---
 
 # Getting started
 
-This second page exists to demonstrate **routing** and the **no-rebuild** read
-path.
+This page demonstrates the no-rebuild read path and in-site editing.
 
-1. Edit `content/getting-started.md` in the repo.
-2. Commit the change.
-3. Reload this page — the new content appears without any site rebuild.
+## Try it
 
-> The repo, Discussions, and Actions are the database. This site is just the
-> interface.
+Edit this file, save, and the change is reviewed before it goes live.
 
-[← Back home](./)
+This paragraph was added to create a pending edit for the review-queue test.
