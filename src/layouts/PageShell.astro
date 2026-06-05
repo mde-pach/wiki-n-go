@@ -9,8 +9,9 @@ import { config } from "../config";
 interface Props {
   slug: string;
   view: "read" | "edit" | "history" | "talk";
+  title?: string;
 }
-const { slug, view } = Astro.props;
+const { slug, view, title } = Astro.props;
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 const readHref = slug === config.homeSlug ? `${base}/` : `${base}/${slug}`;
@@ -30,6 +31,7 @@ const tabs = [
 const pretty = (slug.split("/").pop() ?? slug)
   .replace(/-/g, " ")
   .replace(/^\w/, (c) => c.toUpperCase());
+const display = title ?? pretty;
 const source = `${config.contentDir}/${slug}.md`;
 const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blob/${config.branch}/${source}`;
 ---
@@ -40,7 +42,7 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
-    <title>{pretty} · wiki-n-go</title>
+    <title>{display} · wiki-n-go</title>
     <script is:inline>
       (() => {
         const apply = (doc) => {
@@ -83,7 +85,7 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
           <nav class="breadcrumb" aria-label="Breadcrumb">
             <a href={readHref}>Main</a><span class="sep">/</span><span>Article</span>
           </nav>
-          <h1 class="page-title">{pretty}</h1>
+          <h1 class="page-title">{display}</h1>
           <div class="page-meta-slot">
             <PageMeta slug={slug} base={base} client:load />
           </div>

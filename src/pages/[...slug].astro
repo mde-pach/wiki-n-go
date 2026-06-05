@@ -4,6 +4,14 @@ import Toc from "../components/Toc.tsx";
 import WikiPage from "../components/WikiPage.tsx";
 import { config } from "../config";
 import PageShell from "../layouts/PageShell.astro";
+import { parsePage } from "../lib/markdown";
+
+// Raw markdown at build time → server-rendered article (no skeleton, no load shift).
+const rawPages = import.meta.glob("../../content/**/*.md", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
 
 export function getStaticPaths() {
   const files = import.meta.glob("../../content/**/*.md");
@@ -19,12 +27,20 @@ export function getStaticPaths() {
 const { slug } = Astro.params;
 const pageSlug = slug ?? config.homeSlug;
 const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+const raw = rawPages[`../../content/${pageSlug}.md`];
+const parsed = raw ? parsePage(raw) : null;
+const pretty = (pageSlug.split("/").pop() ?? pageSlug)
+  .replace(/-/g, " ")
+  .replace(/^\w/, (c) => c.toUpperCase());
 ---
 
-<PageShell slug={pageSlug} view="read">
+<PageShell slug={pageSlug} view="read" title={parsed?.title || pretty}>
   <main id="main" class="read-grid">
     <div class="col-toc"><Toc editHref={`${base}/edit/${pageSlug}`} client:load /></div>
-    <div class="col-main"><WikiPage slug={pageSlug} client:load /></div>
+    <div class="col-main">
+      <WikiPage slug={pageSlug} initialHtml={parsed?.html} initialRaw={raw} client:load />
+    </div>
     <div class="col-info"><Infobox slug={pageSlug} client:load /></div>
   </main>
 </PageShell>
