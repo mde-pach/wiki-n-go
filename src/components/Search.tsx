@@ -1,6 +1,12 @@
 import { createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { BASE, readHref } from "../lib/paths";
-import { type SearchDoc, search, slugifyQuery, splitHighlight } from "../lib/search";
+import {
+  getSearchDocs,
+  type SearchDoc,
+  search,
+  slugifyQuery,
+  splitHighlight,
+} from "../lib/search";
 import { Icons } from "./Icons";
 
 interface Item {
@@ -19,13 +25,7 @@ export default function Search() {
   let field: HTMLInputElement | undefined;
 
   async function load() {
-    if (docs().length > 0) return;
-    try {
-      const res = await fetch(`${BASE}/search-index.json`);
-      if (res.ok) setDocs(((await res.json()) as { docs: SearchDoc[] }).docs);
-    } catch {
-      // search just stays empty if the index can't be fetched
-    }
+    if (docs().length === 0) setDocs(await getSearchDocs());
   }
 
   const items = createMemo<Item[]>(() => {

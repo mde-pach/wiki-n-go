@@ -1,7 +1,27 @@
+import { config } from "../config";
+import { BASE } from "./paths";
+
 export interface SearchDoc {
   slug: string;
   title: string;
   text: string;
+}
+
+// Prefer the Worker's live index; fall back to the static build file.
+export async function getSearchDocs(): Promise<SearchDoc[]> {
+  for (const url of [
+    config.workerUrl ? `${config.workerUrl}/search-index` : null,
+    `${BASE}/search-index.json`,
+  ]) {
+    if (!url) continue;
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (res.ok) return ((await res.json()) as { docs: SearchDoc[] }).docs;
+    } catch {
+      // try the next source
+    }
+  }
+  return [];
 }
 
 export interface SearchHit {

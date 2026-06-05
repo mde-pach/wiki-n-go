@@ -1,3 +1,4 @@
+import { config } from "../config";
 import { BASE } from "./paths";
 
 export interface PageNode {
@@ -76,13 +77,25 @@ export function computeGraph(nodes: PageNode[], homeSlug: string): LinkGraph {
 
 let cache: Promise<LinkGraph | null> | undefined;
 
-// The static index emitted at build (link-graph.json). Fetched once; null if it
-// can't be loaded so the special pages degrade gracefully.
-export function getLinkGraph(): Promise<LinkGraph | null> {
-  if (!cache) {
-    cache = fetch(`${BASE}/link-graph.json`)
-      .then((res) => (res.ok ? (res.json() as Promise<LinkGraph>) : null))
-      .catch(() => null);
+// Prefer the Worker's live index (fresh on every edit, no rebuild); fall back to
+// the static build file when there's no Worker / it's unreachable. Fetched once.
+async function load(): Promise<LinkGraph | null> {
+  for (const url of [
+    config.workerUrl ? `${config.workerUrl}/link-graph` : null,
+    `${BASE}/link-graph.json`,
+  ]) {
+    if (!url) continue;
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (res.ok) return (await res.json()) as LinkGraph;
+    } catch {
+      // try the next source
+    }
   }
+  return null;
+}
+
+export function getLinkGraph(): Promise<LinkGraph | null> {
+  if (!cache) cache = load();
   return cache;
 }

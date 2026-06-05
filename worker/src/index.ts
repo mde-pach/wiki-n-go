@@ -1,5 +1,12 @@
 import { parse as parseYaml } from "yaml";
 import { evaluateFilters, type FilterConfig } from "./filters";
+import {
+  buildNode,
+  graphFromMap,
+  type IndexMap,
+  searchDocsFromMap,
+  slugifyTarget,
+} from "./indexlib";
 
 interface Env {
   GITHUB_TOKEN: string;
@@ -19,6 +26,7 @@ interface Env {
   AUTOCONFIRM_DAYS?: string; // age in days for the "auto" tier (default 4)
   EXTENDED_EDITS?: string; // accepted edits for the "extended" tier (default 500)
   EXTENDED_DAYS?: string; // age in days for the "extended" tier (default 30)
+  HOME_SLUG?: string; // slug treated as the home page (excluded from orphans; default "index")
 }
 
 interface EditBody {
@@ -79,6 +87,8 @@ export default {
     const routes: Record<string, () => Promise<unknown>> = {
       "GET /latest": () => latestSha(env),
       "GET /pages": () => listPages(env),
+      "GET /link-graph": () => linkGraph(env),
+      "GET /search-index": () => searchIndex(env),
       "GET /history": () => history(env, q.get("slug") ?? ""),
       "GET /diff": () =>
         diff(env, q.get("slug") ?? "", q.get("base") ?? "", q.get("head") ?? ""),
@@ -166,6 +176,59 @@ async function listPages(env: Env): Promise<{ pages: string[] }> {
       .map((n) => n.path.slice(prefix.length, -3));
   });
   return { pages };
+}
+
+const INDEX_TTL_MS = 3_600_000; // safety rebuild for drift (PR merges, direct pushes)
+
+// Live link/search index: a per-slug map maintained incrementally on direct
+// edits and rebuilt in full only on a cache miss (first call, after a merge, or
+// once the TTL lapses). Reports derive from it in memory — no per-request fetch.
+async function getIndex(env: Env): Promise<IndexMap> {
+  return cached(env, "meta:index", INDEX_TTL_MS, () => buildIndex(env));
+}
+
+async function buildIndex(env: Env): Promise<IndexMap> {
+  const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
+  const { pages } = await listPages(env);
+  const map: IndexMap = {};
+  await Promise.all(
+    pages.map(async (slug) => {
+      const file = await getCurrentFile(env, repo, `${env.CONTENT_DIR}/${slug}.md`);
+      if (file) map[slug] = nodeFromRaw(slug, file.raw);
+    }),
+  );
+  return map;
+}
+
+function nodeFromRaw(slug: string, raw: string) {
+  const meta = frontmatter(raw);
+  const redirect =
+    typeof meta.redirect === "string" ? slugifyTarget(meta.redirect) : undefined;
+  return buildNode(slug, raw, redirect);
+}
+
+// Patch one page's entry after a direct commit — no refetch, the content is in
+// hand. If the index isn't built yet, skip; the next read builds it fresh.
+async function updateIndexEntry(env: Env, slug: string, raw: string): Promise<void> {
+  const kv = env.RATE_LIMIT;
+  if (!kv) return;
+  const existing = await kv.get("meta:index");
+  if (!existing) return;
+  try {
+    const hit = JSON.parse(existing) as { v: IndexMap };
+    hit.v[slug] = nodeFromRaw(slug, raw);
+    await kv.put("meta:index", JSON.stringify({ v: hit.v, ts: Date.now() }));
+  } catch {
+    await kv.delete("meta:index");
+  }
+}
+
+function linkGraph(env: Env) {
+  return getIndex(env).then((map) => graphFromMap(map, env.HOME_SLUG ?? "index"));
+}
+
+function searchIndex(env: Env) {
+  return getIndex(env).then((map) => ({ docs: searchDocsFromMap(map) }));
 }
 
 interface CommitItem {
@@ -388,6 +451,7 @@ async function review(
     });
     await env.RATE_LIMIT?.delete("meta:latest-sha");
     await env.RATE_LIMIT?.delete("meta:pages");
+    await env.RATE_LIMIT?.delete("meta:index");
     await env.RATE_LIMIT?.delete(`trust:${anonAuthor(pr.head.ref)}`);
   } else {
     await gh(env, `/repos/${repo}/pulls/${number}`, {
@@ -678,6 +742,7 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
     await env.RATE_LIMIT?.delete("meta:latest-sha");
     await env.RATE_LIMIT?.delete("meta:pages");
     await env.RATE_LIMIT?.delete(`trust:${author}`);
+    await updateIndexEntry(env, slug, content);
     if (verdict.tags.length)
       await env.RATE_LIMIT?.put(`tag:${res.commit.sha}`, JSON.stringify(verdict.tags));
     return { live: true, sha: res.commit.sha, url: res.commit.html_url, author };
