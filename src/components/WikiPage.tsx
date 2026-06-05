@@ -23,6 +23,7 @@ export default function WikiPage(props: {
 
   async function decorate() {
     if (!body) return;
+    addSectionEditLinks(body, slug());
     attachCiteTooltips(body);
     await markRedLinks(body);
     document.dispatchEvent(new CustomEvent("wiki:rendered"));
@@ -100,6 +101,20 @@ function ArticleSkeleton() {
       <div class="sk-bar skeleton" style={{ width: "38%" }} />
     </div>
   );
+}
+
+// Append a per-section `edit` link to each heading → opens the editor scoped
+// to that section (Wikipedia's `[edit]` affordance).
+function addSectionEditLinks(root: HTMLElement, slug: string): void {
+  const heads = root.querySelectorAll<HTMLElement>(":is(h2, h3)[id]");
+  for (const h of heads) {
+    if (h.querySelector(".section-edit")) continue;
+    const a = document.createElement("a");
+    a.className = "section-edit";
+    a.textContent = "edit";
+    a.href = `${BASE}/edit/${slug}?section=${encodeURIComponent(h.id)}`;
+    h.appendChild(a);
+  }
 }
 
 // Hover popover over a `[N]` citation marker showing the reference text.

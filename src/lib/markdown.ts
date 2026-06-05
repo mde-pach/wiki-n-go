@@ -37,7 +37,7 @@ md.renderer.rules.footnote_anchor = (tokens, idx) => {
   return ` <a href="#${citeMark(n, tokens[idx].meta.subId)}" class="ref-backlink" aria-label="Back to text">↑</a>`;
 };
 
-function slugifyHeading(s: string): string {
+export function slugifyHeading(s: string): string {
   return s
     .toLowerCase()
     .trim()

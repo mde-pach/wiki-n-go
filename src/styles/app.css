@@ -75,14 +75,22 @@ html.ready body {
   display: inline;
 }
 
-/* markdown-it-anchor emits a bare `.anchor-link`; reveal it on heading hover. */
-.prose :is(h2, h3, h4) .anchor-link {
+/* The anchor `#` and per-section `edit` link reveal on heading hover. */
+.prose :is(h2, h3, h4) .anchor-link,
+.prose :is(h2, h3) .section-edit {
   opacity: 0;
   transition: opacity var(--transition-fast);
 }
 .prose :is(h2, h3, h4):hover .anchor-link,
-.prose :is(h2, h3, h4):focus-within .anchor-link {
+.prose :is(h2, h3, h4):focus-within .anchor-link,
+.prose :is(h2, h3):hover .section-edit,
+.prose :is(h2, h3):focus-within .section-edit {
   opacity: 1;
+}
+.prose :is(h2, h3) .section-edit {
+  margin-left: 0.55rem;
+  font-size: var(--text-sm);
+  vertical-align: middle;
 }
 
 /* Reserve space so client:only islands don't collapse-then-expand on load/nav. */

@@ -3,6 +3,7 @@ import { isServer } from "solid-js/web";
 import { config } from "../config";
 import { submitEdit } from "../lib/api";
 import { fetchMarkdown, PageNotFoundError, renderMarkdown } from "../lib/content";
+import { slugifyHeading } from "../lib/markdown";
 import { prettify, readHref } from "../lib/paths";
 import { slugFromLocation } from "../lib/slug";
 import { renderTurnstile } from "../lib/turnstile";
@@ -31,7 +32,38 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     } catch (e) {
       if (!(e instanceof PageNotFoundError)) setError(errMessage(e));
     }
+    queueMicrotask(focusSection);
   });
+
+  // Deep-link from a heading's `[edit]`: select that section and seed a summary.
+  function focusSection() {
+    if (isServer || !ta) return;
+    const section = new URLSearchParams(window.location.search).get("section");
+    if (!section) return;
+    const lines = draft().split("\n");
+    let offset = 0;
+    let start = -1;
+    let end = draft().length;
+    let heading = "";
+    for (const line of lines) {
+      const m = line.match(/^#{2,3}\s+(.+?)\s*$/);
+      if (m) {
+        if (start === -1 && slugifyHeading(m[1]) === section) {
+          start = offset;
+          heading = m[1];
+        } else if (start !== -1) {
+          end = offset;
+          break;
+        }
+      }
+      offset += line.length + 1;
+    }
+    if (start === -1) return;
+    if (!summary().trim()) setSummary(`Edit ${heading} section`);
+    ta.focus();
+    ta.setSelectionRange(start, end);
+    ta.scrollTop = (start / Math.max(1, draft().length)) * ta.scrollHeight;
+  }
 
   const preview = () =>
     isServer ? "" : renderMarkdown(draft() || "_Nothing to preview yet._");
