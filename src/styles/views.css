@@ -537,6 +537,98 @@
   padding: 0 1px;
   text-decoration: line-through;
 }
+
+/* Diff head: change counts + layout toggle */
+.diff-stats {
+  display: inline-flex;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+.diff-stats .ds-add {
+  color: var(--color-add-ink);
+}
+.diff-stats .ds-del {
+  color: var(--color-remove-ink);
+}
+.diff-modes {
+  display: inline-flex;
+  border: var(--border-w) solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.diff-modes .dm-btn {
+  border: 0;
+  background: var(--color-surface);
+  color: var(--color-ink-muted);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+}
+.diff-modes .dm-btn.is-active {
+  background: var(--color-accent-subtle);
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+/* Side-by-side (split) diff */
+.diff-split {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.65;
+  overflow-x: auto;
+}
+.diff-split .ds-hunk {
+  padding: 0.1rem 0.7rem;
+  color: var(--color-ink-subtle);
+  background: var(--color-surface-sunken);
+  border-block: var(--border-w) solid var(--color-border);
+  white-space: pre-wrap;
+}
+.diff-split .ds-row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px minmax(0, 1fr);
+}
+.diff-split .ds-num {
+  text-align: right;
+  padding: 0.05rem 0.5rem;
+  color: var(--color-ink-subtle);
+  background: var(--color-surface-sunken);
+  border-right: var(--border-w) solid var(--color-border);
+  -webkit-user-select: none;
+  user-select: none;
+  font-size: 0.85em;
+}
+.diff-split .ds-cell {
+  padding: 0.05rem 0.7rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.diff-split .ds-cell.ds-left {
+  border-right: var(--border-w) solid var(--color-border);
+}
+.diff-split .ds-cell.is-empty {
+  background: var(--color-surface-sunken);
+}
+.diff-split .ds-row.change .ds-left,
+.diff-split .ds-row.del .ds-left {
+  background: var(--color-remove-bg);
+}
+.diff-split .ds-row.change .ds-right,
+.diff-split .ds-row.add .ds-right {
+  background: var(--color-add-bg);
+}
+.diff-split .ins {
+  background: var(--color-add-strong);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.diff-split .del-mark {
+  background: var(--color-remove-strong);
+  border-radius: 2px;
+  padding: 0 1px;
+}
 .diff-foot {
   display: flex;
   flex-wrap: wrap;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseDiff } from "./diff";
+import { diffStats, parseDiff, splitDiff, wordDiff } from "./diff";
 import { md, parsePage, splitTitle } from "./markdown";
 import { prettify } from "./paths";
 import { search, slugifyQuery, splitHighlight, toPlainText } from "./search";
@@ -108,6 +108,42 @@ describe("parseDiff", () => {
     });
     expect(lines.find((l) => l.cls === "del")).toMatchObject({ sign: "-", num: "2" });
     expect(lines.find((l) => l.cls === "")).toMatchObject({ text: "kept", num: "1" });
+  });
+
+  it("tracks separate old/new line numbers for the split view", () => {
+    const lines = parseDiff("@@ -3,2 +3,2 @@\n ctx\n-gone\n+added");
+    expect(lines.find((l) => l.cls === "")).toMatchObject({ onum: "3", nnum: "3" });
+    expect(lines.find((l) => l.cls === "del")).toMatchObject({ onum: "4", nnum: "" });
+    expect(lines.find((l) => l.cls === "add")).toMatchObject({ onum: "", nnum: "4" });
+  });
+});
+
+describe("diff split + word diff", () => {
+  it("diffStats counts additions and removals", () => {
+    const lines = parseDiff("@@ -1,2 +1,2 @@\n kept\n-old\n+new\n+extra");
+    expect(diffStats(lines)).toEqual({ add: 2, del: 1 });
+  });
+
+  it("pairs a removed line with the next added line into one change row", () => {
+    const rows = splitDiff(parseDiff("@@ -1,1 +1,1 @@\n-the quick fox\n+the slow fox"));
+    expect(rows[0].cls).toBe("hunk");
+    const change = rows.find((r) => r.cls === "change");
+    expect(change?.left?.num).toBe("1");
+    expect(change?.right?.num).toBe("1");
+  });
+
+  it("leaves a blank cell opposite an unpaired add/del", () => {
+    const rows = splitDiff(parseDiff("@@ -1,1 +1,2 @@\n ctx\n+brand new"));
+    const addRow = rows.find((r) => r.cls === "add");
+    expect(addRow?.left).toBeNull();
+    expect(addRow?.right?.segs[0]).toEqual({ t: "brand new", changed: true });
+  });
+
+  it("wordDiff highlights only the changed words", () => {
+    const { left, right } = wordDiff("the quick brown fox", "the slow brown fox");
+    expect(left.filter((s) => s.changed).map((s) => s.t)).toEqual(["quick"]);
+    expect(right.filter((s) => s.changed).map((s) => s.t)).toEqual(["slow"]);
+    expect(left.find((s) => !s.changed)?.t).toBe("the ");
   });
 });
 
