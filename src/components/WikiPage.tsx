@@ -24,6 +24,7 @@ export default function WikiPage(props: {
   async function decorate() {
     if (!body) return;
     addSectionEditLinks(body, slug());
+    makeSectionsCollapsible(body);
     attachCiteTooltips(body);
     await markRedLinks(body);
     document.dispatchEvent(new CustomEvent("wiki:rendered"));
@@ -115,6 +116,53 @@ function addSectionEditLinks(root: HTMLElement, slug: string): void {
     a.href = `${BASE}/edit/${slug}?section=${encodeURIComponent(h.id)}`;
     h.appendChild(a);
   }
+}
+
+// Wikipedia-style show/hide per heading. A caret on each h2/h3/h4 toggles its
+// section; visibility is recomputed from the full collapsed set each time so
+// nesting works (collapsing an h2 also hides its h3s, independently of their
+// own state). Sections start open so the TOC and anchor links keep working.
+function makeSectionsCollapsible(root: HTMLElement): void {
+  const heads = root.querySelectorAll<HTMLElement>(":is(h2, h3, h4)[id]");
+  if (heads.length === 0) return;
+  const collapsed = new Set<string>();
+
+  const apply = () => {
+    const stack: { level: number; collapsed: boolean }[] = [];
+    for (const el of Array.from(root.children) as HTMLElement[]) {
+      const level = headingLevel(el);
+      if (level) {
+        while (stack.length && stack[stack.length - 1].level >= level) stack.pop();
+        el.hidden = stack.some((s) => s.collapsed);
+        stack.push({ level, collapsed: collapsed.has(el.id) });
+      } else {
+        el.hidden = stack.some((s) => s.collapsed);
+      }
+    }
+  };
+
+  for (const h of heads) {
+    if (h.querySelector(".section-toggle")) continue;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "section-toggle";
+    btn.setAttribute("aria-expanded", "true");
+    btn.setAttribute("aria-label", `Toggle the “${h.textContent?.trim()}” section`);
+    btn.addEventListener("click", () => {
+      const open = collapsed.has(h.id);
+      if (open) collapsed.delete(h.id);
+      else collapsed.add(h.id);
+      btn.setAttribute("aria-expanded", String(open));
+      h.classList.toggle("is-collapsed", !open);
+      apply();
+    });
+    h.prepend(btn);
+  }
+}
+
+function headingLevel(el: HTMLElement): number {
+  const m = /^H([2-6])$/.exec(el.tagName);
+  return m ? Number(m[1]) : 0;
 }
 
 // Hover popover over a `[N]` citation marker showing the reference text.

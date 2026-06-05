@@ -164,6 +164,39 @@ html.ready body {
   vertical-align: middle;
 }
 
+/* Per-section collapse toggle (Wikipedia-style show/hide). Always visible so the
+   affordance is discoverable; the caret points down when open, right when collapsed. */
+.section-toggle {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin-right: 0.45rem;
+  width: 0.7em;
+  height: 0.7em;
+  cursor: pointer;
+  color: var(--color-ink-subtle);
+  vertical-align: middle;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.section-toggle::before {
+  content: "";
+  width: 0.42em;
+  height: 0.42em;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-0.12em) rotate(45deg);
+  transition: transform var(--transition-fast);
+}
+.prose :is(h2, h3, h4).is-collapsed .section-toggle::before {
+  transform: translateY(0) rotate(-45deg);
+}
+.section-toggle:hover {
+  color: var(--color-accent);
+}
+
 /* Reserve space so client:only islands don't collapse-then-expand on load/nav. */
 .page-meta-slot {
   min-height: 2rem;
