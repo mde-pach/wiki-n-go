@@ -88,9 +88,6 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
 
       <div class="page-head">
         <div class="page-head-inner">
-          <nav class="breadcrumb" aria-label="Breadcrumb">
-            <a href={read}>Main</a><span class="sep">/</span><span>Article</span>
-          </nav>
           <h1 class="page-title">{display}</h1>
           <div class="page-meta-slot">
             <PageMeta slug={slug} base={BASE} initial={revisions} client:load />

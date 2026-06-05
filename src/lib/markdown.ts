@@ -97,3 +97,18 @@ export function parsePage(raw: string): ParsedPage {
   }
   return { title, html, headings, meta };
 }
+
+// Wikipedia leads open by bolding the article's own term ("**Espresso** is …").
+// Bold the title only when the first paragraph actually starts with it, so we
+// never misfire on a lead that opens some other way.
+export function emphasizeLeadHtml(html: string, title: string): string {
+  if (!title.trim()) return html;
+  const p = html.match(/<p>([\s\S]*?)<\/p>/);
+  if (!p) return html;
+  const inner = p[1];
+  if (/^\s*<(?:strong|b)\b/i.test(inner)) return html; // already emphasized
+  const esc = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`^(\\s*)(${esc})`, "i");
+  if (!re.test(inner)) return html;
+  return html.replace(p[0], `<p>${inner.replace(re, "$1<strong>$2</strong>")}</p>`);
+}

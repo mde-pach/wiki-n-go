@@ -2,7 +2,7 @@ import { createSignal, onMount, Show } from "solid-js";
 import { fetchMarkdown, PageNotFoundError, renderMarkdown } from "../lib/content";
 import type { PageMeta } from "../lib/frontmatter";
 import { pageSet } from "../lib/manifest";
-import { splitTitle } from "../lib/markdown";
+import { emphasizeLeadHtml, splitTitle } from "../lib/markdown";
 import { BASE } from "../lib/paths";
 import { attachPagePreviews } from "../lib/previews";
 import { slugFromLocation } from "../lib/slug";
@@ -39,7 +39,7 @@ export default function WikiPage(props: {
       if (raw === props.initialRaw) return; // unchanged since build → keep SSR content (no shift)
       const { title, body, meta: fresh } = splitTitle(raw);
       setMeta(fresh);
-      setHtml(renderMarkdown(body));
+      setHtml(emphasizeLeadHtml(renderMarkdown(body), title));
       const heading = title || slug();
       document.title = heading;
       const el = document.querySelector(".page-title");

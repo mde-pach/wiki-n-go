@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { diffStats, parseDiff, splitDiff, wordDiff } from "./diff";
 import { computeGraph } from "./linkgraph";
-import { md, parsePage, splitTitle } from "./markdown";
+import { emphasizeLeadHtml, md, parsePage, splitTitle } from "./markdown";
 import { prettify } from "./paths";
 import { search, slugifyQuery, splitHighlight, toPlainText } from "./search";
 import { markRedLinksHtml } from "./wikilink";
@@ -36,6 +36,22 @@ describe("splitTitle", () => {
     expect(title).toBe("Title");
     expect(body).toBe("body");
     expect(meta).toEqual({ tags: ["A", "B"] });
+  });
+});
+
+describe("emphasizeLeadHtml", () => {
+  it("bolds the title when the lead opens with it", () => {
+    expect(emphasizeLeadHtml("<p>Espresso is a coffee.</p>", "Espresso")).toBe(
+      "<p><strong>Espresso</strong> is a coffee.</p>",
+    );
+  });
+  it("leaves the lead alone when it doesn't start with the title", () => {
+    const html = "<p>A drink brewed under pressure.</p>";
+    expect(emphasizeLeadHtml(html, "Espresso")).toBe(html);
+  });
+  it("doesn't double-bold an already-emphasized lead", () => {
+    const html = "<p><strong>Espresso</strong> is a coffee.</p>";
+    expect(emphasizeLeadHtml(html, "Espresso")).toBe(html);
   });
 });
 

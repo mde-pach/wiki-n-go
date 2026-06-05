@@ -5,7 +5,7 @@ import TocMobile from "../components/TocMobile.tsx";
 import WikiPage from "../components/WikiPage.tsx";
 import { config } from "../config";
 import PageShell from "../layouts/PageShell.astro";
-import { parsePage } from "../lib/markdown";
+import { emphasizeLeadHtml, parsePage } from "../lib/markdown";
 import { contentSlugs, rawPage } from "../lib/pages";
 import { BASE, prettify } from "../lib/paths";
 import { markRedLinksHtml } from "../lib/wikilink";
@@ -25,7 +25,10 @@ const pageSlug = slug ?? config.homeSlug;
 const raw = rawPage(pageSlug);
 const parsed = raw ? parsePage(raw) : null;
 const html = parsed
-  ? markRedLinksHtml(parsed.html, new Set(contentSlugs()))
+  ? emphasizeLeadHtml(
+      markRedLinksHtml(parsed.html, new Set(contentSlugs())),
+      parsed.title,
+    )
   : undefined;
 ---
 
