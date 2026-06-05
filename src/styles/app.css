@@ -201,6 +201,16 @@ html.ready body {
   font-size: 0.85em;
   white-space: nowrap;
 }
+.rc-tag {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-warn-bg);
+  color: var(--color-warn-ink);
+  font-size: 0.78em;
+  font-weight: 600;
+}
 @media (max-width: 700px) {
   .rc-row {
     grid-template-columns: auto 1fr auto;

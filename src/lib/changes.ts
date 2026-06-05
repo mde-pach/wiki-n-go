@@ -10,6 +10,7 @@ export interface Change {
   deletions: number;
   slugs: string[];
   patrolled: boolean;
+  tags: string[];
 }
 
 export async function listChanges(limit = 30): Promise<Change[]> {

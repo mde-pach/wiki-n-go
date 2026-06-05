@@ -77,7 +77,10 @@ export default function RecentChanges() {
                   <span class="rc-author" classList={{ anon: c.isAnon }}>
                     {c.author}
                   </span>
-                  <span class="rc-summary">{c.message}</span>
+                  <span class="rc-summary">
+                    {c.message}
+                    <For each={c.tags}>{(t) => <span class="rc-tag">{t}</span>}</For>
+                  </span>
                   <Show
                     when={!c.patrolled}
                     fallback={<span class="rc-badge reviewed">reviewed</span>}
