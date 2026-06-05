@@ -29,16 +29,17 @@ function loadScript(): Promise<void> {
 }
 
 export interface Turnstile {
-  // Run the (invisible) challenge and resolve a fresh, single-use token. Rejects
-  // if verification fails. Callers await this on submit so the check stays hidden
-  // and the user just waits, never sees a widget.
+  // Where to render the widget. `interaction-only` keeps it empty until a
+  // challenge is actually required, then the (solvable) challenge appears here.
+  mount(el: HTMLElement): void;
+  // Run the challenge and resolve a fresh, single-use token; rejects on failure.
   getToken(): Promise<string>;
   reset(): void;
 }
 
 export function createTurnstile(sitekey: string): Turnstile {
   let widgetId: string | undefined;
-  let host: HTMLElement | undefined;
+  let container: HTMLElement | undefined;
   let waiters: { ok: (t: string) => void; err: (e: Error) => void }[] = [];
   let starting: Promise<void> | undefined;
 
@@ -47,33 +48,25 @@ export function createTurnstile(sitekey: string): Turnstile {
     waiters = [];
     for (const w of pending) fn(w);
   };
-  // Invisible normally, but if Cloudflare escalates to an interactive challenge
-  // the widget must be visible to render — otherwise it fails (the 401 case).
-  const reveal = (on: boolean) => host?.classList.toggle("is-visible", on);
 
   function start(): Promise<void> {
     if (!starting) {
       starting = loadScript().then(() => {
-        host = document.createElement("div");
-        host.className = "turnstile-host";
-        document.body.appendChild(host);
-        widgetId = window.turnstile?.render(host, {
+        widgetId = window.turnstile?.render(container ?? document.body, {
           sitekey,
           action: "turnstile-spin-v1",
-          size: "invisible",
+          // Not size:"invisible" — that headless mode can't render an interactive
+          // challenge (it just fails). interaction-only is empty until one is
+          // needed, then shows a solvable widget inline in `container`.
+          appearance: "interaction-only",
           execution: "execute",
-          callback: (t: string) => {
-            reveal(false);
-            drain((w) => w.ok(t));
-          },
-          "error-callback": () => {
-            reveal(false);
+          size: "flexible",
+          theme: document.documentElement.dataset.theme === "dark" ? "dark" : "light",
+          callback: (t: string) => drain((w) => w.ok(t)),
+          "error-callback": () =>
             drain((w) =>
               w.err(new Error("Couldn’t verify you’re human. Please try again.")),
-            );
-          },
-          "before-interactive-callback": () => reveal(true),
-          "after-interactive-callback": () => reveal(false),
+            ),
         });
       });
     }
@@ -81,6 +74,9 @@ export function createTurnstile(sitekey: string): Turnstile {
   }
 
   return {
+    mount(el: HTMLElement) {
+      container = el;
+    },
     async getToken() {
       await start();
       return new Promise<string>((ok, err) => {
