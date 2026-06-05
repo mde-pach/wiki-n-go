@@ -7,9 +7,10 @@
      [data-skin]            chooses type / spacing / radius / measure + base hues
      [data-skin][data-theme="dark"]   overrides colour roles for dark mode
 
-   Two skins ship by default:
-     editorial  — warm, roomy, serif-led reference work (default)
-     vector     — cool, dense, all-sans, utilitarian (proves a 1-config reskin)
+   Two skins ship:
+     wiki-n-go  — the product's own look: cool, dense, utilitarian (default)
+     wiki       — a near 1:1 replica of Wikipedia (Vector 2022 / Codex tokens),
+                  system sans body, serif headings, the classic #36c link blue
 
    The Tailwind theme.extend mapping that consumes these vars is shown verbatim
    inside the in-app "Tokens" view.
@@ -28,130 +29,136 @@
 }
 
 /* ===========================================================================
-   SKIN · EDITORIAL  (default)
+   SKIN · WIKI  (a near 1:1 replica of Wikipedia — Vector 2022 / Codex tokens)
+   ----------------------------------------------------------------------------
+   Values lifted from the Wikimedia Codex design-token set so the chrome reads
+   like the real thing: system-sans body, Linux Libertine/Georgia serif heads,
+   the #36c "progressive" link blue, #a2a9b1 hairline rules, 2px corners.
+   No web-font import — Wikipedia ships none either; serif resolves to Georgia.
    ========================================================================== */
-[data-skin="editorial"] {
-  /* Type */
+[data-skin="wiki"] {
+  /* Type — body & chrome are system sans; only headings go serif (as on WP) */
   --font-body:
-    "Source Serif 4 Variable", "Source Serif 4", Georgia, "Times New Roman", serif;
+    -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-ui:
-    "Libre Franklin Variable", "Libre Franklin", "Helvetica Neue", Helvetica, Arial,
-    sans-serif;
-  --font-display: "Source Serif 4 Variable", "Source Serif 4", Georgia, serif;
+    -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display:
+    "Linux Libertine", Georgia, "Times New Roman", Times, "Source Serif 4 Variable",
+    serif;
   --font-mono:
-    "JetBrains Mono Variable", "JetBrains Mono", "SF Mono", ui-monospace, Menlo,
-    monospace;
+    "Menlo", Consolas, "Liberation Mono", "Courier New", ui-monospace, monospace;
 
   --text-xs: 0.75rem; /* 12 */
   --text-sm: 0.8125rem; /* 13 */
   --text-ui: 0.875rem; /* 14 chrome */
-  --text-base: 1.0625rem; /* 17 reading */
-  --text-md: 1.1875rem; /* 19 */
-  --text-lg: 1.4375rem; /* 23 */
-  --text-xl: 1.75rem; /* 28 */
-  --text-2xl: 2.25rem; /* 36 */
-  --text-3xl: 2.875rem; /* 46 title */
+  --text-base: 0.875rem; /* 14 reading (WP .mw-body 0.875em) */
+  --text-md: 1rem; /* 16 */
+  --text-lg: 1.125rem; /* 18 h3/h4 */
+  --text-xl: 1.5rem; /* 24 h2 */
+  --text-2xl: 1.625rem; /* 26 */
+  --text-3xl: 1.75rem; /* 28 page title h1 */
 
-  --leading-body: 1.72;
+  --leading-body: 1.6; /* WP content line-height */
   --leading-snug: 1.4;
-  --leading-tight: 1.15;
-  --tracking-display: -0.012em;
-  --tracking-eyebrow: 0.08em;
+  --leading-tight: 1.3;
+  --tracking-display: 0; /* serif heads have no tracking on WP */
+  --tracking-eyebrow: 0.05em;
 
   --weight-normal: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
   --weight-bold: 700;
 
-  /* Space + shape */
-  --measure: 43rem; /* reading column */
-  --space-card: 1.5rem;
-  --space-section: 2.75rem;
+  /* Space + shape — WP is flat and square (Codex --border-radius-base 2px) */
+  --measure: 46rem; /* reading column */
+  --space-card: 1rem;
+  --space-section: 1.5rem;
   --gap-chrome: 0.5rem;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-pill: 999px;
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --radius-pill: 9999px;
   --border-w: 1px;
-  --header-h: 60px;
-  --header-h-compact: 50px;
+  --header-h: 56px;
+  --header-h-compact: 48px;
 
-  /* Colour — LIGHT */
-  --color-canvas: #faf8f3;
-  --color-surface: #ffffff;
-  --color-surface-sunken: #f3efe6;
+  /* Colour — LIGHT (Codex light mode) */
+  --color-canvas: #f8f9fa; /* background-color-neutral-subtle (page surround) */
+  --color-surface: #ffffff; /* background-color-base (article) */
+  --color-surface-sunken: #eaecf0; /* background-color-neutral */
   --color-surface-raised: #ffffff;
-  --color-ink: #221f1b;
-  --color-ink-muted: #5d564c;
-  --color-ink-subtle: #8b8275;
-  --color-border: #e7e0d3;
-  --color-border-strong: #d4cab8;
-  --color-accent: #1d4ed8;
-  --color-accent-hover: #1740b0;
-  --color-accent-subtle: #ebf0fe;
-  --color-accent-line: #c5d4fb;
+  --color-ink: #202122; /* color-base */
+  --color-ink-muted: #54595d; /* color-subtle */
+  --color-ink-subtle: #72777d; /* color-placeholder */
+  --color-border: #c8ccd1; /* border-color-subtle */
+  --color-border-strong: #a2a9b1; /* border-color-base (heading rules) */
+  --color-accent: #3366cc; /* color-progressive (#36c link blue) */
+  --color-accent-hover: #3056a9; /* color-progressive--hover */
+  --color-accent-subtle: #eaf3ff; /* background-color-progressive-subtle */
+  --color-accent-line: #c8d8f7;
   --color-on-accent: #ffffff;
-  --color-redlink: #b3261e;
-  --color-redlink-hover: #8c1d17;
-  --color-visited: #6d3bce;
-  --color-focus: #1d4ed8;
-  --color-add-bg: #e4f3e7;
-  --color-add-strong: #b3e3bf;
-  --color-add-ink: #176231;
-  --color-remove-bg: #fbe7e6;
-  --color-remove-strong: #f2c2bf;
-  --color-remove-ink: #9a201b;
-  --color-selection: #d6e2fb;
-  --color-warn-bg: #fdf3df;
-  --color-warn-ink: #8a5a00;
-  --color-warn-line: #f0d9a3;
+  --color-redlink: #d73333; /* a.new — broken/new links */
+  --color-redlink-hover: #b32424;
+  --color-visited: #6a60b0; /* color-visited */
+  --color-focus: #3366cc;
+  --color-add-bg: #dff2eb; /* background-color-success-subtle */
+  --color-add-strong: #099979; /* border-color-success */
+  --color-add-ink: #177860; /* color-success */
+  --color-remove-bg: #ffe9e5; /* background-color-error-subtle */
+  --color-remove-strong: #f54739; /* border-color-error */
+  --color-remove-ink: #bf3c2c; /* color-destructive */
+  --color-selection: #cbe3ff;
+  --color-warn-bg: #fdf2d5; /* background-color-warning-subtle */
+  --color-warn-ink: #886425; /* color-warning */
+  --color-warn-line: #ab7f2a; /* border-color-warning */
 
-  --shadow-sm: 0 1px 2px rgba(50, 40, 24, 0.06), 0 1px 1px rgba(50, 40, 24, 0.04);
-  --shadow-md: 0 4px 14px rgba(50, 40, 24, 0.08), 0 1px 3px rgba(50, 40, 24, 0.05);
-  --shadow-lg: 0 16px 44px rgba(40, 32, 18, 0.16), 0 4px 12px rgba(40, 32, 18, 0.08);
-  --shadow-pop: 0 10px 34px rgba(40, 32, 18, 0.16);
+  --shadow-sm: 0 1px 1px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 2px 3px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-pop: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
-[data-skin="editorial"][data-theme="dark"] {
-  --color-canvas: #1a1714;
-  --color-surface: #242019;
-  --color-surface-sunken: #15120e;
-  --color-surface-raised: #2b261e;
-  --color-ink: #ede6da;
-  --color-ink-muted: #b3aa9b;
-  --color-ink-subtle: #847b6d;
-  --color-border: #39332a;
-  --color-border-strong: #4c4439;
-  --color-accent: #82a8ff;
-  --color-accent-hover: #a3c0ff;
-  --color-accent-subtle: #1e2843;
-  --color-accent-line: #2f3d61;
-  --color-on-accent: #11203f;
-  --color-redlink: #f0726a;
-  --color-redlink-hover: #f59891;
-  --color-visited: #b99bf0;
-  --color-focus: #82a8ff;
-  --color-add-bg: #15351f;
-  --color-add-strong: #2c6840;
-  --color-add-ink: #8ad6a1;
-  --color-remove-bg: #3a1917;
-  --color-remove-strong: #6e2f2a;
-  --color-remove-ink: #f0a39d;
-  --color-selection: #28395e;
-  --color-warn-bg: #34280f;
-  --color-warn-ink: #e6bd6a;
-  --color-warn-line: #564219;
+[data-skin="wiki"][data-theme="dark"] {
+  /* Codex dark mode */
+  --color-canvas: #101418; /* background-color-base */
+  --color-surface: #202122; /* background-color-neutral-subtle */
+  --color-surface-sunken: #27292d; /* background-color-neutral */
+  --color-surface-raised: #2b3036;
+  --color-ink: #eaecf0; /* color-base */
+  --color-ink-muted: #a2a9b1; /* color-subtle */
+  --color-ink-subtle: #72777d; /* color-placeholder */
+  --color-border: #54595d; /* border-color-subtle */
+  --color-border-strong: #72777d; /* border-color-base */
+  --color-accent: #88a3e8; /* color-progressive */
+  --color-accent-hover: #a6bbf5; /* color-progressive--hover */
+  --color-accent-subtle: #1b2236;
+  --color-accent-line: #3a4a73;
+  --color-on-accent: #101418;
+  --color-redlink: #fd7865;
+  --color-redlink-hover: #ff9888;
+  --color-visited: #a799cd; /* color-visited */
+  --color-focus: #88a3e8;
+  --color-add-bg: #132821; /* background-color-success-subtle */
+  --color-add-strong: #316c57;
+  --color-add-ink: #2cb491; /* color-success */
+  --color-remove-bg: #3c1a13; /* background-color-error-subtle */
+  --color-remove-strong: #7a3d35;
+  --color-remove-ink: #fd7865; /* color-destructive */
+  --color-selection: #2a3b5e;
+  --color-warn-bg: #2d2212; /* background-color-warning-subtle */
+  --color-warn-ink: #ca982e; /* color-warning */
+  --color-warn-line: #735822;
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 16px 44px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.5);
-  --shadow-pop: 0 10px 34px rgba(0, 0, 0, 0.55);
+  --shadow-sm: 0 1px 1px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 4px 14px rgba(0, 0, 0, 0.6);
+  --shadow-pop: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 
 /* ===========================================================================
-   SKIN · VECTOR  (dense / utilitarian — the token-swap proof)
+   SKIN · WIKI-N-GO  (the product's own look — dense, cool, utilitarian · default)
    ========================================================================== */
-[data-skin="vector"] {
+[data-skin="wiki-n-go"] {
   --font-body:
     "Libre Franklin Variable", "Libre Franklin", "Helvetica Neue", Helvetica, Arial,
     sans-serif;
@@ -234,7 +241,7 @@
   --shadow-pop: 0 6px 20px rgba(20, 25, 30, 0.16);
 }
 
-[data-skin="vector"][data-theme="dark"] {
+[data-skin="wiki-n-go"][data-theme="dark"] {
   --color-canvas: #0f1318;
   --color-surface: #181c22;
   --color-surface-sunken: #0a0d11;

@@ -5,11 +5,11 @@ export default function ThemeToggle() {
   // Render a stable default on the server / first client paint; the actual theme
   // is already applied to <html> by the pre-paint script. Sync after mount.
   const [theme, setThemeS] = createSignal("light");
-  const [skin, setSkinS] = createSignal("editorial");
+  const [skin, setSkinS] = createSignal("wiki-n-go");
 
   onMount(() => {
     setThemeS(document.documentElement.dataset.theme ?? "light");
-    setSkinS(document.documentElement.dataset.skin ?? "editorial");
+    setSkinS(document.documentElement.dataset.skin ?? "wiki-n-go");
   });
 
   const setTheme = (t: string) => {
@@ -28,17 +28,17 @@ export default function ThemeToggle() {
       <div class="seg" role="group" aria-label="Skin">
         <button
           type="button"
-          class={skin() === "editorial" ? "is-on" : ""}
-          onClick={() => setSkin("editorial")}
+          class={skin() === "wiki-n-go" ? "is-on" : ""}
+          onClick={() => setSkin("wiki-n-go")}
         >
-          Editorial
+          Wiki-n-go
         </button>
         <button
           type="button"
-          class={skin() === "vector" ? "is-on" : ""}
-          onClick={() => setSkin("vector")}
+          class={skin() === "wiki" ? "is-on" : ""}
+          onClick={() => setSkin("wiki")}
         >
-          Vector
+          Wiki
         </button>
       </div>
       <button

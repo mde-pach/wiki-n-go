@@ -34,7 +34,7 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
 ---
 
 <!doctype html>
-<html lang="en" data-skin="editorial" data-theme="light">
+<html lang="en" data-skin="wiki-n-go" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -42,9 +42,11 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
     <title>{display} · wiki-n-go</title>
     <script is:inline>
       (() => {
+        const skins = ["wiki-n-go", "wiki"];
         const apply = (doc) => {
           const d = doc.documentElement;
-          d.dataset.skin = localStorage.getItem("wng-skin") || "editorial";
+          const saved = localStorage.getItem("wng-skin");
+          d.dataset.skin = skins.includes(saved) ? saved : "wiki-n-go";
           d.dataset.theme = localStorage.getItem("wng-theme") || "light";
         };
         apply(document);

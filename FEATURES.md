@@ -102,13 +102,14 @@ and undo/thank/tag actions; Newer/Older pagination.
 
 ## H. Theming / appearance (our "Appearance" menu)
 Design token system adopted from `.design/` (single source of truth): two skins
-(Editorial / Vector) × light/dark, semantic roles only.
+(Wiki-n-go / Wiki) × light/dark, semantic roles only. The **Wiki** skin is a
+near 1:1 replica of Wikipedia (Vector 2022 / Codex tokens).
 
 | Feature | St | Pri |
 |---|---|---|
 | Tailwind + centralized tokens (design `tokens.css`) | ✅ | P0 |
 | Light / dark mode | ✅ | P0 |
-| Swappable skins (Editorial / Vector) | ✅ | P1 |
+| Swappable skins (Wiki-n-go / Wiki) | ✅ | P1 |
 | Theme + skin toggle (temporary; final UI in chrome port) | 🟡 | P0 |
 | Width control (Standard/Wide) | ⬜ | P1 |
 | Config-/frontmatter-driven theming | ⬜ | P1 |
