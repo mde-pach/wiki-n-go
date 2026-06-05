@@ -4,6 +4,7 @@ import type { PageMeta } from "../lib/frontmatter";
 import { pageSet } from "../lib/manifest";
 import { splitTitle } from "../lib/markdown";
 import { BASE } from "../lib/paths";
+import { attachPagePreviews } from "../lib/previews";
 import { slugFromLocation } from "../lib/slug";
 import { errMessage } from "../lib/util";
 import { Icons } from "./Icons";
@@ -26,6 +27,7 @@ export default function WikiPage(props: {
     addSectionEditLinks(body, slug());
     makeSectionsCollapsible(body);
     attachCiteTooltips(body);
+    attachPagePreviews(body);
     await markRedLinks(body);
     document.dispatchEvent(new CustomEvent("wiki:rendered"));
   }
