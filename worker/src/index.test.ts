@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ipHash, SLUG_RE } from "./index";
+import { globMatch, ipHash, SLUG_RE } from "./index";
 
 describe("SLUG_RE", () => {
   it("accepts lowercase, hyphen, and nested slugs", () => {
@@ -20,6 +20,25 @@ describe("SLUG_RE", () => {
     ]) {
       expect(SLUG_RE.test(bad)).toBe(false);
     }
+  });
+});
+
+describe("globMatch (protection paths)", () => {
+  it("matches exact slugs", () => {
+    expect(globMatch("index", "index")).toBe(true);
+    expect(globMatch("index", "index2")).toBe(false);
+  });
+  it("`*` stays within one segment", () => {
+    expect(globMatch("sandbox/*", "sandbox/foo")).toBe(true);
+    expect(globMatch("sandbox/*", "sandbox/foo/bar")).toBe(false);
+  });
+  it("`**` spans segments", () => {
+    expect(globMatch("sandbox/**", "sandbox/foo")).toBe(true);
+    expect(globMatch("sandbox/**", "sandbox/foo/bar")).toBe(true);
+    expect(globMatch("**", "anything/at/all")).toBe(true);
+  });
+  it("does not leak across a prefix boundary", () => {
+    expect(globMatch("docs/**", "docsx/foo")).toBe(false);
   });
 });
 

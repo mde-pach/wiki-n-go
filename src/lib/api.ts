@@ -1,8 +1,10 @@
 import { config } from "../config";
 
 export interface EditResult {
-  prUrl: string;
   author: string;
+  live: boolean; // true → published straight to the live branch; false → opened a PR
+  prUrl?: string; // present when live === false
+  url?: string; // commit URL when live === true
 }
 
 export async function submitEdit(

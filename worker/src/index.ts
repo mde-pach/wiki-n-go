@@ -10,6 +10,12 @@ interface Env {
   TURNSTILE_SECRET?: string; // unset until a Turnstile widget is wired; bot check then activates
   REPO_ID: string;
   DISCUSSION_CATEGORY_ID: string;
+  // Autonomous-editing knobs (all optional; defaults keep the reviewed-PR model).
+  DEFAULT_EDIT_TIER?: string; // tier required to edit a path with no protection.json rule (default "maintainer")
+  AUTOCONFIRM_EDITS?: string; // accepted edits for the "auto" tier (default 10)
+  AUTOCONFIRM_DAYS?: string; // age in days for the "auto" tier (default 4)
+  EXTENDED_EDITS?: string; // accepted edits for the "extended" tier (default 500)
+  EXTENDED_DAYS?: string; // age in days for the "extended" tier (default 30)
 }
 
 interface EditBody {
@@ -194,6 +200,88 @@ async function authenticateAnon(
   return author;
 }
 
+// ── Trust tiers & per-path protection (autonomous editing) ────────────────
+// Tiers form one ordered scale shared by editors and path requirements:
+// an editor of rank ≥ the path's required rank may publish directly.
+type Tier = "open" | "auto" | "extended" | "maintainer";
+const TIER_RANK: Record<Tier, number> = {
+  open: 0,
+  auto: 1,
+  extended: 2,
+  maintainer: 3,
+};
+const asTier = (s: string | undefined, fallback: Tier): Tier =>
+  s && s in TIER_RANK ? (s as Tier) : fallback;
+
+interface ProtectionConfig {
+  default?: string;
+  rules?: { path: string; tier: string }[];
+}
+
+interface LedgerEntry {
+  n: number; // accepted (directly-committed) edits
+  first: number; // epoch ms first seen
+}
+
+// Fetch a small JSON config from the repo root (same store as bans.json).
+async function repoJson<T>(env: Env, file: string): Promise<T | null> {
+  const res = await fetch(
+    `https://raw.githubusercontent.com/${env.REPO_OWNER}/${env.REPO_NAME}/${env.BRANCH}/${file}`,
+  );
+  if (!res.ok) return null;
+  try {
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+// Minimal glob: `*` matches within a segment, `**` matches across segments.
+export function globMatch(glob: string, value: string): boolean {
+  const re = glob
+    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*\*?/g, (m) => (m === "**" ? ".*" : "[^/]*"));
+  return new RegExp(`^${re}$`).test(value);
+}
+
+async function requiredTier(env: Env, slug: string): Promise<Tier> {
+  const fallback = asTier(env.DEFAULT_EDIT_TIER, "maintainer");
+  const cfg = await repoJson<ProtectionConfig>(env, "protection.json");
+  if (!cfg) return fallback;
+  for (const rule of cfg.rules ?? []) {
+    if (globMatch(rule.path, slug)) return asTier(rule.tier, fallback);
+  }
+  return asTier(cfg.default, fallback);
+}
+
+async function editorTier(env: Env, author: string): Promise<Tier> {
+  const trusted = await repoJson<string[]>(env, "trusted-editors.json");
+  if (Array.isArray(trusted) && trusted.includes(author)) return "maintainer";
+  if (!env.RATE_LIMIT) return "open";
+  const raw = await env.RATE_LIMIT.get(`trust:${author}`);
+  if (!raw) return "open";
+  const { n, first } = JSON.parse(raw) as LedgerEntry;
+  const days = (Date.now() - first) / 86_400_000;
+  const num = (v: string | undefined, d: number) => Number.parseInt(v ?? "", 10) || d;
+  if (n >= num(env.EXTENDED_EDITS, 500) && days >= num(env.EXTENDED_DAYS, 30))
+    return "extended";
+  if (n >= num(env.AUTOCONFIRM_EDITS, 10) && days >= num(env.AUTOCONFIRM_DAYS, 4))
+    return "auto";
+  return "open";
+}
+
+async function bumpLedger(env: Env, author: string): Promise<void> {
+  if (!env.RATE_LIMIT) return;
+  const raw = await env.RATE_LIMIT.get(`trust:${author}`);
+  const prev: LedgerEntry = raw
+    ? (JSON.parse(raw) as LedgerEntry)
+    : { n: 0, first: Date.now() };
+  await env.RATE_LIMIT.put(
+    `trust:${author}`,
+    JSON.stringify({ n: prev.n + 1, first: prev.first }),
+  );
+}
+
 async function proposeEdit(env: Env, request: Request, body: EditBody) {
   const slug = String(body.slug ?? "");
   const content = String(body.content ?? "");
@@ -208,8 +296,38 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
 
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
   const path = `${env.CONTENT_DIR}/${slug}.md`;
-  const branch = `${author}/${slug.replace(/\//g, "-")}-${crypto.randomUUID().slice(0, 8)}`;
 
+  const [tier, required] = await Promise.all([
+    editorTier(env, author),
+    requiredTier(env, slug),
+  ]);
+
+  // Trusted enough for this path → publish straight to the live branch.
+  if (TIER_RANK[tier] >= TIER_RANK[required]) {
+    const res = await gh<{ commit: { sha: string; html_url: string } }>(
+      env,
+      `/repos/${repo}/contents/${path}`,
+      {
+        method: "PUT",
+        body: JSON.stringify({
+          message: summary || `Edit ${slug}`,
+          content: toBase64(content),
+          branch: env.BRANCH,
+          sha: await currentFileSha(env, repo, path),
+          author: { name: author, email: `${author}@anon.invalid` },
+          committer: { name: `${env.REPO_NAME} bot`, email: "bot@anon.invalid" },
+        }),
+      },
+    );
+    await bumpLedger(env, author);
+    // Invalidate the cached pointers so the edit is live on the next read.
+    await env.RATE_LIMIT?.delete("meta:latest-sha");
+    await env.RATE_LIMIT?.delete("meta:pages");
+    return { live: true, sha: res.commit.sha, url: res.commit.html_url, author };
+  }
+
+  // Otherwise fall back to the reviewed-PR flow.
+  const branch = `${author}/${slug.replace(/\//g, "-")}-${crypto.randomUUID().slice(0, 8)}`;
   const base = await gh<{ object: { sha: string } }>(
     env,
     `/repos/${repo}/git/ref/heads/${env.BRANCH}`,
@@ -241,7 +359,7 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
     }),
   });
 
-  return { prUrl: pr.html_url, author };
+  return { live: false, prUrl: pr.html_url, author };
 }
 
 async function gh<T = unknown>(env: Env, path: string, init: GhInit = {}): Promise<T> {

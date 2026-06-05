@@ -1,0 +1,4 @@
+{
+  "default": "maintainer",
+  "rules": [{ "path": "sandbox/**", "tier": "open" }]
+}

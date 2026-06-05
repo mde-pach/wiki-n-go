@@ -1,7 +1,7 @@
 import { createSignal, onMount, Show } from "solid-js";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
-import { submitEdit } from "../lib/api";
+import { type EditResult, submitEdit } from "../lib/api";
 import { fetchMarkdown, PageNotFoundError, renderMarkdown } from "../lib/content";
 import { slugifyHeading } from "../lib/markdown";
 import { prettify, readHref } from "../lib/paths";
@@ -20,7 +20,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   const [busy, setBusy] = createSignal(false);
   const [token, setToken] = createSignal<string>();
   const [error, setError] = createSignal<string>();
-  const [prUrl, setPrUrl] = createSignal<string>();
+  const [result, setResult] = createSignal<EditResult>();
   const [modal, setModal] = createSignal(false);
   let ta: HTMLTextAreaElement | undefined;
 
@@ -109,8 +109,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     setBusy(true);
     setError();
     try {
-      const result = await submitEdit(slug(), draft(), token(), summary());
-      setPrUrl(result.prUrl);
+      setResult(await submitEdit(slug(), draft(), token(), summary()));
       setModal(false);
     } catch (e) {
       setError(errMessage(e));
@@ -124,8 +123,8 @@ export default function Editor(props: { slug?: string; initialContent?: string }
       <div class="view-head">
         <h2>Editing “{prettify(slug())}”</h2>
         <p>
-          Anyone can edit — no account needed. Publishing opens a reviewed pull request;
-          it won't change the live page until a maintainer merges it.
+          Anyone can edit — no account needed. Trusted edits publish immediately; others
+          open a reviewed pull request that a maintainer merges.
         </p>
       </div>
 
@@ -256,14 +255,29 @@ export default function Editor(props: { slug?: string; initialContent?: string }
           <Show when={error()}>
             <p class="editor-err">{error()}</p>
           </Show>
-          <Show when={prUrl()}>
-            <p class="editor-ok">
-              Proposed —{" "}
-              <a href={prUrl()} target="_blank" rel="noreferrer">
-                review the pull request
-              </a>
-              .
-            </p>
+          <Show when={result()}>
+            {(r) => (
+              <p class="editor-ok">
+                <Show
+                  when={r().live}
+                  fallback={
+                    <>
+                      Proposed —{" "}
+                      <a href={r().prUrl} target="_blank" rel="noreferrer">
+                        review the pull request
+                      </a>
+                      .
+                    </>
+                  }
+                >
+                  Published live — <a href={cancelHref()}>view the page</a> ·{" "}
+                  <a href={r().url} target="_blank" rel="noreferrer">
+                    commit
+                  </a>
+                  .
+                </Show>
+              </p>
+            )}
           </Show>
         </div>
       </div>
@@ -273,10 +287,10 @@ export default function Editor(props: { slug?: string; initialContent?: string }
           <div class="modal" role="dialog" aria-modal="true">
             <div class="modal-head">
               <div>
-                <p class="mh-title">Propose this change</p>
+                <p class="mh-title">Submit this change</p>
                 <p class="mh-sub">
-                  This opens a reviewed pull request — the live page won't change until
-                  a maintainer merges it.
+                  Depending on your trust level and the page, this either publishes
+                  immediately or opens a reviewed pull request.
                 </p>
               </div>
             </div>
