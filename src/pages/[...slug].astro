@@ -8,7 +8,7 @@ import { config } from "../config";
 import PageShell from "../layouts/PageShell.astro";
 import { emphasizeLeadHtml, parsePage } from "../lib/markdown";
 import { contentSlugs, rawPage } from "../lib/pages";
-import { BASE, prettify } from "../lib/paths";
+import { BASE, prettify, readHref, slugifyTarget } from "../lib/paths";
 import { markRedLinksHtml } from "../lib/wikilink";
 
 export function getStaticPaths() {
@@ -31,9 +31,23 @@ const html = parsed
       parsed.title,
     )
   : undefined;
+
+const redirectTo = parsed?.meta?.redirect ? slugifyTarget(parsed.meta.redirect) : null;
+const redirectUrl =
+  redirectTo && redirectTo !== pageSlug
+    ? `${readHref(redirectTo)}?redirectedfrom=${encodeURIComponent(pageSlug)}`
+    : null;
 ---
 
 <PageShell slug={pageSlug} view="read" title={parsed?.title || prettify(pageSlug)} categories={parsed?.meta?.tags}>
+  {
+    redirectUrl && (
+      <script
+        is:inline
+        set:html={`if(!/[?&]redirect=no/.test(location.search))location.replace(${JSON.stringify(redirectUrl)})`}
+      />
+    )
+  }
   <main id="main" class="read-grid">
     <div class="col-toc">
       <Toc editHref={`${BASE}/edit/${pageSlug}`} initialItems={parsed?.headings ?? []} client:load />

@@ -13,6 +13,8 @@ export interface PageMeta {
   tags?: string[];
   hatnote?: string;
   banner?: { kind?: "info" | "warn"; text: string };
+  // Points this page at another: the reader bounces to the target (#REDIRECT).
+  redirect?: string;
   // Privileged property: minimum trust tier to edit this page (Worker-enforced).
   protection?: "open" | "auto" | "extended" | "maintainer";
 }

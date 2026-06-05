@@ -1081,3 +1081,15 @@
   color: var(--color-ink-subtle);
   font-size: var(--text-xs);
 }
+.special-list .sp-arrow {
+  color: var(--color-ink-subtle);
+}
+.special-list .sp-badge {
+  font-size: var(--text-xs);
+}
+.special-list .sp-broken {
+  color: var(--color-redlink);
+}
+.special-list .sp-double {
+  color: var(--color-remove-ink);
+}

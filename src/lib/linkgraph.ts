@@ -4,11 +4,19 @@ export interface PageNode {
   slug: string;
   title: string;
   out: string[]; // outgoing internal-link target slugs (deduped)
+  redirect?: string; // target slug if this page is a redirect
 }
 
 export interface WantedPage {
   slug: string;
   by: string[];
+}
+
+export interface Redirect {
+  from: string;
+  to: string;
+  broken: boolean; // target doesn't exist
+  double: boolean; // target is itself a redirect
 }
 
 export interface LinkGraph {
@@ -17,12 +25,14 @@ export interface LinkGraph {
   wanted: WantedPage[]; // linked-but-missing targets, busiest first
   orphans: string[]; // existing pages nothing links to (home excluded)
   deadends: string[]; // existing pages with no outgoing internal links
+  redirects: Redirect[]; // all redirects, flagged broken/double
 }
 
 // Invert the page→links map into the reports the special pages need. Pure, so
 // it's unit-tested and runs the same at build time and in tests.
 export function computeGraph(nodes: PageNode[], homeSlug: string): LinkGraph {
   const exists = new Set(nodes.map((n) => n.slug));
+  const isRedirect = new Set(nodes.filter((n) => n.redirect).map((n) => n.slug));
   const titles: Record<string, string> = {};
   const backlinks: Record<string, string[]> = {};
   const wantedMap: Record<string, string[]> = {};
@@ -37,19 +47,31 @@ export function computeGraph(nodes: PageNode[], homeSlug: string): LinkGraph {
     }
   }
 
-  const orphans = nodes
+  // Redirect pages aren't real content, so keep them out of the orphan/dead-end
+  // reports.
+  const content = nodes.filter((n) => !isRedirect.has(n.slug));
+  const orphans = content
     .filter((n) => n.slug !== homeSlug && !backlinks[n.slug]?.length)
     .map((n) => n.slug)
     .sort();
-  const deadends = nodes
+  const deadends = content
     .filter((n) => !n.out.some((t) => exists.has(t)))
     .map((n) => n.slug)
     .sort();
   const wanted = Object.entries(wantedMap)
     .map(([slug, by]) => ({ slug, by: by.sort() }))
     .sort((a, b) => b.by.length - a.by.length || a.slug.localeCompare(b.slug));
+  const redirects: Redirect[] = nodes
+    .filter((n) => n.redirect)
+    .map((n) => ({
+      from: n.slug,
+      to: n.redirect as string,
+      broken: !exists.has(n.redirect as string),
+      double: isRedirect.has(n.redirect as string),
+    }))
+    .sort((a, b) => a.from.localeCompare(b.from));
 
-  return { titles, backlinks, wanted, orphans, deadends };
+  return { titles, backlinks, wanted, orphans, deadends, redirects };
 }
 
 let cache: Promise<LinkGraph | null> | undefined;

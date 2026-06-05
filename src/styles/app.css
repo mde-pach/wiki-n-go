@@ -313,6 +313,13 @@ html.ready body {
 .notice {
   margin-bottom: 1.1rem;
 }
+.redirect-note {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-style: italic;
+  color: var(--color-ink-muted);
+  margin-bottom: 0.9rem;
+}
 
 /* Footnote bodies render inside a <p>; flatten it into the reflist grid cell. */
 .ref-list li p {

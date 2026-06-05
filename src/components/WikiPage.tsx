@@ -3,7 +3,7 @@ import { fetchMarkdown, PageNotFoundError, renderMarkdown } from "../lib/content
 import type { PageMeta } from "../lib/frontmatter";
 import { pageSet } from "../lib/manifest";
 import { emphasizeLeadHtml, splitTitle } from "../lib/markdown";
-import { BASE } from "../lib/paths";
+import { BASE, prettify } from "../lib/paths";
 import { attachPagePreviews } from "../lib/previews";
 import { slugFromLocation } from "../lib/slug";
 import { errMessage } from "../lib/util";
@@ -20,6 +20,7 @@ export default function WikiPage(props: {
   const [meta, setMeta] = createSignal<PageMeta>(props.meta ?? {});
   const [notFound, setNotFound] = createSignal(false);
   const [err, setErr] = createSignal<string>();
+  const [redirectedFrom, setRedirectedFrom] = createSignal<string>();
   let body: HTMLDivElement | undefined;
 
   async function decorate() {
@@ -33,6 +34,9 @@ export default function WikiPage(props: {
   }
 
   onMount(async () => {
+    setRedirectedFrom(
+      new URLSearchParams(window.location.search).get("redirectedfrom") ?? undefined,
+    );
     if (html()) decorate(); // server-rendered content: build the TOC + red links now
     try {
       const raw = await fetchMarkdown(slug());
@@ -65,6 +69,14 @@ export default function WikiPage(props: {
           </div>
         }
       >
+        <Show when={redirectedFrom()}>
+          {(from) => (
+            <div class="redirect-note">
+              Redirected from{" "}
+              <a href={`${BASE}/${from()}?redirect=no`}>{prettify(from())}</a>
+            </div>
+          )}
+        </Show>
         <Show when={meta().hatnote}>
           <div class="hatnote">{meta().hatnote}</div>
         </Show>

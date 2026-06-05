@@ -31,6 +31,17 @@ export function categoryHref(tag: string): string {
 export const changesHref = `${BASE}/changes`;
 export const reviewHref = `${BASE}/review`;
 
+// Slug for a page reference (wikilink / redirect target): keeps `/` for nested
+// paths, matching how content files are keyed.
+export function slugifyTarget(s: string): string {
+  return s
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9/-]/g, "")
+    .replace(/^-+|-+$/g, "");
+}
+
 // Map the current URL to a view + slug. The edit/history/talk/category/changes/
 // review prefixes select a view; everything else is a read.
 export function parseRoute(): {

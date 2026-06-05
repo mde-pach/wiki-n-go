@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { diffStats, parseDiff, splitDiff, wordDiff } from "./diff";
 import { computeGraph } from "./linkgraph";
 import { emphasizeLeadHtml, md, parsePage, splitTitle } from "./markdown";
-import { prettify } from "./paths";
+import { prettify, slugifyTarget } from "./paths";
 import { search, slugifyQuery, splitHighlight, toPlainText } from "./search";
 import { markRedLinksHtml } from "./wikilink";
 
@@ -185,6 +185,35 @@ describe("computeGraph", () => {
   });
   it("finds dead-end pages with no outgoing internal links", () => {
     expect(g.deadends).toEqual(["getting-started", "sandbox/playground"]);
+  });
+
+  it("flags broken and double redirects, and excludes redirects from orphans", () => {
+    const r = computeGraph(
+      [
+        { slug: "home", title: "Home", out: ["real"] },
+        { slug: "real", title: "Real", out: [] },
+        { slug: "lonely", title: "Lonely", out: [] },
+        { slug: "alias", title: "Alias", out: [], redirect: "real" },
+        { slug: "hop", title: "Hop", out: [], redirect: "alias" },
+        { slug: "gone", title: "Gone", out: [], redirect: "missing" },
+      ],
+      "home",
+    );
+    expect(r.redirects).toEqual([
+      { from: "alias", to: "real", broken: false, double: false },
+      { from: "gone", to: "missing", broken: true, double: false },
+      { from: "hop", to: "alias", broken: false, double: true },
+    ]);
+    // redirect pages (alias/hop/gone) are excluded from orphan/dead-end reports
+    expect(r.orphans).toEqual(["lonely"]);
+    expect(r.deadends).toEqual(["lonely", "real"]);
+  });
+});
+
+describe("slugifyTarget", () => {
+  it("lowercases, dashes spaces, keeps slashes for nested paths", () => {
+    expect(slugifyTarget("Getting Started")).toBe("getting-started");
+    expect(slugifyTarget("Sandbox/Play Ground")).toBe("sandbox/play-ground");
   });
 });
 

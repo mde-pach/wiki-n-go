@@ -3,7 +3,7 @@ import { config } from "../config";
 import { computeGraph, type PageNode } from "../lib/linkgraph";
 import { splitTitle } from "../lib/markdown";
 import { contentSlugs, rawPage } from "../lib/pages";
-import { prettify } from "../lib/paths";
+import { prettify, slugifyTarget } from "../lib/paths";
 
 // Outgoing internal-link targets in a page. Interwiki links (w:/wikipedia:) are
 // external, so they're excluded; slugify matches the wikilink renderer.
@@ -14,7 +14,7 @@ function extractLinks(raw: string): string[] {
   while (m) {
     const target = m[1].split("|")[0].trim();
     if (!/^(?:w|wikipedia):/i.test(target)) {
-      const s = slugify(target);
+      const s = slugifyTarget(target);
       if (s) slugs.add(s);
     }
     m = re.exec(raw);
@@ -22,23 +22,17 @@ function extractLinks(raw: string): string[] {
   return [...slugs];
 }
 
-function slugify(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9/-]/g, "")
-    .replace(/^-+|-+$/g, "");
-}
-
 // Static link-graph index built from the content glob — emitted once per build,
 // fetched by the special pages. No Worker.
 export const GET: APIRoute = () => {
   const nodes: PageNode[] = contentSlugs().map((slug) => {
     const raw = rawPage(slug) ?? "";
+    const { title, meta } = splitTitle(raw);
     return {
       slug,
-      title: splitTitle(raw).title || prettify(slug),
+      title: title || prettify(slug),
       out: extractLinks(raw),
+      redirect: meta.redirect ? slugifyTarget(meta.redirect) : undefined,
     };
   });
   return new Response(JSON.stringify(computeGraph(nodes, config.homeSlug)), {

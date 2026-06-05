@@ -3,12 +3,13 @@ import { isServer } from "solid-js/web";
 import { getLinkGraph } from "../lib/linkgraph";
 import { BASE, readHref } from "../lib/paths";
 
-type Tab = "backlinks" | "wanted" | "orphaned" | "deadend";
+type Tab = "backlinks" | "wanted" | "orphaned" | "deadend" | "redirects";
 const TABS: { id: Tab; label: string }[] = [
   { id: "backlinks", label: "What links here" },
   { id: "wanted", label: "Wanted pages" },
   { id: "orphaned", label: "Orphaned pages" },
   { id: "deadend", label: "Dead-end pages" },
+  { id: "redirects", label: "Redirects" },
 ];
 
 export default function Special() {
@@ -133,6 +134,34 @@ export default function Special() {
                 title={title}
                 empty="No dead-end pages — every page links onward."
               />
+            </Show>
+            <Show when={tab() === "redirects"}>
+              <Show
+                when={g().redirects.length > 0}
+                fallback={<p class="wiki-status">No redirects yet.</p>}
+              >
+                <ul class="special-list">
+                  <For each={g().redirects}>
+                    {(r) => (
+                      <li>
+                        <a href={`${readHref(r.from)}?redirect=no`}>{title(r.from)}</a>
+                        <span class="sp-arrow">→</span>
+                        <Show
+                          when={!r.broken}
+                          fallback={
+                            <span class="sp-badge sp-broken">{r.to} (missing)</span>
+                          }
+                        >
+                          <a href={readHref(r.to)}>{title(r.to)}</a>
+                        </Show>
+                        <Show when={r.double}>
+                          <span class="sp-badge sp-double">double redirect</span>
+                        </Show>
+                      </li>
+                    )}
+                  </For>
+                </ul>
+              </Show>
             </Show>
           </>
         )}
