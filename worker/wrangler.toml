@@ -2,7 +2,8 @@ name = "wiki-n-go"
 main = "src/index.ts"
 compatibility_date = "2026-06-01"
 
-# Secrets (set with `wrangler secret put`): GITHUB_TOKEN, HASH_SECRET
+# Secrets (set with `wrangler secret put`): GITHUB_TOKEN, HASH_SECRET, and — to
+# enable optional GitHub sign-in — OAUTH_CLIENT_SECRET + SESSION_SECRET.
 [vars]
 REPO_OWNER = "mde-pach"
 REPO_NAME = "wiki-n-go"
@@ -12,6 +13,11 @@ HOME_SLUG = "index"
 ALLOWED_ORIGIN = "https://mde-pach.github.io,http://localhost:4321"
 REPO_ID = "R_kgDOSxZFTg"
 DISCUSSION_CATEGORY_ID = "DIC_kwDOSxZFTs4C-huV"
+# Optional GitHub sign-in. Set OAUTH_CLIENT_ID to your OAuth App's client id
+# (public); leave commented to keep sign-in disabled. The matching secrets are
+# OAUTH_CLIENT_SECRET and SESSION_SECRET (a long random string for signing
+# session tokens). See README "Optional: GitHub sign-in".
+# OAUTH_CLIENT_ID = "Iv1.xxxxxxxxxxxxxxxx"
 # Autonomous editing. DEFAULT_EDIT_TIER = "maintainer" keeps the reviewed-PR
 # model for any page without a `protection:` frontmatter field (set "open" to
 # flip the default to immediate-publish). Trust thresholds match Wikipedia's.

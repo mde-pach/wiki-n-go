@@ -45,8 +45,27 @@ Point [`src/config.ts`](./src/config.ts) at your content repo (`repoOwner` /
 - **Discussion** — install the [giscus app](https://github.com/apps/giscus) on
   the repo, enable Discussions, and set `giscus.*` in config.
 
+## Optional: GitHub sign-in (attribution)
+
+Anonymous editing is the primary path; signing in just attaches a contributor's
+real GitHub identity to their edits and talk posts. It stays disabled until
+wired:
+
+1. Create a **GitHub OAuth App** (Settings → Developer settings → OAuth Apps):
+   - **Homepage URL** — your site origin (e.g. `https://mde-pach.github.io`).
+   - **Authorization callback URL** — `<workerUrl>/auth/callback`.
+2. Give the Worker its credentials: set `OAUTH_CLIENT_ID` as a `[vars]` entry in
+   `worker/wrangler.toml`, and the secrets `OAUTH_CLIENT_SECRET` and
+   `SESSION_SECRET` (a long random string) via `wrangler secret put` (or
+   `worker/.dev.vars` locally).
+3. Flip `oauthEnabled: true` in [`src/config.ts`](./src/config.ts).
+
+The Worker only requests `read:user` and never stores a user token or email —
+commits are attributed via GitHub's public no-reply email, so no PII enters the
+repo. Signed-in users follow the same trust gate as anonymous ones.
+
 ## Roadmap
 
 See [`SPEC.md`](./SPEC.md). Done: reader, anonymous editing, moderation
-(rate-limit + bans + Turnstile), discussions. Next: optional GitHub sign-in for
+(rate-limit + bans + Turnstile), discussions, optional GitHub sign-in for
 attribution.

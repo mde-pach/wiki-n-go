@@ -1,5 +1,6 @@
 ---
 import "../styles/app.css";
+import AuthButton from "../components/AuthButton.tsx";
 import Search from "../components/Search.tsx";
 import Special from "../components/Special.tsx";
 import { BASE } from "../lib/paths";
@@ -32,6 +33,17 @@ const home = `${BASE}/`;
         else addEventListener("load", ready, { once: true });
       })();
     </script>
+    <script is:inline>
+      (function () {
+        var m = location.hash.match(/(?:^|[#&])wikitoken=([^&]+)/);
+        if (m) {
+          try {
+            localStorage.setItem("wiki_session", m[1]);
+          } catch (e) {}
+          history.replaceState(null, "", location.pathname + location.search);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div class="app">
@@ -44,7 +56,7 @@ const home = `${BASE}/`;
           </a>
           <Search client:load />
           <div class="header-actions">
-            <button class="btn btn-outline btn-sm signin" disabled>Sign in</button>
+            <AuthButton client:load />
           </div>
         </div>
       </header>

@@ -27,6 +27,11 @@ interface Env {
   EXTENDED_EDITS?: string; // accepted edits for the "extended" tier (default 500)
   EXTENDED_DAYS?: string; // age in days for the "extended" tier (default 30)
   HOME_SLUG?: string; // slug treated as the home page (excluded from orphans; default "index")
+  // Optional GitHub sign-in. Unset → sign-in is disabled and every path stays
+  // anonymous. CLIENT_ID is public; CLIENT_SECRET + SESSION_SECRET are secrets.
+  OAUTH_CLIENT_ID?: string;
+  OAUTH_CLIENT_SECRET?: string;
+  SESSION_SECRET?: string;
 }
 
 interface EditBody {
@@ -98,6 +103,8 @@ export default {
       "GET /changes": () => listChanges(env, q.get("limit") ?? ""),
       "GET /pending": () => listPending(env),
       "GET /pending-diff": () => pendingDiff(env, q.get("number") ?? ""),
+      "GET /auth/login": () => authLogin(env, url),
+      "GET /auth/callback": () => authCallback(env, url),
       "POST /edit": async () =>
         proposeEdit(env, request, (await request.json()) as EditBody),
       "POST /patrol": async () =>
@@ -113,7 +120,10 @@ export default {
     const handler = routes[`${request.method} ${url.pathname}`];
     if (!handler) return json({ error: "Not found" }, 404, headers);
     try {
-      return json(await handler(), 200, headers);
+      const out = await handler();
+      // Auth routes return a redirect Response directly; everything else is JSON.
+      if (out instanceof Response) return out;
+      return json(out, 200, headers);
     } catch (err) {
       const status = err instanceof HttpError ? err.status : 500;
       return json({ error: message(err) }, status, headers);
@@ -328,7 +338,7 @@ async function listChanges(
   return { changes };
 }
 
-// Mark a commit reviewed. Maintainer-only, by ip_hash tier — no token needed
+// Mark a commit reviewed. Maintainer-only, by trust tier — no token needed
 // (it only flips a flag).
 async function patrol(
   env: Env,
@@ -337,18 +347,28 @@ async function patrol(
 ): Promise<{ ok: true }> {
   const sha = String(body.sha ?? "");
   if (!SHA_RE.test(sha)) throw new HttpError(400, "Invalid revision.");
-  const ip = request.headers.get("CF-Connecting-IP") ?? "0.0.0.0";
-  const author = `anon-${await ipHash(env.HASH_SECRET, ip)}`;
-  if ((await editorTier(env, author)) !== "maintainer")
-    throw new HttpError(403, "Patrolling requires maintainer access.");
+  await requireMaintainer(env, request, "Patrolling");
   await env.RATE_LIMIT?.put(`patrol:${sha}`, "1");
   return { ok: true };
 }
 
-// ── In-UI review of pending anonymous edits (open PRs) ────────────────────
+// Shared maintainer gate for the in-UI moderation actions. Works for an
+// anonymous maintainer (by ip_hash) or a signed-in one (by GitHub login).
+async function requireMaintainer(
+  env: Env,
+  request: Request,
+  action: string,
+): Promise<void> {
+  const { name, email } = await actorIdentity(env, request);
+  if ((await editorTier(env, name, email)) !== "maintainer")
+    throw new HttpError(403, `${action} requires maintainer access.`);
+}
+
+// ── In-UI review of pending in-site edits (open PRs) ──────────────────────
 interface OutPending {
   number: number;
   author: string;
+  isAnon: boolean;
   slug: string;
   title: string;
   createdAt: string;
@@ -370,7 +390,19 @@ interface PrFile {
   patch?: string;
 }
 
-const anonAuthor = (ref: string) => ref.split("/")[0]; // "anon-<hash>/slug-uuid" → "anon-<hash>"
+// In-site PR branches are namespaced by the author: `anon-<hash>/…` for
+// anonymous edits, `gh-<login>/…` for signed-in ones. The first segment carries
+// the identity; `gh-` is stripped to the bare login for display + trust.
+function isInSiteRef(ref: string): boolean {
+  return ref.startsWith("anon-") || ref.startsWith("gh-");
+}
+
+function refIdentity(ref: string): { author: string; isAnon: boolean } {
+  const seg = ref.split("/")[0];
+  return seg.startsWith("gh-")
+    ? { author: seg.slice(3), isAnon: false }
+    : { author: seg, isAnon: true };
+}
 
 async function prContentFiles(env: Env, number: number): Promise<PrFile[]> {
   const files = await gh<PrFile[]>(
@@ -388,14 +420,14 @@ async function listPending(env: Env): Promise<{ pending: OutPending[] }> {
     env,
     `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/pulls?state=open&base=${env.BRANCH}&per_page=50`,
   );
-  const anon = prs.filter((p) => p.head.ref.startsWith("anon-"));
+  const inSite = prs.filter((p) => isInSiteRef(p.head.ref));
   const prefix = `${env.CONTENT_DIR}/`;
   const pending = await Promise.all(
-    anon.map(async (p) => {
+    inSite.map(async (p) => {
       const files = await prContentFiles(env, p.number);
       return {
         number: p.number,
-        author: anonAuthor(p.head.ref),
+        ...refIdentity(p.head.ref),
         slug: files[0] ? files[0].filename.slice(prefix.length, -3) : "",
         title: p.title,
         createdAt: p.created_at,
@@ -418,7 +450,7 @@ async function pendingDiff(
   return { patch: files[0]?.patch ?? null };
 }
 
-// Merge (squash → live) or close a pending edit. Maintainer-only, by ip_hash.
+// Merge (squash → live) or close a pending edit. Maintainer-only.
 async function review(
   env: Env,
   request: Request,
@@ -431,18 +463,14 @@ async function review(
   if (action !== "merge" && action !== "close")
     throw new HttpError(400, "Invalid action.");
 
-  const ip = request.headers.get("CF-Connecting-IP") ?? "0.0.0.0";
-  const reviewer = `anon-${await ipHash(env.HASH_SECRET, ip)}`;
-  if ((await editorTier(env, reviewer)) !== "maintainer")
-    throw new HttpError(403, "Reviewing requires maintainer access.");
+  await requireMaintainer(env, request, "Reviewing");
 
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
   const pr = await gh<{ head: { ref: string }; title: string }>(
     env,
     `/repos/${repo}/pulls/${number}`,
   );
-  if (!pr.head.ref.startsWith("anon-"))
-    throw new HttpError(400, "Not an anonymous edit.");
+  if (!isInSiteRef(pr.head.ref)) throw new HttpError(400, "Not an in-site edit.");
 
   if (action === "merge") {
     await gh(env, `/repos/${repo}/pulls/${number}/merge`, {
@@ -452,7 +480,7 @@ async function review(
     await env.RATE_LIMIT?.delete("meta:latest-sha");
     await env.RATE_LIMIT?.delete("meta:pages");
     await env.RATE_LIMIT?.delete("meta:index");
-    await env.RATE_LIMIT?.delete(`trust:${anonAuthor(pr.head.ref)}`);
+    await env.RATE_LIMIT?.delete(`trust:${refIdentity(pr.head.ref).author}`);
   } else {
     await gh(env, `/repos/${repo}/pulls/${number}`, {
       method: "PATCH",
@@ -479,19 +507,72 @@ async function diff(env: Env, slug: string, base: string, head: string) {
   return { patch: cmp.files?.find((f) => f.filename === path)?.patch ?? null };
 }
 
-// The shared anonymous-write gate: bot check, derive the pseudonym, reject bans,
-// enforce the rate limit. Both edits and comments must pass through here.
-async function authenticateAnon(
+// Resolved identity behind a write: anonymous pseudonym or verified GitHub user.
+// `name` is the display label + trusted-editors / commit-author name; `email`
+// fills the commit author and keys trust-by-history; `key` namespaces bans and
+// rate-limit counters.
+interface Writer {
+  name: string;
+  email: string;
+  avatar: string | null;
+  isAnon: boolean;
+  key: string;
+}
+
+function anonWriter(hash: string): Writer {
+  const name = `anon-${hash}`;
+  return { name, email: `${name}@anon.invalid`, avatar: null, isAnon: true, key: name };
+}
+
+function githubWriter(s: Session): Writer {
+  return {
+    name: s.login,
+    email: ghNoreplyEmail(s.id, s.login),
+    avatar: s.avatar ?? null,
+    isAnon: false,
+    key: `gh:${s.login}`,
+  };
+}
+
+// The shared write gate. A verified GitHub session skips the bot check (OAuth
+// already proved a human); the anonymous path keeps Turnstile. Both branches
+// reject bans and enforce the per-identity rate limit.
+async function resolveWriter(
   env: Env,
   request: Request,
   token: unknown,
-): Promise<string> {
+): Promise<Writer> {
+  const session = await sessionIdentity(env, request);
   const ip = request.headers.get("CF-Connecting-IP") ?? "0.0.0.0";
-  await verifyTurnstile(env, ip, token ? String(token) : "");
-  const author = `anon-${await ipHash(env.HASH_SECRET, ip)}`;
-  if (await isBanned(env, author)) throw new HttpError(403, "This source is blocked.");
-  await enforceRateLimit(env, author);
-  return author;
+  const writer = session
+    ? githubWriter(session)
+    : anonWriter(await ipHash(env.HASH_SECRET, ip));
+  if (!session) await verifyTurnstile(env, ip, token ? String(token) : "");
+  if (await isBanned(env, writer.key))
+    throw new HttpError(
+      403,
+      writer.isAnon ? "This source is blocked." : "This account is blocked.",
+    );
+  await enforceRateLimit(env, writer.key);
+  return writer;
+}
+
+// Read-only actor identity for non-token actions (whoami, patrol, review): the
+// GitHub session if present, else the anonymous pseudonym. No gate.
+async function actorIdentity(
+  env: Env,
+  request: Request,
+): Promise<{ name: string; email: string; avatar: string | null; isAnon: boolean }> {
+  const session = await sessionIdentity(env, request);
+  const w = session
+    ? githubWriter(session)
+    : anonWriter(
+        await ipHash(
+          env.HASH_SECRET,
+          request.headers.get("CF-Connecting-IP") ?? "0.0.0.0",
+        ),
+      );
+  return { name: w.name, email: w.email, avatar: w.avatar, isAnon: w.isAnon };
 }
 
 // ── Trust tiers & page protection (autonomous editing) ────────────────────
@@ -610,17 +691,19 @@ async function runFilters(env: Env, tier: Tier, oldRaw: string, newContent: stri
 async function whoami(
   env: Env,
   request: Request,
-): Promise<{ author: string; tier: Tier }> {
-  const ip = request.headers.get("CF-Connecting-IP") ?? "0.0.0.0";
-  const author = `anon-${await ipHash(env.HASH_SECRET, ip)}`;
-  return { author, tier: await editorTier(env, author) };
+): Promise<{ author: string; tier: Tier; avatar: string | null; isAnon: boolean }> {
+  const { name, email, avatar, isAnon } = await actorIdentity(env, request);
+  return { author: name, tier: await editorTier(env, name, email), avatar, isAnon };
 }
 
 const TRUST_TTL_S = 3600;
 
-async function editorTier(env: Env, author: string): Promise<Tier> {
-  if ((await trustedEditors(env)).includes(author)) return "maintainer";
-  const { n, firstMs } = await trustStats(env, author);
+// Trust tier from accepted-edit history. `name` matches the maintainer
+// allowlist + caches the result; `email` is the commit-author filter. Anonymous
+// and signed-in identities share the exact same machinery and thresholds.
+async function editorTier(env: Env, name: string, email: string): Promise<Tier> {
+  if ((await trustedEditors(env)).includes(name)) return "maintainer";
+  const { n, firstMs } = await trustStats(env, name, email);
   const days = (Date.now() - firstMs) / 86_400_000;
   const num = (v: string | undefined, d: number) => Number.parseInt(v ?? "", 10) || d;
   if (n >= num(env.EXTENDED_EDITS, 500) && days >= num(env.EXTENDED_DAYS, 30))
@@ -630,22 +713,22 @@ async function editorTier(env: Env, author: string): Promise<Tier> {
   return "open";
 }
 
-// Read the pseudonym's accepted-edit stats, cached briefly in KV to spare the
+// Read the identity's accepted-edit stats, cached briefly in KV to spare the
 // GitHub API on every edit.
-async function trustStats(env: Env, author: string): Promise<TrustStats> {
-  const key = `trust:${author}`;
+async function trustStats(env: Env, name: string, email: string): Promise<TrustStats> {
+  const key = `trust:${name}`;
   const cached = await env.RATE_LIMIT?.get(key);
   if (cached) {
     const s = JSON.parse(cached) as Partial<TrustStats>;
     if (typeof s.n === "number" && typeof s.firstMs === "number")
       return s as TrustStats;
   }
-  const stats = await countAuthored(env, author);
+  const stats = await countAuthored(env, email);
   await env.RATE_LIMIT?.put(key, JSON.stringify(stats), { expirationTtl: TRUST_TTL_S });
   return stats;
 }
 
-// `?author=<email>` filters commits by the pseudonym's authoring email; with
+// `?author=<email>` filters commits by the identity's authoring email; with
 // per_page=1 the Link header's `rel="last"` page number is the total count, and
 // that last page holds the earliest commit (first-seen).
 export function lastPage(link: string): number {
@@ -653,10 +736,10 @@ export function lastPage(link: string): number {
   return m ? Number(m[1]) : 1;
 }
 
-async function countAuthored(env: Env, author: string): Promise<TrustStats> {
+async function countAuthored(env: Env, email: string): Promise<TrustStats> {
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
   const base = `https://api.github.com/repos/${repo}/commits?author=${encodeURIComponent(
-    `${author}@anon.invalid`,
+    email,
   )}&sha=${env.BRANCH}&per_page=1`;
   const res = await fetch(base, { headers: ghHeaders(env) });
   if (!res.ok) return { n: 0, firstMs: Date.now() };
@@ -703,13 +786,14 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
   if (utf8Bytes(content) > MAX_CONTENT_BYTES)
     throw new HttpError(413, "Content too large.");
 
-  const author = await authenticateAnon(env, request, body.token);
+  const writer = await resolveWriter(env, request, body.token);
+  const author = writer.name;
 
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
   const path = `${env.CONTENT_DIR}/${slug}.md`;
 
   const [tier, current] = await Promise.all([
-    editorTier(env, author),
+    editorTier(env, writer.name, writer.email),
     getCurrentFile(env, repo, path),
   ]);
   const oldMeta = current ? frontmatter(current.raw) : {};
@@ -726,7 +810,7 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
       content: toBase64(content),
       branch,
       sha: current?.sha,
-      author: { name: author, email: `${author}@anon.invalid` },
+      author: { name: writer.name, email: writer.email },
       committer: { name: `${env.REPO_NAME} bot`, email: "bot@anon.invalid" },
     });
 
@@ -741,15 +825,17 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
     // author's trust stats so this new commit counts immediately.
     await env.RATE_LIMIT?.delete("meta:latest-sha");
     await env.RATE_LIMIT?.delete("meta:pages");
-    await env.RATE_LIMIT?.delete(`trust:${author}`);
+    await env.RATE_LIMIT?.delete(`trust:${writer.name}`);
     await updateIndexEntry(env, slug, content);
     if (verdict.tags.length)
       await env.RATE_LIMIT?.put(`tag:${res.commit.sha}`, JSON.stringify(verdict.tags));
     return { live: true, sha: res.commit.sha, url: res.commit.html_url, author };
   }
 
-  // Otherwise fall back to the reviewed-PR flow.
-  const branch = `${author}/${slug.replace(/\//g, "-")}-${crypto.randomUUID().slice(0, 8)}`;
+  // Otherwise fall back to the reviewed-PR flow. The branch prefix carries the
+  // author so the in-UI review queue can attribute it (see refIdentity).
+  const prefix = writer.isAnon ? writer.name : `gh-${writer.name}`;
+  const branch = `${prefix}/${slug.replace(/\//g, "-")}-${crypto.randomUUID().slice(0, 8)}`;
   const base = await gh<{ object: { sha: string } }>(
     env,
     `/repos/${repo}/git/ref/heads/${env.BRANCH}`,
@@ -765,7 +851,8 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
   const pr = await gh<{ html_url: string }>(env, `/repos/${repo}/pulls`, {
     method: "POST",
     body: JSON.stringify({
-      title: summary || `Anonymous edit: ${slug}`,
+      title:
+        summary || `${writer.isAnon ? "Anonymous edit" : `Edit by ${author}`}: ${slug}`,
       head: branch,
       base: env.BRANCH,
       body:
@@ -841,7 +928,7 @@ async function isBanned(env: Env, author: string): Promise<boolean> {
   }
 }
 
-export async function ipHash(secret: string, ip: string): Promise<string> {
+async function hmacSign(secret: string, data: string): Promise<Uint8Array> {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret),
@@ -849,11 +936,203 @@ export async function ipHash(secret: string, ip: string): Promise<string> {
     false,
     ["sign"],
   );
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(ip));
-  return [...new Uint8Array(sig)]
+  return new Uint8Array(
+    await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data)),
+  );
+}
+
+export async function ipHash(secret: string, ip: string): Promise<string> {
+  const sig = await hmacSign(secret, ip);
+  return [...sig]
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("")
     .slice(0, 8);
+}
+
+function b64urlEncode(bytes: Uint8Array): string {
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function b64urlDecode(s: string): Uint8Array {
+  const pad = s.length % 4 === 0 ? "" : "=".repeat(4 - (s.length % 4));
+  const bin = atob(s.replace(/-/g, "+").replace(/_/g, "/") + pad);
+  return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+}
+
+// Constant-time string compare so signature checks don't leak via timing.
+function timingSafeEq(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+// ── GitHub sign-in: stateless session + CSRF state, both HMAC-signed ──────
+// No DB, no stored user token: a session is a compact HS256 JWT carrying only
+// the verified GitHub identity. We never request email scope — the commit
+// author uses GitHub's public no-reply email, so no raw PII is stored.
+export interface Session {
+  login: string;
+  id: number;
+  avatar: string;
+  exp: number;
+}
+
+const SESSION_TTL_MS = 7 * 86_400_000;
+
+export const ghNoreplyEmail = (id: number, login: string): string =>
+  `${id}+${login}@users.noreply.github.com`;
+
+export async function signSession(
+  secret: string,
+  who: { login: string; id: number; avatar: string },
+  nowMs: number = Date.now(),
+): Promise<string> {
+  const header = b64urlEncode(
+    new TextEncoder().encode(JSON.stringify({ alg: "HS256", typ: "JWT" })),
+  );
+  const claims = b64urlEncode(
+    new TextEncoder().encode(
+      JSON.stringify({ ...who, exp: Math.floor((nowMs + SESSION_TTL_MS) / 1000) }),
+    ),
+  );
+  const signing = `${header}.${claims}`;
+  return `${signing}.${b64urlEncode(await hmacSign(secret, signing))}`;
+}
+
+export async function verifySession(
+  secret: string,
+  token: string,
+  nowMs: number = Date.now(),
+): Promise<Session | null> {
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  const [header, claims, sig] = parts;
+  const expected = b64urlEncode(await hmacSign(secret, `${header}.${claims}`));
+  if (!timingSafeEq(sig, expected)) return null;
+  try {
+    const body = JSON.parse(new TextDecoder().decode(b64urlDecode(claims))) as Session;
+    if (typeof body.login !== "string" || typeof body.id !== "number") return null;
+    if (typeof body.exp !== "number" || body.exp * 1000 < nowMs) return null;
+    return body;
+  } catch {
+    return null;
+  }
+}
+
+// CSRF state for the OAuth round-trip: the signed, short-lived return URL — no
+// KV write needed, the signature is the anti-forgery proof.
+async function signState(secret: string, ret: string): Promise<string> {
+  const body = b64urlEncode(
+    new TextEncoder().encode(JSON.stringify({ r: ret, t: Date.now() })),
+  );
+  return `${body}.${b64urlEncode(await hmacSign(secret, body))}`;
+}
+
+async function verifyState(secret: string, state: string): Promise<string | null> {
+  const [body, sig] = state.split(".");
+  if (!body || !sig) return null;
+  if (!timingSafeEq(sig, b64urlEncode(await hmacSign(secret, body)))) return null;
+  try {
+    const { r, t } = JSON.parse(new TextDecoder().decode(b64urlDecode(body)));
+    if (typeof t !== "number" || Date.now() - t > 600_000) return null;
+    return typeof r === "string" ? r : null;
+  } catch {
+    return null;
+  }
+}
+
+function oauthConfigured(env: Env): boolean {
+  return Boolean(env.OAUTH_CLIENT_ID && env.OAUTH_CLIENT_SECRET && env.SESSION_SECRET);
+}
+
+function allowedOrigins(env: Env): string[] {
+  return (env.ALLOWED_ORIGIN ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+// Guard the post-sign-in redirect against open-redirect: the return URL must
+// live on a configured site origin.
+function isAllowedReturn(env: Env, ret: string): boolean {
+  let u: URL;
+  try {
+    u = new URL(ret);
+  } catch {
+    return false;
+  }
+  const allowed = allowedOrigins(env);
+  return allowed.length === 0 || allowed.includes(u.origin);
+}
+
+async function authLogin(env: Env, url: URL): Promise<Response> {
+  if (!oauthConfigured(env)) throw new HttpError(503, "Sign-in is not configured.");
+  const ret = url.searchParams.get("return") ?? allowedOrigins(env)[0] ?? url.origin;
+  if (!isAllowedReturn(env, ret)) throw new HttpError(400, "Invalid return URL.");
+  const authorize = new URL("https://github.com/login/oauth/authorize");
+  authorize.searchParams.set("client_id", env.OAUTH_CLIENT_ID as string);
+  authorize.searchParams.set("redirect_uri", `${url.origin}/auth/callback`);
+  authorize.searchParams.set("scope", "read:user");
+  authorize.searchParams.set(
+    "state",
+    await signState(env.SESSION_SECRET as string, ret),
+  );
+  return Response.redirect(authorize.toString(), 302);
+}
+
+async function authCallback(env: Env, url: URL): Promise<Response> {
+  if (!oauthConfigured(env)) throw new HttpError(503, "Sign-in is not configured.");
+  const ret = await verifyState(
+    env.SESSION_SECRET as string,
+    url.searchParams.get("state") ?? "",
+  );
+  if (!ret || !isAllowedReturn(env, ret))
+    throw new HttpError(400, "Invalid sign-in state.");
+  const code = url.searchParams.get("code");
+  if (!code) throw new HttpError(400, "Missing authorization code.");
+
+  const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({
+      client_id: env.OAUTH_CLIENT_ID,
+      client_secret: env.OAUTH_CLIENT_SECRET,
+      code,
+      redirect_uri: `${url.origin}/auth/callback`,
+    }),
+  });
+  const tok = (await tokenRes.json()) as { access_token?: string };
+  if (!tok.access_token) throw new HttpError(502, "Sign-in exchange failed.");
+
+  // Use the token once to read the verified identity, then discard it.
+  const userRes = await fetch("https://api.github.com/user", {
+    headers: {
+      Authorization: `Bearer ${tok.access_token}`,
+      Accept: "application/vnd.github+json",
+      "User-Agent": `${env.REPO_NAME}-worker`,
+    },
+  });
+  if (!userRes.ok) throw new HttpError(502, "Could not read your GitHub profile.");
+  const u = (await userRes.json()) as { login: string; id: number; avatar_url: string };
+
+  const jwt = await signSession(env.SESSION_SECRET as string, {
+    login: u.login,
+    id: u.id,
+    avatar: u.avatar_url,
+  });
+  const dest = new URL(ret);
+  dest.hash = `wikitoken=${jwt}`;
+  return Response.redirect(dest.toString(), 302);
+}
+
+// The verified GitHub session on this request, if any.
+async function sessionIdentity(env: Env, request: Request): Promise<Session | null> {
+  if (!env.SESSION_SECRET) return null;
+  const m = (request.headers.get("Authorization") ?? "").match(/^Bearer\s+(.+)$/);
+  return m ? verifySession(env.SESSION_SECRET, m[1]) : null;
 }
 
 function toBase64(str: string): string {
@@ -907,7 +1186,17 @@ interface RawTopic {
 }
 
 const ANON_MARKER = /<!--\s*anon:([a-z0-9-]+)\s*-->/;
+// Signed-in attribution: `<!-- gh:<login>|<avatarUrl> -->`. The bot posts the
+// comment; this marker tells the renderer to show the signed-in user instead.
+const GH_MARKER = /<!--\s*gh:([A-Za-z0-9-]+)\|([^\s>]*)\s*-->/;
 const REPLY_MARKER = /<!--\s*reply-to:([A-Za-z0-9_=-]+)\s*-->/;
+
+// The identity marker embedded in a Discussion body for in-site posts.
+function identityMarker(writer: Writer): string {
+  return writer.isAnon
+    ? `<!-- anon:${writer.name} -->`
+    : `<!-- gh:${writer.name}|${writer.avatar ?? ""} -->`;
+}
 
 // One titled GitHub Discussion per talk topic, namespaced so a page's topics are
 // found by title prefix and never collide with other discussions.
@@ -958,12 +1247,18 @@ async function ghGraphQL<T>(
   return data.data;
 }
 
-function authorOf(body: string, author: { login: string; avatarUrl: string } | null) {
-  const m = body.match(ANON_MARKER);
+export function authorOf(
+  body: string,
+  author: { login: string; avatarUrl: string } | null,
+) {
+  const anon = body.match(ANON_MARKER);
+  if (anon) return { author: anon[1], isAnon: true, avatarUrl: null };
+  const gh = body.match(GH_MARKER);
+  if (gh) return { author: gh[1], isAnon: false, avatarUrl: gh[2] || null };
   return {
-    author: m ? m[1] : (author?.login ?? "ghost"),
-    isAnon: Boolean(m),
-    avatarUrl: m ? null : (author?.avatarUrl ?? null),
+    author: author?.login ?? "ghost",
+    isAnon: false,
+    avatarUrl: author?.avatarUrl ?? null,
   };
 }
 
@@ -1052,7 +1347,7 @@ async function createTopic(
   if (utf8Bytes(text) > MAX_CONTENT_BYTES)
     throw new HttpError(413, "Message too large.");
 
-  const author = await authenticateAnon(env, request, body.token);
+  const writer = await resolveWriter(env, request, body.token);
   const created = await ghGraphQL<{ createDiscussion: { discussion: { id: string } } }>(
     env,
     CREATE_DISCUSSION,
@@ -1060,7 +1355,7 @@ async function createTopic(
       repo: env.REPO_ID,
       cat: env.DISCUSSION_CATEGORY_ID,
       title: topicPrefix(slug) + title,
-      body: `<!-- anon:${author} -->\n\n${text}`,
+      body: `${identityMarker(writer)}\n\n${text}`,
     },
   );
   return { id: created.createDiscussion.discussion.id };
@@ -1081,8 +1376,8 @@ async function postComment(
   if (utf8Bytes(text) > MAX_CONTENT_BYTES)
     throw new HttpError(413, "Comment too large.");
 
-  const author = await authenticateAnon(env, request, body.token);
-  const marker = `<!-- anon:${author} -->${replyTo ? `\n<!-- reply-to:${replyTo} -->` : ""}`;
+  const writer = await resolveWriter(env, request, body.token);
+  const marker = `${identityMarker(writer)}${replyTo ? `\n<!-- reply-to:${replyTo} -->` : ""}`;
   await ghGraphQL(env, ADD_COMMENT, { d: topicId, body: `${marker}\n\n${text}` });
   return { ok: true };
 }
@@ -1099,7 +1394,7 @@ function corsHeaders(env: Env, request: Request): Record<string, string> {
     "Access-Control-Allow-Origin": allow,
     Vary: "Origin",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
   };
 }
 

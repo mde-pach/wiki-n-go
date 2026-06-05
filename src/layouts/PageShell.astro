@@ -1,6 +1,7 @@
 ---
 import "../styles/app.css";
 import { ClientRouter } from "astro:transitions";
+import AuthButton from "../components/AuthButton.tsx";
 import PageMeta from "../components/PageMeta.tsx";
 import Search from "../components/Search.tsx";
 import { config } from "../config";
@@ -73,6 +74,19 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
       })();
     </script>
     <ClientRouter />
+    <script is:inline>
+      // Capture a session token handed back in the URL fragment after sign-in,
+      // before any island hydrates, so the first whoami call is authenticated.
+      (function () {
+        var m = location.hash.match(/(?:^|[#&])wikitoken=([^&]+)/);
+        if (m) {
+          try {
+            localStorage.setItem("wiki_session", m[1]);
+          } catch (e) {}
+          history.replaceState(null, "", location.pathname + location.search);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div class="app">
@@ -85,7 +99,7 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
           </a>
           <Search client:load />
           <div class="header-actions">
-            <button class="btn btn-outline btn-sm signin" disabled>Sign in</button>
+            <AuthButton client:load />
           </div>
         </div>
       </header>
@@ -139,7 +153,7 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
               MIT-licensed. Content is stored as Markdown and is editable by anyone.
             </p>
             <a class="provenance" href={sourceUrl} target="_blank" rel="noreferrer">
-              <span>View this page on GitHub · <span class="mono">{source}</span></span>
+              <span>View page source · <span class="mono">{source}</span></span>
             </a>
           </div>
         </div>

@@ -42,7 +42,7 @@ export default function CategoryList(props: { cat?: string }) {
     <main id="main" class="view-wrap">
       <div class="view-head">
         <h2>Category: {label()}</h2>
-        <p>Pages tagged “{label()}”. Membership is read live from the CDN.</p>
+        <p>Pages tagged “{label()}”. Membership is read live.</p>
       </div>
       <Show when={members()} fallback={<p class="wiki-status">Scanning pages…</p>}>
         <Show

@@ -1,4 +1,5 @@
 import { config } from "../config";
+import { authHeaders } from "./auth";
 
 export interface Change {
   sha: string;
@@ -24,7 +25,7 @@ export async function listChanges(limit = 30): Promise<Change[]> {
 export async function markPatrolled(sha: string): Promise<void> {
   const res = await fetch(`${config.workerUrl}/patrol`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ sha }),
   });
   const data = (await res.json()) as { error?: string };

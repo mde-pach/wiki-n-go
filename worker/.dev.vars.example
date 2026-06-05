@@ -1,2 +1,8 @@
 GITHUB_TOKEN=fine_grained_pat_with_contents_and_pull_requests_write
 HASH_SECRET=a_long_random_string_set_once_never_rotated
+
+# Optional — only needed to enable GitHub sign-in (see README). Without these,
+# every path stays anonymous. CLIENT_ID is also set as a wrangler [vars] entry.
+OAUTH_CLIENT_ID=your_github_oauth_app_client_id
+OAUTH_CLIENT_SECRET=your_github_oauth_app_client_secret
+SESSION_SECRET=another_long_random_string_for_signing_sessions

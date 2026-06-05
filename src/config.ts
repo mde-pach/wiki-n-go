@@ -7,4 +7,7 @@ export const config = {
   homeSlug: "index",
   workerUrl: "https://wiki-n-go.maxime-depachtere-80f.workers.dev",
   turnstileSiteKey: "0x4AAAAAADe7QjsOFAA6Fc8O",
+  // Flip to true once a GitHub OAuth App is created and the Worker has
+  // OAUTH_CLIENT_ID / OAUTH_CLIENT_SECRET / SESSION_SECRET set (see README).
+  oauthEnabled: false,
 };

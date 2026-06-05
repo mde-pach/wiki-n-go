@@ -177,7 +177,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
         <h2>Editing “{prettify(slug())}”</h2>
         <p>
           Anyone can edit — no account needed. Trusted edits publish immediately; others
-          open a reviewed pull request that a maintainer merges.
+          are submitted for review and go live once a maintainer approves.
         </p>
       </div>
 
@@ -328,9 +328,9 @@ export default function Editor(props: { slug?: string; initialContent?: string }
                   when={r().live}
                   fallback={
                     <>
-                      Proposed —{" "}
+                      Submitted for review —{" "}
                       <a href={r().prUrl} target="_blank" rel="noreferrer">
-                        review the pull request
+                        track its status
                       </a>
                       .
                     </>
@@ -338,7 +338,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
                 >
                   Published live — <a href={cancelHref()}>view the page</a> ·{" "}
                   <a href={r().url} target="_blank" rel="noreferrer">
-                    commit
+                    see the change
                   </a>
                   .
                 </Show>
@@ -356,7 +356,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
                 <p class="mh-title">Submit this change</p>
                 <p class="mh-sub">
                   Depending on your trust level and the page, this either publishes
-                  immediately or opens a reviewed pull request.
+                  immediately or is submitted for review.
                 </p>
               </div>
             </div>
@@ -380,7 +380,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
                 disabled={busy()}
                 onClick={confirmSubmit}
               >
-                {busy() ? "Submitting…" : "Submit pull request"}
+                {busy() ? "Submitting…" : "Submit change"}
               </button>
               <button
                 type="button"

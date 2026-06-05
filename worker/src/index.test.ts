@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { frontmatter, ipHash, lastPage, pageTier, SLUG_RE } from "./index";
+import {
+  authorOf,
+  frontmatter,
+  ipHash,
+  lastPage,
+  pageTier,
+  SLUG_RE,
+  signSession,
+  verifySession,
+} from "./index";
 
 type Env = Parameters<typeof pageTier>[0];
 const env = (DEFAULT_EDIT_TIER?: string) => ({ DEFAULT_EDIT_TIER }) as Env;
@@ -58,6 +67,59 @@ describe("pageTier (protection field → required tier)", () => {
     expect(pageTier(env("maintainer"), {})).toBe("maintainer");
     expect(pageTier(env("open"), {})).toBe("open");
     expect(pageTier(env("maintainer"), { protection: "bogus" })).toBe("maintainer");
+  });
+});
+
+describe("signSession / verifySession", () => {
+  const who = { login: "octocat", id: 583231, avatar: "https://avatars/u/1" };
+
+  it("round-trips a signed session", async () => {
+    const tok = await signSession("s3cret", who);
+    const out = await verifySession("s3cret", tok);
+    expect(out).toMatchObject(who);
+    expect(typeof out?.exp).toBe("number");
+  });
+
+  it("rejects a wrong secret, a tampered payload, and an expired token", async () => {
+    const tok = await signSession("s3cret", who);
+    expect(await verifySession("other", tok)).toBeNull();
+
+    const [h, , s] = tok.split(".");
+    const forged = btoa(
+      JSON.stringify({ ...who, login: "attacker", exp: 2_000_000_000 }),
+    )
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+    expect(await verifySession("s3cret", `${h}.${forged}.${s}`)).toBeNull();
+
+    const past = Date.now() - 8 * 86_400_000;
+    const old = await signSession("s3cret", who, past);
+    expect(await verifySession("s3cret", old)).toBeNull();
+  });
+});
+
+describe("authorOf (Discussion attribution markers)", () => {
+  it("reads the anon marker → anonymous, no avatar", () => {
+    expect(authorOf("<!-- anon:anon-3f9a2c -->\n\nhi", null)).toEqual({
+      author: "anon-3f9a2c",
+      isAnon: true,
+      avatarUrl: null,
+    });
+  });
+  it("reads the gh marker → login + avatar", () => {
+    expect(authorOf("<!-- gh:octocat|https://avatars/u/1 -->\n\nhi", null)).toEqual({
+      author: "octocat",
+      isAnon: false,
+      avatarUrl: "https://avatars/u/1",
+    });
+  });
+  it("falls back to the GitHub author when no marker is present", () => {
+    expect(authorOf("plain body", { login: "real", avatarUrl: "a" })).toEqual({
+      author: "real",
+      isAnon: false,
+      avatarUrl: "a",
+    });
   });
 });
 

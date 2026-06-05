@@ -1,4 +1,5 @@
 import { config } from "../config";
+import { authHeaders } from "./auth";
 
 export interface Comment {
   id: string;
@@ -58,7 +59,7 @@ export async function createTopic(
 ): Promise<{ id: string }> {
   const res = await fetch(`${config.workerUrl}/topic`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ slug, title, body, token }),
   });
   return readJson<{ id: string }>(res);
@@ -72,7 +73,7 @@ export async function postReply(
 ): Promise<void> {
   const res = await fetch(`${config.workerUrl}/comment`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ topicId, body, replyTo, token }),
   });
   await readJson<{ ok: true }>(res);

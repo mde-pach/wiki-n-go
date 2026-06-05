@@ -238,9 +238,15 @@ costs; consider salt/epoch rotation to limit long-term linkability (M5).
 - [x] ✅ Worker live: `https://wiki-n-go.maxime-depachtere-80f.workers.dev` (secrets + RATE_LIMIT KV bound).
       Deploy via `worker/deploy.sh` reading gitignored `worker/.deploy.env`.
 
-### M2 — Optional GitHub-login attribution
-- [ ] ⬜ "Sign in with GitHub" → Worker OAuth exchange.
-- [ ] ⬜ PR authored by the signed-in user's identity.
+### M2 — Optional GitHub-login attribution ✅
+- [x] ✅ "Sign in with GitHub" → Worker OAuth exchange (`read:user` only). Worker
+      mints a stateless HS256 session JWT (no DB, no stored user token); the
+      client replays it as a bearer token (cross-origin → not a cookie).
+- [x] ✅ Edits attributed to the signed-in identity — commit author = the user's
+      GitHub no-reply email (profile link + contribution credit, **no PII**).
+      Worker stays the only writer; sign-in just swaps the identity label.
+      Signed-in users follow the same trust gate as anon (earn tiers from
+      history). Flag-gated by `oauthEnabled` / OAuth env — inert until wired.
 
 ### M3 — Moderation & abuse (essential)
 - [x] ✅ `bans.json` at repo root (outside anon-writable `content/`) + Worker 403 on banned `anon-<hash>`.
@@ -255,7 +261,8 @@ costs; consider salt/epoch rotation to limit long-term linkability (M5).
 - [x] ✅ Talk threading: each topic is a titled GitHub Discussion (`talk:<slug> · <title>`); arbitrary-depth
       replies via a `<!-- reply-to:<id> -->` marker rebuilt into a tree client-side. Per-comment reply +
       permalink; reply-count and last-activity in the topic index.
-- [ ] 🟡 Discussion Stage B: "Sign in with GitHub" → comments post as the user (needs an OAuth App).
+- [x] ✅ Discussion Stage B: signed-in users' topics & comments render under their
+      GitHub login + avatar (via a `gh:<login>|<avatar>` body marker; bot still posts). Shares the M2 sign-in.
 - [x] ✅ Multi-host deploy buttons (Netlify / Vercel / Cloudflare) in README.
 - [ ] ⬜ (Optional) edge-SSR variant for SEO.
 

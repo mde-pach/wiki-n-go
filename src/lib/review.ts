@@ -1,8 +1,10 @@
 import { config } from "../config";
+import { authHeaders } from "./auth";
 
 export interface Pending {
   number: number;
   author: string;
+  isAnon: boolean;
   slug: string;
   title: string;
   createdAt: string;
@@ -30,7 +32,7 @@ export async function reviewPr(
 ): Promise<void> {
   const res = await fetch(`${config.workerUrl}/review`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ number, action }),
   });
   const data = (await res.json()) as { error?: string };

@@ -43,7 +43,7 @@ export default function History(props: { slug?: string }) {
       <div class="view-head">
         <h2>Revision history</h2>
         <p>
-          Every edit is a commit. Compare any revision with the previous one or the
+          Every edit is a revision. Compare any revision with the previous one or the
           current page.
         </p>
       </div>
