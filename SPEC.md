@@ -265,13 +265,15 @@ costs; consider salt/epoch rotation to limit long-term linkability (M5).
 - [x] ✅ Per-section `[edit]` links; TOC (desktop + mobile); icons; self-hosted fonts.
 - [ ] ⬜ P2 polish: hover page previews, @mention linkify, named-ref reuse, citation templates, richer search.
 
-### M5 — Autonomous editing mode (immediate publish + post-hoc moderation) ⬜
+### M5 — Autonomous editing mode (immediate publish + post-hoc moderation) 🟡
 Invert the default selectively. Critical path (see `FEATURES.md` §§K–N):
-- [ ] ⬜ Worker **direct-commit / auto-merge** path + jsDelivr cache purge on commit.
-- [ ] ⬜ `protection.json` per-path required-tier (+ `expires`) + CODEOWNERS for full protection.
-- [ ] ⬜ **Trust ledger** on `ip_hash` (KV/D1 bound to the Worker): autoconfirmed/extended-confirmed analogs → auto-merge.
-- [ ] ⬜ AbuseFilter-style rule pass (`filters.json`) + spam/title blocklists; per-hash rate limits; change-tagging.
+- [x] ✅ Worker **direct-commit** path → live branch; busts `meta:latest-sha`/`meta:pages` cache (live, no rebuild).
+- [x] ✅ **Trust ledger** on `ip_hash` (KV): accepted-edits + first-seen → open/auto/extended tiers; `trusted-editors.json` = maintainer.
+- [x] 🟡 `protection.json` per-path required-tier (glob rules + default; `DEFAULT_EDIT_TIER` keeps PR model). TODO: `expires`, CODEOWNERS for full protection.
+- [x] ✅ Verified end-to-end: anon edit to `sandbox/**` (open) **published live** (commit `c7051ce`), not a PR; protected paths still PR.
+- [ ] ⬜ AbuseFilter-style rule pass (`filters.json`) + spam/title blocklists; change-tagging. (per-hash rate limit already live)
 - [ ] ⬜ Revert-risk heuristic score on diffs; 3RR revert-churn detection.
+- [ ] ⬜ Ledger increment for **merged PRs** (webhook) so PR-only contributors also earn tiers.
 - [ ] ⬜ Consider `ip_hash` salt/epoch rotation (cap long-term linkability).
 
 ### M6 — Owner admin dashboard & governance ⬜
