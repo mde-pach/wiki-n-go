@@ -1,7 +1,10 @@
 ---
 protection: open
+tags:
+  - demo
+  - sandbox
 ---
 
 # Playground
 
-Live-published anonymously via frontmatter protection. No review needed.
+Round-trip test: this body plus the form fields should assemble into frontmatter.
