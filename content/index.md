@@ -1,9 +1,12 @@
 ---
 hatnote: This is the project home page. For setup steps, see Getting started.
+protection: open
+tags:
+  - Reference
+  - Wiki software
 banner:
   kind: info
   text: This wiki is a work in progress — anyone can edit, every change is reviewed.
-tags: [Reference, Wiki software]
 ---
 
 # Welcome to the Wiki
