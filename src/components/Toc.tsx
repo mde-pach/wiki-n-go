@@ -47,11 +47,11 @@ export default function Toc(props: { editHref?: string }) {
     window.addEventListener("scroll", onScroll, { passive: true });
     build();
     onScroll();
-  });
-  onCleanup(() => {
-    document.removeEventListener("wiki:rendered", build);
-    window.removeEventListener("scroll", onScroll);
-    observer?.disconnect();
+    onCleanup(() => {
+      document.removeEventListener("wiki:rendered", build);
+      window.removeEventListener("scroll", onScroll);
+      observer?.disconnect();
+    });
   });
 
   return (

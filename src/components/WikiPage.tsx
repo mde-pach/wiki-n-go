@@ -1,4 +1,5 @@
-import { createEffect, createResource, ErrorBoundary, Show, Suspense } from "solid-js";
+import { createEffect, createResource, ErrorBoundary, Show } from "solid-js";
+import { isServer } from "solid-js/web";
 import { fetchMarkdown, PageNotFoundError, renderMarkdown } from "../lib/content";
 import { pageSet } from "../lib/manifest";
 import { slugFromLocation } from "../lib/slug";
@@ -7,18 +8,22 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 export default function WikiPage(props: { slug?: string }) {
   const slug = () => props.slug ?? slugFromLocation();
-  const [page] = createResource(slug, async (s) => {
-    const raw = await fetchMarkdown(s);
-    const m = raw.match(/^#\s+(.+?)\s*$/m);
-    const body = m ? raw.replace(m[0], "").trimStart() : raw;
-    return { title: m ? m[1] : s, html: renderMarkdown(body) };
-  });
+  // Source is undefined on the server, so the fetcher only runs in the browser;
+  // the server renders the skeleton, keeping the layout stable through hydration.
+  const [page] = createResource(
+    () => (isServer ? undefined : slug()),
+    async (s) => {
+      const raw = await fetchMarkdown(s);
+      const m = raw.match(/^#\s+(.+?)\s*$/m);
+      const body = m ? raw.replace(m[0], "").trimStart() : raw;
+      return { title: m ? m[1] : s, html: renderMarkdown(body) };
+    },
+  );
 
   let body: HTMLDivElement | undefined;
   createEffect(() => {
     const p = page();
     if (!p) return;
-    // The page title lives in the static chrome; fill it once content resolves.
     document.title = p.title;
     const titleEl = document.querySelector(".page-title");
     if (titleEl) titleEl.textContent = p.title;
@@ -43,14 +48,16 @@ export default function WikiPage(props: { slug?: string }) {
           </div>
         )}
       >
-        <Suspense fallback={<ArticleSkeleton />}>
-          <div
-            ref={(el) => {
-              body = el;
-            }}
-            innerHTML={page()?.html}
-          />
-        </Suspense>
+        <Show when={page()} fallback={<ArticleSkeleton />}>
+          {(p) => (
+            <div
+              ref={(el) => {
+                body = el;
+              }}
+              innerHTML={p().html}
+            />
+          )}
+        </Show>
       </ErrorBoundary>
     </article>
   );

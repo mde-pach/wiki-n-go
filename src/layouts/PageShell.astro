@@ -70,9 +70,9 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
             <span>wiki</span><span class="wm-accent">-n-</span><span>go</span><span class="wm-dot"></span>
             <span class="wordmark-sub">the open reference</span>
           </a>
-          <Search client:only="solid-js" />
+          <Search client:load />
           <div class="header-actions">
-            <ThemeToggle client:only="solid-js" />
+            <ThemeToggle client:load />
             <button class="btn btn-outline btn-sm signin" disabled>Sign in</button>
           </div>
         </div>
@@ -85,7 +85,7 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
           </nav>
           <h1 class="page-title">{pretty}</h1>
           <div class="page-meta-slot">
-            <PageMeta slug={slug} base={base} client:only="solid-js" />
+            <PageMeta slug={slug} base={base} client:load />
           </div>
           <nav class="tabbar" aria-label="Page views">
             {

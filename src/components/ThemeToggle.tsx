@@ -1,12 +1,15 @@
-import { createSignal } from "solid-js";
+import { createSignal, onMount } from "solid-js";
 
 export default function ThemeToggle() {
-  const [theme, setThemeS] = createSignal(
-    document.documentElement.dataset.theme ?? "light",
-  );
-  const [skin, setSkinS] = createSignal(
-    document.documentElement.dataset.skin ?? "editorial",
-  );
+  // Render a stable default on the server / first client paint; the actual theme
+  // is already applied to <html> by the pre-paint script. Sync after mount.
+  const [theme, setThemeS] = createSignal("light");
+  const [skin, setSkinS] = createSignal("editorial");
+
+  onMount(() => {
+    setThemeS(document.documentElement.dataset.theme ?? "light");
+    setSkinS(document.documentElement.dataset.skin ?? "editorial");
+  });
 
   const setTheme = (t: string) => {
     document.documentElement.dataset.theme = t;

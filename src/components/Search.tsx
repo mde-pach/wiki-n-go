@@ -26,8 +26,10 @@ export default function Search() {
       field?.focus();
     }
   }
-  onMount(() => window.addEventListener("keydown", onKey));
-  onCleanup(() => window.removeEventListener("keydown", onKey));
+  onMount(() => {
+    window.addEventListener("keydown", onKey);
+    onCleanup(() => window.removeEventListener("keydown", onKey));
+  });
 
   const href = (p: string) => `${base}/${p === config.homeSlug ? "" : p}`;
 

@@ -23,8 +23,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 <PageShell slug={pageSlug} view="read">
   <main id="main" class="read-grid">
-    <div class="col-toc"><Toc editHref={`${base}/edit/${pageSlug}`} client:only="solid-js" /></div>
-    <div class="col-main"><WikiPage slug={pageSlug} client:only="solid-js" /></div>
-    <div class="col-info"><Infobox slug={pageSlug} client:only="solid-js" /></div>
+    <div class="col-toc"><Toc editHref={`${base}/edit/${pageSlug}`} client:load /></div>
+    <div class="col-main"><WikiPage slug={pageSlug} client:load /></div>
+    <div class="col-info"><Infobox slug={pageSlug} client:load /></div>
   </main>
 </PageShell>

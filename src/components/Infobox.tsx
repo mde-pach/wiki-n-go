@@ -1,4 +1,5 @@
 import { createResource, For } from "solid-js";
+import { isServer } from "solid-js/web";
 import { config } from "../config";
 import { getHistory } from "../lib/history";
 
@@ -8,7 +9,7 @@ function prettify(slug: string): string {
 }
 
 export default function Infobox(props: { slug: string }) {
-  const [hist] = createResource(() => props.slug, getHistory);
+  const [hist] = createResource(() => (isServer ? undefined : props.slug), getHistory);
   const last = () => hist()?.[0];
   const source = `${config.contentDir}/${props.slug}.md`;
   const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blob/${config.branch}/${source}`;
