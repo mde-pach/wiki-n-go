@@ -19,8 +19,16 @@ interface EditBody {
   token?: unknown;
 }
 
-interface CommentBody {
+interface TopicBody {
   slug?: unknown;
+  title?: unknown;
+  body?: unknown;
+  token?: unknown;
+}
+
+interface CommentBody {
+  topicId?: unknown;
+  replyTo?: unknown;
   body?: unknown;
   token?: unknown;
 }
@@ -38,6 +46,8 @@ class HttpError extends Error {
 
 const MAX_CONTENT_BYTES = 100_000;
 export const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/;
+const NODE_ID_RE = /^[A-Za-z0-9_=-]+$/;
+const MAX_TITLE_LEN = 120;
 const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW_S = 600;
 
@@ -54,9 +64,12 @@ export default {
       "GET /history": () => history(env, q.get("slug") ?? ""),
       "GET /diff": () =>
         diff(env, q.get("slug") ?? "", q.get("base") ?? "", q.get("head") ?? ""),
-      "GET /comments": () => listComments(env, q.get("slug") ?? ""),
+      "GET /topics": () => listTopics(env, q.get("slug") ?? ""),
+      "GET /topic": () => getThread(env, q.get("id") ?? ""),
       "POST /edit": async () =>
         proposeEdit(env, request, (await request.json()) as EditBody),
+      "POST /topic": async () =>
+        createTopic(env, request, (await request.json()) as TopicBody),
       "POST /comment": async () =>
         postComment(env, request, (await request.json()) as CommentBody),
     };
@@ -329,15 +342,29 @@ function utf8Bytes(str: string): number {
 }
 
 interface OutComment {
+  id: string;
   author: string;
   isAnon: boolean;
   avatarUrl: string | null;
   bodyHtml: string;
   createdAt: string;
   url: string;
+  replyTo: string | null;
+}
+
+interface OutTopic {
+  id: string;
+  title: string;
+  author: string;
+  isAnon: boolean;
+  avatarUrl: string | null;
+  createdAt: string;
+  replyCount: number;
+  lastAt: string;
 }
 
 interface RawComment {
+  id: string;
   body: string;
   bodyHTML: string;
   createdAt: string;
@@ -345,17 +372,36 @@ interface RawComment {
   author: { login: string; avatarUrl: string } | null;
 }
 
-const ANON_MARKER = /<!--\s*anon:([a-z0-9-]+)\s*-->/;
+interface RawTopic {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  author: { login: string; avatarUrl: string } | null;
+  comments: { totalCount: number; nodes: { createdAt: string }[] };
+}
 
-const SEARCH_WITH_COMMENTS = `query($q:String!){
-  search(query:$q, type:DISCUSSION, first:10){ nodes{ ... on Discussion {
-    title
-    comments(first:50){ nodes{ body bodyHTML createdAt url author{ login avatarUrl } } }
+const ANON_MARKER = /<!--\s*anon:([a-z0-9-]+)\s*-->/;
+const REPLY_MARKER = /<!--\s*reply-to:([A-Za-z0-9_=-]+)\s*-->/;
+
+// One titled GitHub Discussion per talk topic, namespaced so a page's topics are
+// found by title prefix and never collide with other discussions.
+const topicPrefix = (slug: string) => `talk:${slug} · `;
+
+const LIST_TOPICS = `query($q:String!){
+  search(query:$q, type:DISCUSSION, first:50){ nodes{ ... on Discussion {
+    id title body createdAt
+    author{ login avatarUrl }
+    comments(last:1){ totalCount nodes{ createdAt } }
   } } }
 }`;
 
-const FIND_DISCUSSION = `query($q:String!){
-  search(query:$q, type:DISCUSSION, first:10){ nodes{ ... on Discussion { id title } } }
+const GET_THREAD = `query($id:ID!){
+  node(id:$id){ ... on Discussion {
+    id title body bodyHTML url createdAt
+    author{ login avatarUrl }
+    comments(first:100){ nodes{ id body bodyHTML createdAt url author{ login avatarUrl } } }
+  } }
 }`;
 
 const CREATE_DISCUSSION = `mutation($repo:ID!,$cat:ID!,$title:String!,$body:String!){
@@ -387,57 +433,112 @@ async function ghGraphQL<T>(
   return data.data;
 }
 
-function normalizeComment(c: RawComment): OutComment {
-  const m = c.body.match(ANON_MARKER);
+function authorOf(body: string, author: { login: string; avatarUrl: string } | null) {
+  const m = body.match(ANON_MARKER);
   return {
-    author: m ? m[1] : (c.author?.login ?? "ghost"),
+    author: m ? m[1] : (author?.login ?? "ghost"),
     isAnon: Boolean(m),
-    avatarUrl: m ? null : (c.author?.avatarUrl ?? null),
-    bodyHtml: c.bodyHTML,
-    createdAt: c.createdAt,
-    url: c.url,
+    avatarUrl: m ? null : (author?.avatarUrl ?? null),
   };
 }
 
-async function listComments(
-  env: Env,
-  slug: string,
-): Promise<{ comments: OutComment[] }> {
-  if (!SLUG_RE.test(slug)) return { comments: [] };
-  const q = `repo:${env.REPO_OWNER}/${env.REPO_NAME} in:title "${slug}"`;
-  const data = await ghGraphQL<{
-    search: {
-      nodes: (
-        | { title: string; comments: { nodes: RawComment[] } }
-        | Record<string, never>
-      )[];
-    };
-  }>(env, SEARCH_WITH_COMMENTS, { q });
-  const disc = data.search.nodes.find((n) => "title" in n && n.title === slug);
-  if (!disc || !("comments" in disc)) return { comments: [] };
-  return { comments: disc.comments.nodes.map(normalizeComment) };
+function normalizeComment(c: RawComment): OutComment {
+  const reply = c.body.match(REPLY_MARKER);
+  return {
+    id: c.id,
+    ...authorOf(c.body, c.author),
+    bodyHtml: c.bodyHTML,
+    createdAt: c.createdAt,
+    url: c.url,
+    replyTo: reply ? reply[1] : null,
+  };
 }
 
-async function ensureDiscussion(env: Env, slug: string): Promise<string> {
-  const q = `repo:${env.REPO_OWNER}/${env.REPO_NAME} in:title "${slug}"`;
-  const found = await ghGraphQL<{ search: { nodes: { id: string; title: string }[] } }>(
-    env,
-    FIND_DISCUSSION,
-    { q },
-  );
-  const existing = found.search.nodes.find((n) => n.title === slug);
-  if (existing) return existing.id;
+async function listTopics(env: Env, slug: string): Promise<{ topics: OutTopic[] }> {
+  if (!SLUG_RE.test(slug)) return { topics: [] };
+  const prefix = topicPrefix(slug);
+  const q = `repo:${env.REPO_OWNER}/${env.REPO_NAME} in:title "talk:${slug}"`;
+  const data = await ghGraphQL<{
+    search: { nodes: (RawTopic | Record<string, never>)[] };
+  }>(env, LIST_TOPICS, { q });
+  const topics = data.search.nodes
+    .filter((n): n is RawTopic => "title" in n && n.title.startsWith(prefix))
+    .map((n) => ({
+      id: n.id,
+      title: n.title.slice(prefix.length),
+      ...authorOf(n.body, n.author),
+      createdAt: n.createdAt,
+      replyCount: n.comments.totalCount,
+      lastAt: n.comments.nodes[0]?.createdAt ?? n.createdAt,
+    }))
+    .sort((a, b) => (a.lastAt < b.lastAt ? 1 : -1));
+  return { topics };
+}
+
+interface OutThread {
+  id: string;
+  title: string;
+  root: OutComment;
+  comments: OutComment[];
+}
+
+async function getThread(env: Env, id: string): Promise<OutThread> {
+  if (!NODE_ID_RE.test(id)) throw new HttpError(400, "Invalid topic id.");
+  const data = await ghGraphQL<{
+    node:
+      | (RawComment & {
+          title: string;
+          comments: { nodes: RawComment[] };
+        })
+      | null;
+  }>(env, GET_THREAD, { id });
+  const d = data.node;
+  if (!d || typeof d.title !== "string") throw new HttpError(404, "Topic not found.");
+  const root: OutComment = {
+    id: d.id,
+    ...authorOf(d.body, d.author),
+    bodyHtml: d.bodyHTML,
+    createdAt: d.createdAt,
+    url: d.url,
+    replyTo: null,
+  };
+  return {
+    id: d.id,
+    title: d.title.replace(/^talk:.*? · /s, ""),
+    root,
+    comments: d.comments.nodes.map(normalizeComment),
+  };
+}
+
+async function createTopic(
+  env: Env,
+  request: Request,
+  body: TopicBody,
+): Promise<{ id: string }> {
+  const slug = String(body.slug ?? "");
+  const title = String(body.title ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const text = String(body.body ?? "").trim();
+  if (!SLUG_RE.test(slug)) throw new HttpError(400, "Invalid slug.");
+  if (!title) throw new HttpError(400, "A topic needs a title.");
+  if (title.length > MAX_TITLE_LEN) throw new HttpError(400, "Title too long.");
+  if (!text) throw new HttpError(400, "Empty message.");
+  if (utf8Bytes(text) > MAX_CONTENT_BYTES)
+    throw new HttpError(413, "Message too large.");
+
+  const author = await authenticateAnon(env, request, body.token);
   const created = await ghGraphQL<{ createDiscussion: { discussion: { id: string } } }>(
     env,
     CREATE_DISCUSSION,
     {
       repo: env.REPO_ID,
       cat: env.DISCUSSION_CATEGORY_ID,
-      title: slug,
-      body: `Talk page for \`${slug}\`.`,
+      title: topicPrefix(slug) + title,
+      body: `<!-- anon:${author} -->\n\n${text}`,
     },
   );
-  return created.createDiscussion.discussion.id;
+  return { id: created.createDiscussion.discussion.id };
 }
 
 async function postComment(
@@ -445,20 +546,19 @@ async function postComment(
   request: Request,
   body: CommentBody,
 ): Promise<{ ok: true }> {
-  const slug = String(body.slug ?? "");
+  const topicId = String(body.topicId ?? "");
   const text = String(body.body ?? "").trim();
-  if (!SLUG_RE.test(slug)) throw new HttpError(400, "Invalid slug.");
+  const replyTo = body.replyTo ? String(body.replyTo) : "";
+  if (!NODE_ID_RE.test(topicId)) throw new HttpError(400, "Invalid topic.");
+  if (replyTo && !NODE_ID_RE.test(replyTo))
+    throw new HttpError(400, "Invalid reply target.");
   if (!text) throw new HttpError(400, "Empty comment.");
   if (utf8Bytes(text) > MAX_CONTENT_BYTES)
     throw new HttpError(413, "Comment too large.");
 
   const author = await authenticateAnon(env, request, body.token);
-
-  const discussionId = await ensureDiscussion(env, slug);
-  await ghGraphQL(env, ADD_COMMENT, {
-    d: discussionId,
-    body: `<!-- anon:${author} -->\n\n${text}`,
-  });
+  const marker = `<!-- anon:${author} -->${replyTo ? `\n<!-- reply-to:${replyTo} -->` : ""}`;
+  await ghGraphQL(env, ADD_COMMENT, { d: topicId, body: `${marker}\n\n${text}` });
   return { ok: true };
 }
 

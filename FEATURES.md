@@ -127,11 +127,11 @@ only **one** level), reusing the same marker trick as `anon-<hash>`.
 | Wikipedia | Ours | St | Pri |
 |---|---|---|---|
 | Anonymous comments | via Worker → GitHub Discussions | ✅ | P0 |
-| **Topics** = titled threads; "New topic" | one Discussion per topic, titled (⚒) | ⬜ | P1 |
-| Per-topic metadata (last-comment age · #comments · #participants) | compute from the thread (★) | ⬜ | P2 |
-| **Arbitrary-depth replies** (indentation) | reply-to marker → client-rebuilt tree (⚒) | ⬜ | P1 |
-| Per-comment **reply** button + more menu | reply box under each comment (⚒) | ⬜ | P1 |
-| **Signature**: author · timestamp · **comment permalink** | have author+date; add permalink + reply linkage (⚒) | 🟡 | P1 |
+| **Topics** = titled threads; "New topic" | one Discussion per topic, titled | ✅ | P1 |
+| Per-topic metadata (last-comment age · #comments · #participants) | reply count + last-activity age (participants deferred) | 🟡 | P2 |
+| **Arbitrary-depth replies** (indentation) | reply-to marker → client-rebuilt tree | ✅ | P1 |
+| Per-comment **reply** button + more menu | reply box under each comment (more-menu deferred) | 🟡 | P1 |
+| **Signature**: author · timestamp · **comment permalink** | author + relative time + per-comment permalink | ✅ | P1 |
 | **@mentions** of contributors | parse + link (anon handle / GitHub user) (⚒) | ⬜ | P2 |
 | Talk header / guidelines banner | config/frontmatter (⚒) | ⬜ | P2 |
 | Unsigned-comment attribution | n/a — we always stamp the author | ✅ | — |

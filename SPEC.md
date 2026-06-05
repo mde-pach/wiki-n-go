@@ -239,6 +239,9 @@ trust gradient):
 ### M4 — Discussion, deploy & polish
 - [x] ✅ Anonymous discussion: comments via Worker → GitHub Discussions, stamped `anon-<hash>`
       (replaced giscus, which required a GitHub login). Read is public; posting is Turnstile + rate-limited.
+- [x] ✅ Talk threading: each topic is a titled GitHub Discussion (`talk:<slug> · <title>`); arbitrary-depth
+      replies via a `<!-- reply-to:<id> -->` marker rebuilt into a tree client-side. Per-comment reply +
+      permalink; reply-count and last-activity in the topic index.
 - [ ] 🟡 Discussion Stage B: "Sign in with GitHub" → comments post as the user (needs an OAuth App).
 - [x] ✅ Multi-host deploy buttons (Netlify / Vercel / Cloudflare) in README.
 - [ ] ⬜ (Optional) edge-SSR variant for SEO.
@@ -279,3 +282,4 @@ trust gradient):
 | 2026-06-04 | Multi-host click-to-deploy; GitHub Pages first | Read phase needs no infra; portable |
 | 2026-06-04 | Avoid Vercel Hobby (non-commercial only) | Prefer Cloudflare / GitHub Pages / Netlify |
 | 2026-06-05 | Drop giscus for discussion; build anonymous comments on the Worker | giscus required a GitHub login — broke the no-account principle |
+| 2026-06-05 | Talk topic = one titled Discussion; arbitrary-depth replies via a reply-to marker rebuilt client-side | GitHub Discussions nest only one level; markers give Wikipedia-style threads without a DB |
