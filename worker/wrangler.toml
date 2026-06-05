@@ -12,8 +12,8 @@ ALLOWED_ORIGIN = "https://mde-pach.github.io,http://localhost:4321"
 REPO_ID = "R_kgDOSxZFTg"
 DISCUSSION_CATEGORY_ID = "DIC_kwDOSxZFTs4C-huV"
 # Autonomous editing. DEFAULT_EDIT_TIER = "maintainer" keeps the reviewed-PR
-# model for any path without a protection.json rule (set "open" to flip the
-# default to immediate-publish). Trust thresholds match Wikipedia's defaults.
+# model for any page without a `protection:` frontmatter field (set "open" to
+# flip the default to immediate-publish). Trust thresholds match Wikipedia's.
 DEFAULT_EDIT_TIER = "maintainer"
 AUTOCONFIRM_EDITS = "10"
 AUTOCONFIRM_DAYS = "4"

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { globMatch, ipHash, SLUG_RE } from "./index";
+import { frontmatter, ipHash, pageTier, SLUG_RE } from "./index";
+
+type Env = Parameters<typeof pageTier>[0];
+const env = (DEFAULT_EDIT_TIER?: string) => ({ DEFAULT_EDIT_TIER }) as Env;
 
 describe("SLUG_RE", () => {
   it("accepts lowercase, hyphen, and nested slugs", () => {
@@ -23,22 +26,25 @@ describe("SLUG_RE", () => {
   });
 });
 
-describe("globMatch (protection paths)", () => {
-  it("matches exact slugs", () => {
-    expect(globMatch("index", "index")).toBe(true);
-    expect(globMatch("index", "index2")).toBe(false);
+describe("frontmatter", () => {
+  it("parses the YAML block; empty when absent", () => {
+    expect(frontmatter("---\nprotection: open\ntags: [a]\n---\n\n# Hi")).toEqual({
+      protection: "open",
+      tags: ["a"],
+    });
+    expect(frontmatter("# No frontmatter")).toEqual({});
   });
-  it("`*` stays within one segment", () => {
-    expect(globMatch("sandbox/*", "sandbox/foo")).toBe(true);
-    expect(globMatch("sandbox/*", "sandbox/foo/bar")).toBe(false);
+});
+
+describe("pageTier (protection field → required tier)", () => {
+  it("reads the protection field", () => {
+    expect(pageTier(env("maintainer"), { protection: "open" })).toBe("open");
+    expect(pageTier(env("maintainer"), { protection: "extended" })).toBe("extended");
   });
-  it("`**` spans segments", () => {
-    expect(globMatch("sandbox/**", "sandbox/foo")).toBe(true);
-    expect(globMatch("sandbox/**", "sandbox/foo/bar")).toBe(true);
-    expect(globMatch("**", "anything/at/all")).toBe(true);
-  });
-  it("does not leak across a prefix boundary", () => {
-    expect(globMatch("docs/**", "docsx/foo")).toBe(false);
+  it("falls back to the env default when unset or invalid", () => {
+    expect(pageTier(env("maintainer"), {})).toBe("maintainer");
+    expect(pageTier(env("open"), {})).toBe("open");
+    expect(pageTier(env("maintainer"), { protection: "bogus" })).toBe("maintainer");
   });
 });
 

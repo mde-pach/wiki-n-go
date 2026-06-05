@@ -1,3 +1,8 @@
+---
+protection: open
+---
+
 # Playground
 
-Autonomous-edit smoke test under sandbox/ (open tier) — should publish live.
+A sandbox page. `protection: open` in the frontmatter means anyone can edit it
+and changes publish immediately — no review. Try it.

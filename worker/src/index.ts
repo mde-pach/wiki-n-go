@@ -1,3 +1,5 @@
+import { parse as parseYaml } from "yaml";
+
 interface Env {
   GITHUB_TOKEN: string;
   HASH_SECRET: string;
@@ -200,9 +202,10 @@ async function authenticateAnon(
   return author;
 }
 
-// ── Trust tiers & per-path protection (autonomous editing) ────────────────
-// Tiers form one ordered scale shared by editors and path requirements:
-// an editor of rank ≥ the path's required rank may publish directly.
+// ── Trust tiers & page protection (autonomous editing) ────────────────────
+// Tiers form one ordered scale shared by editors and pages: an editor of rank
+// ≥ a page's required rank may publish directly. A page's required rank is its
+// `protection` frontmatter field (a privileged property — see below).
 type Tier = "open" | "auto" | "extended" | "maintainer";
 const TIER_RANK: Record<Tier, number> = {
   open: 0,
@@ -213,50 +216,76 @@ const TIER_RANK: Record<Tier, number> = {
 const asTier = (s: string | undefined, fallback: Tier): Tier =>
   s && s in TIER_RANK ? (s as Tier) : fallback;
 
-interface ProtectionConfig {
-  default?: string;
-  rules?: { path: string; tier: string }[];
-}
-
 interface LedgerEntry {
-  n: number; // accepted (directly-committed) edits
+  n: number; // accepted (directly-committed or merged) edits
   first: number; // epoch ms first seen
 }
 
-// Fetch a small JSON config from the repo root (same store as bans.json).
-async function repoJson<T>(env: Env, file: string): Promise<T | null> {
-  const res = await fetch(
-    `https://raw.githubusercontent.com/${env.REPO_OWNER}/${env.REPO_NAME}/${env.BRANCH}/${file}`,
-  );
-  if (!res.ok) return null;
+// Privileged page properties: changing one needs at least this tier. (Most
+// frontmatter — tags, hatnote, banner… — is open to any editor.)
+const PRIVILEGED_FIELDS: Record<string, Tier> = {
+  // `protection` is special-cased below (gated by its own value); listed for docs.
+};
+
+// Parse just the YAML frontmatter block of a page's markdown.
+export function frontmatter(raw: string): Record<string, unknown> {
+  const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!m) return {};
   try {
-    return (await res.json()) as T;
+    const data = parseYaml(m[1]);
+    return data && typeof data === "object" ? (data as Record<string, unknown>) : {};
   } catch {
-    return null;
+    return {};
   }
 }
 
-// Minimal glob: `*` matches within a segment, `**` matches across segments.
-export function globMatch(glob: string, value: string): boolean {
-  const re = glob
-    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
-    .replace(/\*\*?/g, (m) => (m === "**" ? ".*" : "[^/]*"));
-  return new RegExp(`^${re}$`).test(value);
+// A page's required edit tier = its `protection` field (env default when unset).
+export function pageTier(env: Env, meta: Record<string, unknown>): Tier {
+  return asTier(
+    typeof meta.protection === "string" ? meta.protection : undefined,
+    asTier(env.DEFAULT_EDIT_TIER, "maintainer"),
+  );
 }
 
-async function requiredTier(env: Env, slug: string): Promise<Tier> {
-  const fallback = asTier(env.DEFAULT_EDIT_TIER, "maintainer");
-  const cfg = await repoJson<ProtectionConfig>(env, "protection.json");
-  if (!cfg) return fallback;
-  for (const rule of cfg.rules ?? []) {
-    if (globMatch(rule.path, slug)) return asTier(rule.tier, fallback);
+// Gate writes to privileged properties. Protection needs tier ≥ the bar for
+// both its old and new value (can't raise it above, nor lower it from above,
+// your own level); other privileged fields need their flat minimum.
+function enforceFieldPermissions(
+  env: Env,
+  tier: Tier,
+  oldMeta: Record<string, unknown>,
+  newMeta: Record<string, unknown>,
+): void {
+  const oldP = pageTier(env, oldMeta);
+  const newP = pageTier(env, newMeta);
+  if (TIER_RANK[oldP] !== TIER_RANK[newP]) {
+    if (TIER_RANK[tier] < Math.max(TIER_RANK[oldP], TIER_RANK[newP]))
+      throw new HttpError(403, "You can't change this page's protection level.");
   }
-  return asTier(cfg.default, fallback);
+  for (const [field, min] of Object.entries(PRIVILEGED_FIELDS)) {
+    const changed =
+      JSON.stringify(oldMeta[field] ?? null) !== JSON.stringify(newMeta[field] ?? null);
+    if (changed && TIER_RANK[tier] < TIER_RANK[min])
+      throw new HttpError(403, `You can't change the "${field}" property.`);
+  }
+}
+
+// Maintainer allowlist lives at the repo root, same store as bans.json.
+async function trustedEditors(env: Env): Promise<string[]> {
+  const res = await fetch(
+    `https://raw.githubusercontent.com/${env.REPO_OWNER}/${env.REPO_NAME}/${env.BRANCH}/trusted-editors.json`,
+  );
+  if (!res.ok) return [];
+  try {
+    const list = (await res.json()) as unknown;
+    return Array.isArray(list) ? (list as string[]) : [];
+  } catch {
+    return [];
+  }
 }
 
 async function editorTier(env: Env, author: string): Promise<Tier> {
-  const trusted = await repoJson<string[]>(env, "trusted-editors.json");
-  if (Array.isArray(trusted) && trusted.includes(author)) return "maintainer";
+  if ((await trustedEditors(env)).includes(author)) return "maintainer";
   if (!env.RATE_LIMIT) return "open";
   const raw = await env.RATE_LIMIT.get(`trust:${author}`);
   if (!raw) return "open";
@@ -282,6 +311,25 @@ async function bumpLedger(env: Env, author: string): Promise<void> {
   );
 }
 
+// Current file on the live branch: blob sha (for the next commit) + raw text
+// (for protection / field checks). Null when the page is new.
+async function getCurrentFile(
+  env: Env,
+  repo: string,
+  path: string,
+): Promise<{ sha: string; raw: string } | null> {
+  const file = await gh<{ sha: string; content: string } | undefined>(
+    env,
+    `/repos/${repo}/contents/${path}?ref=${env.BRANCH}`,
+    { allow404: true },
+  );
+  if (!file) return null;
+  const bytes = Uint8Array.from(atob(file.content.replace(/\n/g, "")), (c) =>
+    c.charCodeAt(0),
+  );
+  return { sha: file.sha, raw: new TextDecoder().decode(bytes) };
+}
+
 async function proposeEdit(env: Env, request: Request, body: EditBody) {
   const slug = String(body.slug ?? "");
   const content = String(body.content ?? "");
@@ -297,27 +345,30 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
   const path = `${env.CONTENT_DIR}/${slug}.md`;
 
-  const [tier, required] = await Promise.all([
+  const [tier, current] = await Promise.all([
     editorTier(env, author),
-    requiredTier(env, slug),
+    getCurrentFile(env, repo, path),
   ]);
+  const oldMeta = current ? frontmatter(current.raw) : {};
+  enforceFieldPermissions(env, tier, oldMeta, frontmatter(content));
+  const required = pageTier(env, oldMeta);
 
-  // Trusted enough for this path → publish straight to the live branch.
+  const filePut = (branch: string) =>
+    JSON.stringify({
+      message: summary || `Edit ${slug}`,
+      content: toBase64(content),
+      branch,
+      sha: current?.sha,
+      author: { name: author, email: `${author}@anon.invalid` },
+      committer: { name: `${env.REPO_NAME} bot`, email: "bot@anon.invalid" },
+    });
+
+  // Trusted enough for this page → publish straight to the live branch.
   if (TIER_RANK[tier] >= TIER_RANK[required]) {
     const res = await gh<{ commit: { sha: string; html_url: string } }>(
       env,
       `/repos/${repo}/contents/${path}`,
-      {
-        method: "PUT",
-        body: JSON.stringify({
-          message: summary || `Edit ${slug}`,
-          content: toBase64(content),
-          branch: env.BRANCH,
-          sha: await currentFileSha(env, repo, path),
-          author: { name: author, email: `${author}@anon.invalid` },
-          committer: { name: `${env.REPO_NAME} bot`, email: "bot@anon.invalid" },
-        }),
-      },
+      { method: "PUT", body: filePut(env.BRANCH) },
     );
     await bumpLedger(env, author);
     // Invalidate the cached pointers so the edit is live on the next read.
@@ -336,19 +387,10 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
     method: "POST",
     body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: base.object.sha }),
   });
-
   await gh(env, `/repos/${repo}/contents/${path}`, {
     method: "PUT",
-    body: JSON.stringify({
-      message: summary || `Edit ${slug}`,
-      content: toBase64(content),
-      branch,
-      sha: await currentFileSha(env, repo, path),
-      author: { name: author, email: `${author}@anon.invalid` },
-      committer: { name: `${env.REPO_NAME} bot`, email: "bot@anon.invalid" },
-    }),
+    body: filePut(branch),
   });
-
   const pr = await gh<{ html_url: string }>(env, `/repos/${repo}/pulls`, {
     method: "POST",
     body: JSON.stringify({
@@ -376,20 +418,6 @@ async function gh<T = unknown>(env: Env, path: string, init: GhInit = {}): Promi
   if (res.status === 404 && init.allow404) return undefined as T;
   if (!res.ok) throw new HttpError(502, `GitHub ${res.status}: ${await res.text()}`);
   return (await res.json()) as T;
-}
-
-// Returns the file's blob SHA on the base branch, or undefined if it's new.
-async function currentFileSha(
-  env: Env,
-  repo: string,
-  path: string,
-): Promise<string | undefined> {
-  const file = await gh<{ sha: string } | undefined>(
-    env,
-    `/repos/${repo}/contents/${path}?ref=${env.BRANCH}`,
-    { allow404: true },
-  );
-  return file?.sha;
 }
 
 async function verifyTurnstile(env: Env, ip: string, token: string): Promise<void> {
