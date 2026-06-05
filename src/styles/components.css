@@ -522,6 +522,57 @@
   max-width: var(--measure);
 }
 
+/* Appearance → Width: "Wide" relaxes the container + reading measure. */
+html[data-width="wide"] .read-grid {
+  max-width: 1600px;
+}
+html[data-width="wide"] .article {
+  max-width: none;
+}
+
+/* Appearance menu (color / width / skin) */
+.appearance {
+  position: relative;
+}
+.appearance-btn {
+  gap: 0.35rem;
+}
+.ap-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: var(--z-pop);
+  width: 250px;
+  background: var(--color-surface);
+  border: var(--border-w) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.ap-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.ap-label {
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ink-subtle);
+}
+.ap-row .seg {
+  display: flex;
+  width: 100%;
+}
+.ap-row .seg button {
+  flex: 1;
+  justify-content: center;
+}
+
 /* ---- Table of contents --------------------------------------------------- */
 .toc {
   position: sticky;

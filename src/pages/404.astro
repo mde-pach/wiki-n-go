@@ -19,6 +19,7 @@ const home = import.meta.env.BASE_URL;
           const saved = localStorage.getItem("wng-skin");
           d.dataset.skin = skins.includes(saved) ? saved : "wiki-n-go";
           d.dataset.theme = localStorage.getItem("wng-theme") || "light";
+          d.dataset.width = localStorage.getItem("wng-width") || "standard";
         };
         apply(document);
         const ready = () => document.documentElement.classList.add("ready");
