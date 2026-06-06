@@ -139,6 +139,16 @@ hr {
   color: var(--color-ink);
 }
 
+/* Page title for the in-prose title (used in the 404 read fallback). */
+.prose h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
+  margin: 0 0 0.6em;
+}
+
 .prose p {
   margin: 0 0 1.05em;
 }
@@ -229,6 +239,57 @@ hr {
   text-decoration: underline;
 }
 
+/* The anchor `#` and per-section `edit` link reveal on heading hover. */
+.prose :is(h2, h3, h4) .anchor-link,
+.prose :is(h2, h3) .section-edit {
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+.prose :is(h2, h3, h4):hover .anchor-link,
+.prose :is(h2, h3, h4):focus-within .anchor-link,
+.prose :is(h2, h3):hover .section-edit,
+.prose :is(h2, h3):focus-within .section-edit {
+  opacity: 1;
+}
+.prose :is(h2, h3) .section-edit {
+  margin-left: 0.55rem;
+  font-size: var(--text-sm);
+  vertical-align: middle;
+}
+
+/* Per-section collapse toggle (Wikipedia-style show/hide). Always visible so the
+   affordance is discoverable; the caret points down when open, right when collapsed. */
+.section-toggle {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin-right: 0.45rem;
+  width: 0.7em;
+  height: 0.7em;
+  cursor: pointer;
+  color: var(--color-ink-subtle);
+  vertical-align: middle;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.section-toggle::before {
+  content: "";
+  width: 0.42em;
+  height: 0.42em;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-0.12em) rotate(45deg);
+  transition: transform var(--transition-fast);
+}
+.prose :is(h2, h3, h4).is-collapsed .section-toggle::before {
+  transform: translateY(0) rotate(-45deg);
+}
+.section-toggle:hover {
+  color: var(--color-accent);
+}
+
 .prose ul,
 .prose ol {
   margin: 0 0 1.05em;
@@ -311,6 +372,22 @@ hr {
   color: var(--color-ink-muted);
   margin-top: 0.6em;
   line-height: var(--leading-snug);
+}
+
+.prose figure.figure {
+  margin: 1.4em 0;
+  text-align: center;
+}
+.prose figure.figure img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+.prose figure.figure figcaption {
+  margin-top: 0.5rem;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
 }
 
 /* Tables in prose */
