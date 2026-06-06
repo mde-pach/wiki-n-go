@@ -1,9 +1,10 @@
-import { createEffect, createSignal, onMount, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, onMount, Show } from "solid-js";
 import { createStore } from "solid-js/store";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
 import { type EditResult, submitEdit } from "../lib/api";
 import { fetchMarkdown, PageNotFoundError } from "../lib/content";
+import { diffLines } from "../lib/diff";
 import { clearDraft, loadDraft, persistDraft } from "../lib/draft";
 import { findSection } from "../lib/editor-section";
 import { splitFrontmatter, withFrontmatter } from "../lib/frontmatter";
@@ -12,6 +13,7 @@ import { prettify, readHref, slugFromLocation } from "../lib/paths";
 import { useSubmit, useWhoami } from "../lib/solid";
 import { templateById } from "../lib/templates";
 import { errMessage } from "../lib/util";
+import DiffView from "./DiffView";
 import { ConfirmDialog } from "./editor/ConfirmDialog";
 import { MarkdownToolbar } from "./editor/MarkdownToolbar";
 import PageProperties, {
@@ -119,6 +121,15 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     isServer ? "" : renderMarkdown(body() || "_Nothing to preview yet._");
   const cancelHref = () => readHref(slug());
   const delta = () => content().length - original().length;
+
+  // Computed only while the confirm dialog is open, so it never costs anything
+  // per keystroke. Empty (no net change) → null, so DiffView shows its
+  // no-change fallback.
+  const previewDiff = createMemo(() => {
+    if (!modal()) return null;
+    const lines = diffLines(original(), content());
+    return lines.length ? lines : null;
+  });
 
   function wrap(before: string, after = before) {
     if (!ta) return;
@@ -267,6 +278,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
         <ConfirmDialog
           title="Submit this change"
           subtitle="Depending on your trust level and the page, this either publishes immediately or is submitted for review."
+          wide
           body={
             <>
               <p>
@@ -280,6 +292,15 @@ export default function Editor(props: { slug?: string; initialContent?: string }
                   {delta()})
                 </span>
               </p>
+              <p class="field-label" style={{ "margin-bottom": "0.4rem" }}>
+                Changes
+              </p>
+              <DiffView
+                lines={previewDiff()}
+                a={isNew() ? "(new page)" : "current"}
+                b="your edit"
+                initialMode="unified"
+              />
             </>
           }
           confirmLabel={busy() ? "Submitting…" : "Submit change"}

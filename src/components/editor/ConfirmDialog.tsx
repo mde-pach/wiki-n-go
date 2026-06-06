@@ -7,12 +7,17 @@ export function ConfirmDialog(props: {
   confirmLabel: string;
   cancelLabel: string;
   busy: boolean;
+  wide?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
   return (
     <div class="overlay">
-      <div class="modal" role="dialog" aria-modal="true">
+      <div
+        class={`modal${props.wide ? " modal-wide" : ""}`}
+        role="dialog"
+        aria-modal="true"
+      >
         <div class="modal-head">
           <div>
             <p class="mh-title">{props.title}</p>

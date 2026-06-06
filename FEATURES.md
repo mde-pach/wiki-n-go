@@ -99,7 +99,7 @@ and undo/thank/tag actions; Newer/Older pagination.
 | **Live preview** | renderer beside textarea, updates as you type | ✅ | P0 |
 | Section editing | `?section=` deep-link selects + scrolls to that section | ✅ | P1 |
 | Create-new-page (red link → create) | red link → create; `/new` wizard (title → slug + template) | ✅ | P0 |
-| Show diff before submit | confirm dialog shows size delta (full diff preview ⬜) | 🟡 | P1 |
+| Show diff before submit | confirm dialog shows size delta **+ a full side-by-side/unified diff** of the pending edit (`diffLines` → `DiffView`, computed client-side; long unchanged runs collapsed) | ✅ | P1 |
 | Edit-conflict detection | git 3-way merge on the auto-merged PR; overlapping conflict → PR stays in the review queue (see §K) | ✅ | P1 |
 | Anti-bot (already have) | Turnstile | ✅ | — |
 

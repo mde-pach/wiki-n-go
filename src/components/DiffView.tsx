@@ -17,8 +17,11 @@ export default function DiffView(props: {
   aHref?: string;
   bHref?: string;
   permalink?: string;
+  initialMode?: "split" | "unified";
 }) {
-  const [mode, setMode] = createSignal<"split" | "unified">("split");
+  const [mode, setMode] = createSignal<"split" | "unified">(
+    props.initialMode ?? "split",
+  );
   const rows = createMemo<SplitRow[] | null>(() =>
     props.lines ? splitDiff(props.lines) : null,
   );

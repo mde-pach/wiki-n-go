@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diffStats, parseDiff, splitDiff, wordDiff } from "./diff";
+import { diffLines, diffStats, parseDiff, splitDiff, wordDiff } from "./diff";
 
 const PATCH = `diff --git a/x.md b/x.md
 index 1111111..2222222 100644
@@ -122,5 +122,44 @@ describe("wordDiff", () => {
     const { right } = wordDiff("a", "a b c");
     expect(right.filter((s) => s.changed).length).toBe(1);
     expect(right.find((s) => s.changed)?.t).toBe(" b c");
+  });
+});
+
+describe("diffLines", () => {
+  it("returns an empty array when the documents are identical", () => {
+    expect(diffLines("a\nb\nc", "a\nb\nc")).toEqual([]);
+  });
+
+  it("emits a del+add pair for a changed line, with line numbers", () => {
+    const lines = diffLines("a\nb\nc", "a\nB\nc");
+    expect(diffStats(lines)).toEqual({ add: 1, del: 1 });
+    const del = lines.find((l) => l.cls === "del");
+    const add = lines.find((l) => l.cls === "add");
+    expect(del).toMatchObject({ text: "b", onum: "2", nnum: "" });
+    expect(add).toMatchObject({ text: "B", onum: "", nnum: "2" });
+    // Feeds straight into the side-by-side reshaper as a word-diffed change row.
+    expect(splitDiff(lines).some((r) => r.cls === "change")).toBe(true);
+  });
+
+  it("treats an empty original as all-additions (new page)", () => {
+    const lines = diffLines("", "x\ny");
+    expect(diffStats(lines)).toEqual({ add: 2, del: 0 });
+    expect(lines.every((l) => l.cls === "add")).toBe(true);
+  });
+
+  it("collapses long unchanged runs into a counted hunk separator", () => {
+    const before = Array.from({ length: 12 }, (_, k) => `line ${k}`).join("\n");
+    const after = before.replace("line 6", "LINE 6");
+    const lines = diffLines(before, after, 2);
+    const hunks = lines.filter((l) => l.cls === "hunk");
+    expect(hunks.length).toBeGreaterThan(0);
+    expect(hunks[0].text).toMatch(/^⋯ \d+ unchanged lines? ⋯$/);
+    // Only ~2 context lines survive on each side of the single change.
+    expect(lines.filter((l) => l.cls === "").length).toBeLessThanOrEqual(4);
+  });
+
+  it("keeps short unchanged runs intact (no separator)", () => {
+    const lines = diffLines("a\nb\nc", "a\nX\nc", 3);
+    expect(lines.some((l) => l.cls === "hunk")).toBe(false);
   });
 });
