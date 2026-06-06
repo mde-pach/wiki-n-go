@@ -3,7 +3,7 @@ import { config } from "../config";
 import { restoreRevision } from "../lib/admin";
 import { type DLine, parseDiff } from "../lib/diff";
 import { getDiff, getHistory, type Revision } from "../lib/history";
-import { readHref, slugFromLocation } from "../lib/paths";
+import { BASE, readHref, slugFromLocation } from "../lib/paths";
 import { clientResource, useWhoami } from "../lib/solid";
 import { errMessage } from "../lib/util";
 import DiffView from "./DiffView";
@@ -175,14 +175,26 @@ export default function History(props: { slug?: string }) {
                     <a class="rev-permalink" href={`${readHref(slug())}?rev=${r.sha}`}>
                       permalink
                     </a>
-                    <Show when={isMaintainer() && i() !== 0}>
-                      <button
-                        type="button"
-                        class="link-btn rev-restore"
-                        onClick={() => setRestoring(r)}
+                    <Show when={i() !== 0}>
+                      <Show
+                        when={isMaintainer()}
+                        fallback={
+                          <a
+                            class="rev-undo"
+                            href={`${BASE}/edit/${slug()}?revert=${r.sha}`}
+                          >
+                            undo
+                          </a>
+                        }
                       >
-                        restore
-                      </button>
+                        <button
+                          type="button"
+                          class="link-btn rev-restore"
+                          onClick={() => setRestoring(r)}
+                        >
+                          restore
+                        </button>
+                      </Show>
                     </Show>
                   </div>
                   <div class="rev-summary">{r.message}</div>
