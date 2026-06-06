@@ -3,7 +3,12 @@ import { fetchMarkdown, fetchMarkdownAt, PageNotFoundError } from "../lib/conten
 import { decorate as decorateArticle } from "../lib/decorate";
 import type { PageMeta } from "../lib/frontmatter";
 import { pageSet } from "../lib/manifest";
-import { emphasizeLeadHtml, renderMarkdown, splitTitle } from "../lib/markdown";
+import {
+  decorateHeadingsHtml,
+  emphasizeLeadHtml,
+  renderMarkdown,
+  splitTitle,
+} from "../lib/markdown";
 import { BASE, langOf, prettify, readHref, slugFromLocation } from "../lib/paths";
 import { errMessage } from "../lib/util";
 import { markRedLinksHtml } from "../lib/wikilink";
@@ -29,7 +34,10 @@ export default function WikiPage(props: {
   async function renderResolved(raw: string) {
     const { title, body, meta } = splitTitle(raw);
     const html = emphasizeLeadHtml(
-      markRedLinksHtml(renderMarkdown(body), await pageSet(), langOf(slug())),
+      decorateHeadingsHtml(
+        markRedLinksHtml(renderMarkdown(body), await pageSet(), langOf(slug())),
+        slug(),
+      ),
       title,
     );
     return { title, html, meta };

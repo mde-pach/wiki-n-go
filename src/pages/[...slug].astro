@@ -6,7 +6,7 @@ import TocMobile from "../components/TocMobile.tsx";
 import WikiPage from "../components/WikiPage.tsx";
 import { config } from "../config";
 import PageShell from "../layouts/PageShell.astro";
-import { emphasizeLeadHtml, parsePage } from "../lib/markdown";
+import { decorateHeadingsHtml, emphasizeLeadHtml, parsePage } from "../lib/markdown";
 import { contentSlugs, rawPage } from "../lib/pages";
 import {
   BASE,
@@ -35,7 +35,10 @@ const raw = rawPage(pageSlug);
 const parsed = raw ? parsePage(raw) : null;
 const html = parsed
   ? emphasizeLeadHtml(
-      markRedLinksHtml(parsed.html, new Set(contentSlugs()), langOf(pageSlug)),
+      decorateHeadingsHtml(
+        markRedLinksHtml(parsed.html, new Set(contentSlugs()), langOf(pageSlug)),
+        pageSlug,
+      ),
       parsed.title,
     )
   : undefined;
