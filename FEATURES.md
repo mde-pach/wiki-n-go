@@ -300,7 +300,7 @@ Cross-refs point at the relevant A–Q row so we extend, not duplicate.
 | R1 | **No client-side lazy loading for content.** Content/layout must arrive server-rendered — no blink, no incomplete layout while data fills in. Treat this as a hard rule for content pages. | 🐛 | ✅ | P0 | invariant |
 | R2 | **Revision info loads client-side** → fix to render server-side (it's a content surface, not an interaction). `PageMeta` now SSRs from build-time `gitRevisions` as `initialValue`. `0e878f4` | 🐛 | ✅ | P0 | §F |
 | R3 | **Red link flashes blue before turning red** — link color is resolved client-side; resolve missing-target state at render so it's red on first paint. Build bakes `is-red`; client paths resolve before `setHtml`. `07d82b2` | 🐛 | ✅ | P0 | §D |
-| R4 | **Logged-in (GitHub) state blinks on load** — personal-tools / auth UI is resolved client-side, so the header flashes signed-out → signed-in on every paint. Resolve the session at render (server-side, or from a cookie before first paint) so the correct signed-in chrome shows immediately, no blink. | 🐛 | ⬜ | P0 | §A, R1 |
+| R4 | **Logged-in (GitHub) state blinks on load** — personal-tools / auth UI is resolved client-side, so the header flashes signed-out → signed-in on every paint. Resolve the session at render (server-side, or from a cookie before first paint) so the correct signed-in chrome shows immediately, no blink. `AuthButton` now resolves from sync session + cached enabled flag (no network gate); `9b9e543` | 🐛 | ✅ | P0 | §A, R1 |
 
 ## S. Reading layout
 | # | Item | Type | St | Pri | Ref |
