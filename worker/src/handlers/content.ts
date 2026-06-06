@@ -245,7 +245,24 @@ interface EditContext {
   verdict: Awaited<ReturnType<typeof runFilters>>;
 }
 
-export async function proposeEdit(env: Env, request: Request, body: EditBody) {
+export interface EditOutcome {
+  live: boolean;
+  author: string;
+  sha?: string;
+  url?: string;
+  prUrl?: string;
+}
+
+type Prepared = { done: EditOutcome } | { ctx: EditContext; trusted: boolean };
+
+// Everything that can *reject* an edit up front — so the caller can return a
+// clean HTTP status (400/403/413/422) before any streaming starts. Returns a
+// finished outcome for the no-op case, otherwise the context for runPublish.
+export async function prepareEdit(
+  env: Env,
+  request: Request,
+  body: EditBody,
+): Promise<Prepared> {
   const slug = String(body.slug ?? "");
   const content = String(body.content ?? "");
   const summary = body.summary ? String(body.summary) : "";
@@ -266,12 +283,13 @@ export async function proposeEdit(env: Env, request: Request, body: EditBody) {
   // Idempotent no-op: the live page already holds exactly this content — e.g. a
   // prior attempt merged but its bookkeeping failed and the user resubmitted, or
   // a submit with no actual change. Finish the (idempotent) bookkeeping, clean up
-  // any leftover branch, and report success without opening an empty PR.
+  // any leftover branch, and report success without opening an empty PR. Fast
+  // enough to skip the progress stream.
   if (current && current.raw === content) {
     await invalidateContent(env, writer.name, { keepIndex: true });
     await updateIndexEntry(env, slug, content);
     await deleteBranch(env, repo, editBranch(writer, slug));
-    return { live: true, author: writer.name };
+    return { done: { live: true, author: writer.name } };
   }
 
   const oldMeta = current ? frontmatter(current.raw) : {};
@@ -301,28 +319,44 @@ export async function proposeEdit(env: Env, request: Request, body: EditBody) {
     current,
     verdict,
   };
+  return { ctx, trusted: TIER_RANK[tier] >= TIER_RANK[required] };
+}
 
-  // Every edit becomes a PR; trust only decides whether it's merged now or waits
-  // for review. So git's 3-way merge is the single conflict detector for both
-  // paths. Publishing is treated as one atomic operation: if the merge or its
-  // bookkeeping can't complete, we throw rather than report a half-done success —
-  // the deterministic branch (see openOrReusePr) makes a resubmit converge.
+// The mutating half, streamed: a progress milestone is emitted before each real
+// step. Every edit becomes a PR; `trusted` only decides whether it's merged now
+// or waits for review, so git's 3-way merge is the single conflict detector.
+// Atomic-or-error — a step that throws aborts without a "done"; the deterministic
+// branch (see openOrReusePr) lets a resubmit reconcile rather than duplicate.
+export async function runPublish(
+  env: Env,
+  ctx: EditContext,
+  trusted: boolean,
+  emit: (progress: number, label: string) => void,
+): Promise<EditOutcome> {
+  emit(0.3, "Opening pull request");
   const pr = await openOrReusePr(env, ctx);
-  if (TIER_RANK[tier] >= TIER_RANK[required]) {
-    const merged = await mergePr(env, repo, pr.number, summary || `Edit ${slug}`);
+  if (trusted) {
+    emit(0.65, "Publishing your change");
+    const merged = await mergePr(
+      env,
+      ctx.repo,
+      pr.number,
+      ctx.summary || `Edit ${ctx.slug}`,
+    );
     if (merged) {
+      emit(0.9, "Going live");
       await finishPublish(env, ctx, pr.branch, merged.sha);
       return {
         live: true,
         sha: merged.sha,
-        url: `https://github.com/${repo}/commit/${merged.sha}`,
-        author: writer.name,
+        url: `https://github.com/${ctx.repo}/commit/${merged.sha}`,
+        author: ctx.writer.name,
       };
     }
     // Trusted but not auto-mergeable (overlapping change): leave the PR open and
     // let it fall into the review queue — an expected outcome, not an error.
   }
-  return { live: false, prUrl: pr.htmlUrl, author: writer.name };
+  return { live: false, prUrl: pr.htmlUrl, author: ctx.writer.name };
 }
 
 // One branch per author+slug (slug slashes kept so they can't collide), so all of

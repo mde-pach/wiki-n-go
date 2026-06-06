@@ -2,7 +2,7 @@ import { createEffect, createMemo, createSignal, onMount, Show } from "solid-js"
 import { createStore } from "solid-js/store";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
-import { type EditResult, submitEdit } from "../lib/api";
+import { type EditResult, type Progress, submitEdit } from "../lib/api";
 import { fetchMarkdown, fetchMarkdownAt, PageNotFoundError } from "../lib/content";
 import { diffLines } from "../lib/diff";
 import { clearDraft, loadDraft, persistDraft } from "../lib/draft";
@@ -38,6 +38,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   const [original, setOriginal] = createSignal(props.initialContent ?? "");
   const [summary, setSummary] = createSignal("");
   const [result, setResult] = createSignal<EditResult>();
+  const [progress, setProgress] = createSignal<Progress>();
   const [modal, setModal] = createSignal(false);
   const { who } = useWhoami();
   const [ready, setReady] = createSignal(false);
@@ -178,8 +179,9 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     // Close the confirm dialog first so an in-panel bot-check (if Cloudflare
     // asks for one) is reachable rather than behind the modal backdrop.
     setModal(false);
+    setProgress({ progress: 0, label: "Starting" });
     run(async (tok) => {
-      setResult(await submitEdit(slug(), content(), tok, summary()));
+      setResult(await submitEdit(slug(), content(), tok, summary(), setProgress));
       clearDraft(slug());
     });
   }
@@ -273,6 +275,22 @@ export default function Editor(props: { slug?: string; initialContent?: string }
               Cancel
             </a>
           </div>
+          <Show when={busy() && progress()}>
+            {(p) => (
+              <div class="publish-progress" role="status" aria-live="polite">
+                <div class="publish-progress-head">
+                  <span>{p().label}…</span>
+                  <span class="mono">{Math.round(p().progress * 100)}%</span>
+                </div>
+                <div class="publish-progress-track">
+                  <div
+                    class="publish-progress-fill"
+                    style={{ width: `${Math.max(4, p().progress * 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </Show>
           <ErrorNote msg={error()} />
           <Show when={result()}>
             {(r) => (

@@ -1820,6 +1820,31 @@ html[data-textsize="large"] {
   margin-top: 0.7rem;
 }
 
+.publish-progress {
+  margin-top: 0.9rem;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+}
+.publish-progress-head {
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-ink-subtle);
+  margin-bottom: 0.35rem;
+}
+.publish-progress-track {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border);
+  overflow: hidden;
+}
+.publish-progress-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  /* Server milestones land in jumps; ease between them so it reads as motion. */
+  transition: width 0.4s ease;
+}
+
 /* Turnstile (interaction-only) renders inline in the publish panel — empty
    until a challenge is actually needed, so it only adds space when it appears. */
 .editor-widget:not(:empty) {
