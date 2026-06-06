@@ -1193,11 +1193,3 @@ textarea.setup-value {
   gap: 0.6rem 1rem;
   margin: 0;
 }
-.setup-alt {
-  margin-top: 0.2rem;
-  font-size: var(--text-sm);
-}
-.setup-alt summary {
-  cursor: pointer;
-  color: var(--color-accent);
-}

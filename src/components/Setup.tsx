@@ -8,7 +8,6 @@ import {
   convertManifestCode,
   installUrl,
   manifestActionUrl,
-  newSecretUrl,
   newVariableUrl,
   randomSecret,
 } from "../lib/setup";
@@ -270,32 +269,10 @@ function CredentialsStep(props: {
           <code class="mono">REPO_NAME={props.repo}</code>. Copy the deployed{" "}
           <code class="mono">*.workers.dev</code> URL — you'll need it in step 3.
         </p>
-        <details class="setup-alt">
-          <summary>Prefer GitHub Actions instead of the button?</summary>
-          <p class="field-hint">
-            Add repo variable <code class="mono">GH_APP_ID</code> and secret{" "}
-            <code class="mono">GH_APP_PRIVATE_KEY</code>, plus{" "}
-            <code class="mono">CLOUDFLARE_API_TOKEN</code> +{" "}
-            <code class="mono">CLOUDFLARE_ACCOUNT_ID</code>, then run the Deploy Worker
-            workflow.
-          </p>
-          <p class="setup-links">
-            <a
-              href={newVariableUrl(props.owner, props.repo)}
-              target="_blank"
-              rel="noopener"
-            >
-              Add a repo variable →
-            </a>
-            <a
-              href={newSecretUrl(props.owner, props.repo)}
-              target="_blank"
-              rel="noopener"
-            >
-              Add a repo secret →
-            </a>
-          </p>
-        </details>
+        <p class="field-hint">
+          Cloudflare sets up automatic redeploys, so future pushes to your repo ship the
+          Worker on their own — nothing else to wire.
+        </p>
       </section>
 
       <section class="setup-card">

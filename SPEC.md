@@ -249,10 +249,10 @@ costs; consider salt/epoch rotation to limit long-term linkability (M5).
 - [x] ✅ Cloudflare Worker: bot token, `ip_hash`, PR as `anon-<hash>` — `worker/`; typechecks clean.
 - [x] ✅ Editor → Worker → PR loop verified end to end (PR authored as `anon-<hash>`).
 - [x] ✅ Worker live: `https://wiki-n-go.maxime-depachtere-80f.workers.dev` (secrets + RATE_LIMIT KV bound).
-      Deploy + secret provisioning fully in CI (`deploy-worker.yml`): random
-      secrets auto-generated (never rotated), the rest from repo secrets. Repo +
-      discussion-category IDs derived at runtime; site config injected from repo
-      context at build. Fork-and-go needs only repo secrets/variables, no edits.
+      Setup + deploy is the `/setup` wizard → Deploy-to-Cloudflare button →
+      Workers Builds (M9); credentials live on the Worker, KV is Cloudflare-owned.
+      Repo + discussion-category IDs derived at runtime; site config injected from
+      repo context at build. Fork-and-go needs no file edits.
 
 ### M2 — Optional GitHub-login attribution ✅
 - [x] ✅ "Sign in with GitHub" → Worker OAuth exchange (`read:user` only). Worker
@@ -423,7 +423,10 @@ page identity. URL shape and the linking mechanism are **independent choices**.
   rename via move); `@mention`-style language badges; existence-checked interwiki (S5).
 
 ### M9 — Low-click setup (no PAT, no token juggling) 🟡
-Collapse adoption from "wire ~5 secrets in CI" to a few clicks. See §5.
+**One** setup path, collapsing adoption from "wire ~5 secrets in CI" to a few
+clicks: the `/setup` wizard → **Deploy to Cloudflare** button. The GitHub-Actions
+worker-deploy path (`deploy-worker.yml`, CF API token + PAT) is **retired** — a
+single way, not two. See §5.
 - [x] ✅ **GitHub App credential** (`worker/src/githubApp.ts`): `ghToken()` mints
   short-lived, repo-scoped installation tokens (RS256 App JWT → installation-id
   derived from the repo → `/access_tokens`, cached to ~1 min before expiry).
@@ -434,12 +437,15 @@ Collapse adoption from "wire ~5 secrets in CI" to a few clicks. See §5.
   `src/lib/setup.ts`): GitHub App **manifest flow** end to end in the browser —
   create app (pre-filled, write-only scopes, no webhooks) → exchange the one-time
   code for id+key client-side (conversions endpoint is CORS-`*`) → show id, key,
-  and a generated `HASH_SECRET` → **Deploy to Cloudflare** (fork's `worker/`
-  subdir) → install + `WORKER_URL`. Verified: config, loading, error, and
-  credentials states render.
-- [x] ✅ **Fork-portable deploy:** KV id dropped from `wrangler.toml` (auto-provision
-  per deploy; KV is cache-only); `deploy-worker.yml` provisions `GH_APP_ID` (var) +
-  `GH_APP_PRIVATE_KEY` (secret) alongside the legacy PAT.
+  and a generated `HASH_SECRET` → **Deploy to Cloudflare** → install + `WORKER_URL`.
+  Verified: config, loading, error, and credentials states render.
+- [x] ✅ **Deploy = Cloudflare Workers Builds** (set up by the button): provisions
+  the Worker + KV from the `worker/` subdir and **auto-redeploys on every push to
+  the production branch**. Secrets (App key, `HASH_SECRET`) and the KV binding live
+  in Cloudflare, not the repo. **Upstream worker fix → user merges it into `main` →
+  Cloudflare redeploys automatically**, reusing the same secrets + KV — no per-fix
+  step, no secret re-entry, same KV instance across updates. KV id dropped from
+  `wrangler.toml` (Cloudflare owns/persists it; KV is cache-only anyway).
 - [ ] ⬜ **Shared hosted instance (multi-tenant)** — one operator-run Worker + App
   serving any repo that installs it (giscus model), so adopters skip even the
   self-host click. Needs repo-from-request + per-repo KV/bans namespacing; the
@@ -522,3 +528,4 @@ Collapse adoption from "wire ~5 secrets in CI" to a few clicks. See §5.
 | 2026-06-06 | Diff polish: **collapse markers carry their elided lines** (`DLine.hidden`) so DiffView can expand them in place; collapsing is a view concern, not a re-fetch | The full text is already in hand for `diffLines` (editor preview), so stashing the skipped lines on the marker lets either diff mode reveal them with one click and no Worker round-trip — git's own `@@` hunks simply carry no `hidden`, so History diffs are unaffected. The field is optional/additive, so `parseDiff` and existing `DiffView` callers are untouched. Copy-permalink and ↑/↓/Enter row nav are local view state with graceful fallbacks (clipboard denial is swallowed; key nav defers to focused child controls) |
 | 2026-06-06 | **Write credential = a GitHub App installation token, not a bot PAT** (PAT kept as fallback) | The App mints short-lived, repo-scoped tokens on demand (`githubApp.ts`) — nothing long-lived in env to leak or rotate, scoped to exactly contents+PRs+discussions, and the per-repo scoping is what a future shared multi-tenant instance needs. `ghToken()` prefers the App, falls back to `GITHUB_TOKEN`, so existing deploys keep working. GitHub's PKCS#1 key is wrapped to PKCS#8 in-worker so the user pastes it as-is (no `openssl`) |
 | 2026-06-06 | **Setup is a 100% client-side `/setup` wizard** (GitHub App *manifest flow*), not a backend onboarding service | The manifest conversions endpoint is CORS-`*`, so the browser can create the App and retrieve its private key with no setup-time backend — dissolving the chicken-and-egg (no Worker exists yet at setup). Wizard then hands off to a **Deploy-to-Cloudflare** click (auto-provisions Worker + KV) + app install. Drops setup from ~5 CI secrets to a few clicks, no PAT, no Cloudflare API token. KV id removed from `wrangler.toml` (auto-provision; cache-only) to stay fork-portable |
+| 2026-06-06 | **One setup path only: the wizard → Deploy-to-Cloudflare button → Workers Builds. Retired the GitHub-Actions worker deploy (`deploy-worker.yml`, CF API token + PAT).** | A single creation way, not two parallel ones to document and keep in sync. The button-wired **Workers Builds** auto-redeploys on every push to the production branch, so when upstream ships a worker fix (feature or security) the fork just **merges it into `main` and Cloudflare redeploys automatically** — reusing the same secrets + KV, which live in Cloudflare, not the repo (a merge never touches them). The old CI path couldn't do this cleanly: secrets sat in GitHub, and its auto-provisioned KV id wasn't committed back, so the bound KV instance could drift across deploys. Cost: the canonical worker now redeploys via Workers Builds / manual `wrangler deploy` instead of Actions |

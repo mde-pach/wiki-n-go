@@ -99,13 +99,7 @@ export function installUrl(htmlUrl: string): string {
   return `${htmlUrl}/installations/new`;
 }
 
-const settingsBase = (owner: string, repo: string) =>
-  `https://github.com/${owner}/${repo}/settings`;
-
-export function newSecretUrl(owner: string, repo: string): string {
-  return `${settingsBase(owner, repo)}/secrets/actions/new`;
-}
-
+// Where the user sets the WORKER_URL repo variable the site build reads.
 export function newVariableUrl(owner: string, repo: string): string {
-  return `${settingsBase(owner, repo)}/variables/actions/new`;
+  return `https://github.com/${owner}/${repo}/settings/variables/actions/new`;
 }
