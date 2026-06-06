@@ -1,8 +1,10 @@
-import { createMemo, createResource, createSignal, For, Show } from "solid-js";
+import { createMemo, createSignal, For, Show } from "solid-js";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
 import { getLinkGraph, graphStats, mostLinked } from "../lib/linkgraph";
 import { BASE, readHref } from "../lib/paths";
+import { clientResource } from "../lib/solid";
+import { Status, ViewHead } from "./ui";
 
 type Tab =
   | "backlinks"
@@ -27,7 +29,7 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 export default function Special() {
-  const [graph] = createResource(() => (isServer ? undefined : "go"), getLinkGraph);
+  const graph = clientResource(getLinkGraph);
   const q = isServer ? new URLSearchParams() : new URLSearchParams(location.search);
   const [tab, setTab] = createSignal<Tab>(
     TABS.some((t) => t.id === q.get("show")) ? (q.get("show") as Tab) : "backlinks",
@@ -55,13 +57,10 @@ export default function Special() {
 
   return (
     <div class="special">
-      <div class="view-head">
-        <h2>Special pages</h2>
-        <p>
-          Reports computed from the wiki's link graph — backlinks, wanted, orphaned and
-          dead-end pages.
-        </p>
-      </div>
+      <ViewHead
+        title="Special pages"
+        sub="Reports computed from the wiki's link graph — backlinks, wanted, orphaned and dead-end pages."
+      />
 
       <nav class="special-tabs" aria-label="Reports">
         <For each={TABS}>
@@ -87,10 +86,7 @@ export default function Special() {
         </a>
       </nav>
 
-      <Show
-        when={graph()}
-        fallback={<p class="wiki-status">Loading the link graph…</p>}
-      >
+      <Show when={graph()} fallback={<Status>Loading the link graph…</Status>}>
         {(g) => (
           <>
             <Show when={tab() === "backlinks"}>
@@ -110,13 +106,11 @@ export default function Special() {
               </div>
               <Show
                 when={page()}
-                fallback={<p class="wiki-status">Pick a page to see its backlinks.</p>}
+                fallback={<Status>Pick a page to see its backlinks.</Status>}
               >
                 <Show
                   when={linksHere().length > 0}
-                  fallback={
-                    <p class="wiki-status">No pages link to “{title(page())}” yet.</p>
-                  }
+                  fallback={<Status>No pages link to “{title(page())}” yet.</Status>}
                 >
                   <ul class="special-list">
                     <For each={linksHere()}>
@@ -148,7 +142,7 @@ export default function Special() {
               </div>
               <Show
                 when={page() && g().titles[page()] !== undefined}
-                fallback={<p class="wiki-status">Pick a page to see its details.</p>}
+                fallback={<Status>Pick a page to see its details.</Status>}
               >
                 <dl class="sp-stats">
                   <div>
@@ -196,9 +190,7 @@ export default function Special() {
             <Show when={tab() === "wanted"}>
               <Show
                 when={g().wanted.length > 0}
-                fallback={
-                  <p class="wiki-status">No wanted pages — every link resolves.</p>
-                }
+                fallback={<Status>No wanted pages — every link resolves.</Status>}
               >
                 <ul class="special-list">
                   <For each={g().wanted}>
@@ -234,7 +226,7 @@ export default function Special() {
             <Show when={tab() === "redirects"}>
               <Show
                 when={g().redirects.length > 0}
-                fallback={<p class="wiki-status">No redirects yet.</p>}
+                fallback={<Status>No redirects yet.</Status>}
               >
                 <ul class="special-list">
                   <For each={g().redirects}>
@@ -278,7 +270,7 @@ export default function Special() {
             <Show when={tab() === "mostlinked"}>
               <Show
                 when={mostLinked(g()).length > 0}
-                fallback={<p class="wiki-status">No internal links yet.</p>}
+                fallback={<Status>No internal links yet.</Status>}
               >
                 <ul class="special-list">
                   <For each={mostLinked(g())}>
@@ -329,10 +321,7 @@ function ReportList(props: {
   empty: string;
 }) {
   return (
-    <Show
-      when={props.items.length > 0}
-      fallback={<p class="wiki-status">{props.empty}</p>}
-    >
+    <Show when={props.items.length > 0} fallback={<Status>{props.empty}</Status>}>
       <ul class="special-list">
         <For each={props.items}>
           {(s) => (

@@ -1,5 +1,5 @@
 import type MarkdownIt from "markdown-it";
-import { BASE } from "./paths";
+import { BASE, slugifyPath } from "./paths";
 
 // `[[Target]]` / `[[Target|Label]]` → internal link carrying a data-slug, which
 // the reader uses to flag red links (pages that don't exist yet).
@@ -30,7 +30,7 @@ export function wikilink(md: MarkdownIt): void {
       return true;
     }
 
-    const slug = slugify(target.trim());
+    const slug = slugifyPath(target.trim());
     if (!slug) return false;
 
     if (!silent) {
@@ -72,12 +72,4 @@ export function markRedLinksHtml(html: string, exists: Set<string>): string {
             'class="wikilink is-red" title="Page does not exist yet — click to create"',
           ),
   );
-}
-
-function slugify(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9/-]/g, "")
-    .replace(/^-+|-+$/g, "");
 }

@@ -3,6 +3,8 @@ import "../styles/app.css";
 import AuthButton from "../components/AuthButton.tsx";
 import Search from "../components/Search.tsx";
 import Special from "../components/Special.tsx";
+import ThemeBoot from "../components/ThemeBoot.astro";
+import TokenCapture from "../components/TokenCapture.astro";
 import { BASE } from "../lib/paths";
 
 const home = `${BASE}/`;
@@ -14,36 +16,8 @@ const home = `${BASE}/`;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Special pages · wiki-n-go</title>
-    <script is:inline>
-      (() => {
-        const skins = ["wiki-n-go", "wiki"];
-        const d = document.documentElement;
-        const saved = localStorage.getItem("wng-skin");
-        d.dataset.skin = skins.includes(saved) ? saved : "wiki-n-go";
-        const pref = localStorage.getItem("wng-theme") || "light";
-        d.dataset.theme =
-          pref === "dark" ||
-          (pref === "auto" && matchMedia("(prefers-color-scheme: dark)").matches)
-            ? "dark"
-            : "light";
-        d.dataset.width = localStorage.getItem("wng-width") || "standard";
-        d.dataset.textsize = localStorage.getItem("wng-textsize") || "standard";
-        const ready = () => d.classList.add("ready");
-        if (document.readyState === "complete") ready();
-        else addEventListener("load", ready, { once: true });
-      })();
-    </script>
-    <script is:inline>
-      (function () {
-        var m = location.hash.match(/(?:^|[#&])wikitoken=([^&]+)/);
-        if (m) {
-          try {
-            localStorage.setItem("wiki_session", m[1]);
-          } catch (e) {}
-          history.replaceState(null, "", location.pathname + location.search);
-        }
-      })();
-    </script>
+    <ThemeBoot />
+    <TokenCapture />
   </head>
   <body>
     <div class="app">

@@ -1,5 +1,4 @@
-import { config } from "../config";
-import { authHeaders } from "./auth";
+import { getJson, postJson } from "./api";
 
 export interface Change {
   sha: string;
@@ -15,19 +14,10 @@ export interface Change {
 }
 
 export async function listChanges(limit = 30): Promise<Change[]> {
-  const res = await fetch(`${config.workerUrl}/changes?limit=${limit}`, {
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`Failed to load changes (HTTP ${res.status}).`);
-  return ((await res.json()) as { changes: Change[] }).changes;
+  const data = await getJson<{ changes: Change[] }>(`/changes?limit=${limit}`);
+  return data.changes;
 }
 
 export async function markPatrolled(sha: string): Promise<void> {
-  const res = await fetch(`${config.workerUrl}/patrol`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ sha }),
-  });
-  const data = (await res.json()) as { error?: string };
-  if (!res.ok) throw new Error(data.error ?? `Request failed (${res.status})`);
+  await postJson<{ ok: true }>("/patrol", { sha });
 }

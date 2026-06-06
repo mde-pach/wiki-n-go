@@ -1,8 +1,9 @@
 import { createMemo, createResource, createSignal, For, Show } from "solid-js";
 import { isServer } from "solid-js/web";
-import { BASE, prettify, readHref, slugifyTarget } from "../lib/paths";
+import { BASE, prettify, readHref, slugifyPath } from "../lib/paths";
 import { getSearchDocs } from "../lib/search";
 import { PAGE_TEMPLATES } from "../lib/templates";
+import { ViewHead } from "./ui";
 
 function initialTitle() {
   if (isServer) return "";
@@ -17,7 +18,7 @@ export default function NewPage() {
     return new Set(docs.map((d) => d.slug));
   });
 
-  const slug = createMemo(() => slugifyTarget(title()));
+  const slug = createMemo(() => slugifyPath(title()));
   const taken = createMemo(() => Boolean(slug()) && existing()?.has(slug()));
   const createHref = () => `${BASE}/edit/${slug()}?template=${template()}`;
 
@@ -29,13 +30,10 @@ export default function NewPage() {
 
   return (
     <div class="new-page">
-      <div class="view-head">
-        <h2>Create a new page</h2>
-        <p>
-          Pick a title and a starting point. You can rename or restructure the page at
-          any time — nothing is final until you publish.
-        </p>
-      </div>
+      <ViewHead
+        title="Create a new page"
+        sub="Pick a title and a starting point. You can rename or restructure the page at any time — nothing is final until you publish."
+      />
 
       <form class="new-form" onSubmit={create}>
         <label class="field-label">

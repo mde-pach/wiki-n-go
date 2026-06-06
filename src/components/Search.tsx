@@ -1,12 +1,6 @@
 import { createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js";
-import { BASE, readHref } from "../lib/paths";
-import {
-  getSearchDocs,
-  type SearchDoc,
-  search,
-  slugifyQuery,
-  splitHighlight,
-} from "../lib/search";
+import { BASE, readHref, slugifyPath } from "../lib/paths";
+import { getSearchDocs, type SearchDoc, search, splitHighlight } from "../lib/search";
 import { Icons } from "./Icons";
 
 interface Item {
@@ -39,7 +33,7 @@ export default function Search() {
       slug: h.slug,
     }));
     if (hits.length > 0) return hits;
-    const slug = slugifyQuery(s);
+    const slug = slugifyPath(s);
     return slug
       ? [{ href: `${BASE}/edit/${slug}`, title: s, snippet: "", missing: true, slug }]
       : [];

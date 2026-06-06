@@ -31,17 +31,23 @@ function load(slug: string): Promise<Card> {
   return p;
 }
 
+// Drop inline markdown that shouldn't surface as plain text: images, wikilinks
+// (keep the label), inline links (keep the text), and footnote refs.
+export function stripMarkdownInline(s: string): string {
+  return s
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_m, t, l) => l ?? t)
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/\[\^[^\]]+\]:?/g, " ");
+}
+
 function excerpt(body: string): string {
   const para = body
     .split(/\n{2,}/)
     .map((s) => s.trim())
     .find((s) => s && !/^[#|>!]/.test(s));
   if (!para) return "";
-  const text = para
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
-    .replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_m, t, l) => l ?? t)
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
-    .replace(/\[\^[^\]]+\]/g, "")
+  const text = stripMarkdownInline(para)
     .replace(/[*_`#]/g, "")
     .replace(/\s+/g, " ")
     .trim();

@@ -1,13 +1,15 @@
 import { createResource, createSignal, For, Show } from "solid-js";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
-import { getWhoami } from "../lib/api";
 import { parseDiff } from "../lib/diff";
+import { timeAgo } from "../lib/format";
 import { prettify, readHref } from "../lib/paths";
 import { getPendingDiff, listPending, reviewPr } from "../lib/review";
+import { useWhoami } from "../lib/solid";
 import { errMessage } from "../lib/util";
 import DiffView from "./DiffView";
 import { Icons } from "./Icons";
+import { ErrorNote, Status, ViewHead } from "./ui";
 
 export default function ReviewQueue() {
   if (!config.workerUrl) return null;
@@ -16,8 +18,7 @@ export default function ReviewQueue() {
     () => (isServer ? undefined : true),
     listPending,
   );
-  const [who] = createResource(() => (isServer ? undefined : true), getWhoami);
-  const isMaintainer = () => who()?.tier === "maintainer";
+  const { isMaintainer } = useWhoami();
 
   const [openNum, setOpenNum] = createSignal<number>();
   const [diff] = createResource(openNum, getPendingDiff);
@@ -48,25 +49,19 @@ export default function ReviewQueue() {
 
   return (
     <main id="main" class="view-wrap">
-      <div class="view-head">
-        <h2>Pending review</h2>
+      <ViewHead title="Pending review">
         <p>
           Anonymous edits awaiting a maintainer.{" "}
           <Show when={!isMaintainer()}>Sign-off is limited to maintainers.</Show>
         </p>
-      </div>
+      </ViewHead>
 
-      <Show when={error()}>
-        <p class="editor-err">{error()}</p>
-      </Show>
+      <ErrorNote msg={error()} />
 
-      <Show
-        when={pending()}
-        fallback={<p class="wiki-status">Loading pending edits…</p>}
-      >
+      <Show when={pending()} fallback={<Status>Loading pending edits…</Status>}>
         <Show
           when={(pending()?.length ?? 0) > 0}
-          fallback={<p class="wiki-status">Nothing pending — all caught up.</p>}
+          fallback={<Status>Nothing pending — all caught up.</Status>}
         >
           <ul class="rv-list">
             <For each={pending()}>
@@ -123,7 +118,7 @@ export default function ReviewQueue() {
                     <div class="rv-diff">
                       <Show
                         when={!diff.loading}
-                        fallback={<p class="wiki-status">Loading diff…</p>}
+                        fallback={<Status>Loading diff…</Status>}
                       >
                         <DiffView lines={lines()} a="current" b="proposed" />
                       </Show>
@@ -137,16 +132,4 @@ export default function ReviewQueue() {
       </Show>
     </main>
   );
-}
-
-function timeAgo(iso: string): string {
-  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  const units: [number, string][] = [
-    [86400, "d"],
-    [3600, "h"],
-    [60, "m"],
-  ];
-  for (const [sec, label] of units)
-    if (s >= sec) return `${Math.floor(s / sec)}${label} ago`;
-  return "just now";
 }

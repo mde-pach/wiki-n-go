@@ -1,6 +1,7 @@
 import { createSignal, Show } from "solid-js";
 import { type CiteResult, lookupCitation } from "../lib/cite";
 import { errMessage } from "../lib/util";
+import { ErrorNote, ViewHead } from "./ui";
 
 const KIND_LABEL: Record<CiteResult["citation"]["kind"], string> = {
   doi: "DOI",
@@ -41,13 +42,12 @@ export default function Cite() {
 
   return (
     <div class="cite-tool">
-      <div class="view-head">
-        <h2>Cite a source</h2>
+      <ViewHead title="Cite a source">
         <p>
           Paste a <strong>URL</strong>, <strong>DOI</strong>, or <strong>ISBN</strong>{" "}
           to build a footnote. Copy the result into a page as a Markdown reference.
         </p>
-      </div>
+      </ViewHead>
 
       <form class="cite-form" onSubmit={submit}>
         <input
@@ -61,9 +61,7 @@ export default function Cite() {
         </button>
       </form>
 
-      <Show when={err()}>
-        <p class="editor-err">{err()}</p>
-      </Show>
+      <ErrorNote msg={err()} />
 
       <Show when={result()}>
         {(r) => (

@@ -1,9 +1,11 @@
 import { createResource, createSignal, For, Show } from "solid-js";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
-import { getWhoami } from "../lib/api";
 import { type Change, listChanges, markPatrolled } from "../lib/changes";
+import { timeAgo } from "../lib/format";
 import { prettify, readHref } from "../lib/paths";
+import { useWhoami } from "../lib/solid";
+import { Status, ViewHead } from "./ui";
 
 export default function RecentChanges() {
   if (!config.workerUrl) return null;
@@ -12,8 +14,7 @@ export default function RecentChanges() {
     () => (isServer ? undefined : 30),
     listChanges,
   );
-  const [who] = createResource(() => (isServer ? undefined : true), getWhoami);
-  const isMaintainer = () => who()?.tier === "maintainer";
+  const { isMaintainer } = useWhoami();
   const [unreviewedOnly, setUnreviewedOnly] = createSignal(false);
 
   const rows = () => {
@@ -34,10 +35,10 @@ export default function RecentChanges() {
 
   return (
     <main id="main" class="view-wrap">
-      <div class="view-head">
-        <h2>Recent changes</h2>
-        <p>Every edit to the wiki, newest first — the post-hoc moderation feed.</p>
-      </div>
+      <ViewHead
+        title="Recent changes"
+        sub="Every edit to the wiki, newest first — the post-hoc moderation feed."
+      />
 
       <label class="rc-filter">
         <input
@@ -48,11 +49,8 @@ export default function RecentChanges() {
         Unreviewed only
       </label>
 
-      <Show when={changes()} fallback={<p class="wiki-status">Loading changes…</p>}>
-        <Show
-          when={rows().length > 0}
-          fallback={<p class="wiki-status">Nothing to show.</p>}
-        >
+      <Show when={changes()} fallback={<Status>Loading changes…</Status>}>
+        <Show when={rows().length > 0} fallback={<Status>Nothing to show.</Status>}>
           <ul class="rc-list">
             <For each={rows()}>
               {(c) => (
@@ -106,16 +104,4 @@ export default function RecentChanges() {
       </Show>
     </main>
   );
-}
-
-function timeAgo(iso: string): string {
-  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  const units: [number, string][] = [
-    [86400, "d"],
-    [3600, "h"],
-    [60, "m"],
-  ];
-  for (const [sec, label] of units)
-    if (s >= sec) return `${Math.floor(s / sec)}${label} ago`;
-  return "just now";
 }

@@ -1,18 +1,18 @@
-import { createResource, createSignal, For, Show } from "solid-js";
-import { isServer } from "solid-js/web";
+import { createSignal, For, Show } from "solid-js";
 import { config } from "../config";
 import { type DLine, parseDiff } from "../lib/diff";
 import { getDiff, getHistory, type Revision } from "../lib/history";
-import { readHref } from "../lib/paths";
-import { slugFromLocation } from "../lib/slug";
+import { readHref, slugFromLocation } from "../lib/paths";
+import { clientResource } from "../lib/solid";
 import { errMessage } from "../lib/util";
 import DiffView from "./DiffView";
+import { ErrorNote, ViewHead } from "./ui";
 
 export default function History(props: { slug?: string }) {
   if (!config.workerUrl) return null;
 
   const slug = () => props.slug ?? slugFromLocation();
-  const [revs] = createResource(() => (isServer ? undefined : slug()), getHistory);
+  const revs = clientResource(slug, getHistory);
   const [diff, setDiff] = createSignal<{
     a: string;
     b: string;
@@ -41,13 +41,10 @@ export default function History(props: { slug?: string }) {
 
   return (
     <div>
-      <div class="view-head">
-        <h2>Revision history</h2>
-        <p>
-          Every edit is a revision. Compare any revision with the previous one or the
-          current page.
-        </p>
-      </div>
+      <ViewHead
+        title="Revision history"
+        sub="Every edit is a revision. Compare any revision with the previous one or the current page."
+      />
 
       <Show when={revs()} fallback={<RevSkeleton />}>
         <ol class="rev-list">
@@ -109,9 +106,7 @@ export default function History(props: { slug?: string }) {
       <Show when={diff()}>
         {(d) => <DiffView lines={d().lines} a={d().a} b={d().b} />}
       </Show>
-      <Show when={err()}>
-        <p class="editor-err">{err()}</p>
-      </Show>
+      <ErrorNote msg={err()} />
     </div>
   );
 }

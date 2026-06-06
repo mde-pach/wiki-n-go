@@ -4,6 +4,8 @@ import { ClientRouter } from "astro:transitions";
 import AuthButton from "../components/AuthButton.tsx";
 import PageMeta from "../components/PageMeta.tsx";
 import Search from "../components/Search.tsx";
+import ThemeBoot from "../components/ThemeBoot.astro";
+import TokenCapture from "../components/TokenCapture.astro";
 import { config } from "../config";
 import { gitRevisions } from "../lib/git";
 import {
@@ -53,42 +55,9 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
     <meta name="generator" content={Astro.generator} />
     {description && <meta name="description" content={description} />}
     <title>{display} · wiki-n-go</title>
-    <script is:inline>
-      (() => {
-        const skins = ["wiki-n-go", "wiki"];
-        const apply = (doc) => {
-          const d = doc.documentElement;
-          const saved = localStorage.getItem("wng-skin");
-          d.dataset.skin = skins.includes(saved) ? saved : "wiki-n-go";
-          const pref = localStorage.getItem("wng-theme") || "light";
-          const dark = pref === "dark" ||
-            (pref === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
-          d.dataset.theme = dark ? "dark" : "light";
-          d.dataset.width = localStorage.getItem("wng-width") || "standard";
-          d.dataset.textsize = localStorage.getItem("wng-textsize") || "standard";
-        };
-        apply(document);
-        const ready = () => document.documentElement.classList.add("ready");
-        if (document.readyState === "complete") ready();
-        else addEventListener("load", ready, { once: true });
-        // Re-apply on View Transition navigation (the swapped-in doc carries the SSR defaults).
-        document.addEventListener("astro:before-swap", (e) => apply(e.newDocument));
-      })();
-    </script>
+    <ThemeBoot />
     <ClientRouter />
-    <script is:inline>
-      // Capture a session token handed back in the URL fragment after sign-in,
-      // before any island hydrates, so the first whoami call is authenticated.
-      (function () {
-        var m = location.hash.match(/(?:^|[#&])wikitoken=([^&]+)/);
-        if (m) {
-          try {
-            localStorage.setItem("wiki_session", m[1]);
-          } catch (e) {}
-          history.replaceState(null, "", location.pathname + location.search);
-        }
-      })();
-    </script>
+    <TokenCapture />
   </head>
   <body>
     <div class="app">

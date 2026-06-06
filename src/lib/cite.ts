@@ -1,4 +1,4 @@
-import { config } from "../config";
+import { getJson } from "./api";
 
 export interface Citation {
   kind: "doi" | "isbn" | "url";
@@ -15,9 +15,10 @@ export interface CiteResult {
 }
 
 export async function lookupCitation(query: string): Promise<CiteResult> {
-  const res = await fetch(`${config.workerUrl}/cite?q=${encodeURIComponent(query)}`);
-  const data = (await res.json()) as Partial<CiteResult> & { error?: string };
-  if (!res.ok || !data.citation)
-    throw new Error(data.error ?? `Lookup failed (${res.status})`);
+  const data = await getJson<Partial<CiteResult>>(
+    `/cite?q=${encodeURIComponent(query)}`,
+    { cache: "default", auth: false },
+  );
+  if (!data.citation) throw new Error("Lookup failed");
   return data as CiteResult;
 }

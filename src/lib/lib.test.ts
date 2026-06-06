@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { diffStats, parseDiff, splitDiff, wordDiff } from "./diff";
 import { computeGraph, graphStats, mostLinked } from "./linkgraph";
 import { emphasizeLeadHtml, md, parsePage, splitTitle } from "./markdown";
-import { prettify, slugifyTarget } from "./paths";
-import { search, slugifyQuery, splitHighlight, toPlainText } from "./search";
+import { prettify, slugifyLabel, slugifyPath } from "./paths";
+import { search, splitHighlight, toPlainText } from "./search";
 import { markRedLinksHtml } from "./wikilink";
 
 describe("prettify", () => {
@@ -240,10 +240,17 @@ describe("graph reports (stats + most-linked)", () => {
   });
 });
 
-describe("slugifyTarget", () => {
+describe("slugifyPath", () => {
   it("lowercases, dashes spaces, keeps slashes for nested paths", () => {
-    expect(slugifyTarget("Getting Started")).toBe("getting-started");
-    expect(slugifyTarget("Sandbox/Play Ground")).toBe("sandbox/play-ground");
+    expect(slugifyPath("Getting Started")).toBe("getting-started");
+    expect(slugifyPath("Sandbox/Play Ground")).toBe("sandbox/play-ground");
+  });
+});
+
+describe("slugifyLabel", () => {
+  it("lowercases, dashes spaces, drops slashes", () => {
+    expect(slugifyLabel("Wiki software")).toBe("wiki-software");
+    expect(slugifyLabel("A/B testing")).toBe("ab-testing");
   });
 });
 
@@ -293,7 +300,7 @@ describe("search", () => {
     ]);
   });
 
-  it("slugifyQuery makes a safe slug", () => {
-    expect(slugifyQuery("New Page Idea!")).toBe("new-page-idea");
+  it("slugifyPath makes a safe slug", () => {
+    expect(slugifyPath("New Page Idea!")).toBe("new-page-idea");
   });
 });

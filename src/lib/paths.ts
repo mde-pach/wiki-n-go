@@ -15,25 +15,19 @@ export function prettify(slug: string): string {
   return s.replace(/-/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 }
 
-// URL-safe slug for a category tag, e.g. "Wiki software" → "wiki-software".
-export function slugifyTag(tag: string): string {
-  return tag
+// Slug for a label/tag/heading (e.g. "Wiki software" → "wiki-software"): drops
+// `/`, so it never spans path segments.
+export function slugifyLabel(s: string): string {
+  return s
     .toLowerCase()
     .trim()
     .replace(/[^\w\s-]/g, "")
     .replace(/\s+/g, "-");
 }
 
-export function categoryHref(tag: string): string {
-  return `${BASE}/category/${slugifyTag(tag)}`;
-}
-
-export const changesHref = `${BASE}/changes`;
-export const reviewHref = `${BASE}/review`;
-
-// Slug for a page reference (wikilink / redirect target): keeps `/` for nested
-// paths, matching how content files are keyed.
-export function slugifyTarget(s: string): string {
+// Slug for a page reference (wikilink / redirect target / search query): keeps
+// `/` for nested paths, matching how content files are keyed.
+export function slugifyPath(s: string): string {
   return s
     .trim()
     .toLowerCase()
@@ -41,6 +35,13 @@ export function slugifyTarget(s: string): string {
     .replace(/[^a-z0-9/-]/g, "")
     .replace(/^-+|-+$/g, "");
 }
+
+export function categoryHref(tag: string): string {
+  return `${BASE}/category/${slugifyLabel(tag)}`;
+}
+
+export const changesHref = `${BASE}/changes`;
+export const reviewHref = `${BASE}/review`;
 
 // Map the current URL to a view + slug. The edit/history/talk/category/changes/
 // review prefixes select a view; everything else is a read.
@@ -64,4 +65,8 @@ export function parseRoute(): {
     }
   }
   return { view: "read", slug: path || config.homeSlug };
+}
+
+export function slugFromLocation(): string {
+  return parseRoute().slug;
 }

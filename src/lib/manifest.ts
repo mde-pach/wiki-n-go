@@ -19,7 +19,3 @@ async function load(): Promise<Set<string>> {
     return new Set();
   }
 }
-
-export async function pageExists(slug: string): Promise<boolean> {
-  return (await pageSet()).has(slug);
-}

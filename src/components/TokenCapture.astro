@@ -1,0 +1,15 @@
+---
+// Capture a session token handed back in the URL fragment after sign-in, before
+// any island hydrates, so the first whoami call is authenticated.
+---
+<script is:inline>
+  (function () {
+    var m = location.hash.match(/(?:^|[#&])wikitoken=([^&]+)/);
+    if (m) {
+      try {
+        localStorage.setItem("wiki_session", m[1]);
+      } catch (e) {}
+      history.replaceState(null, "", location.pathname + location.search);
+    }
+  })();
+</script>

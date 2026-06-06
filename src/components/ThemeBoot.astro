@@ -1,0 +1,25 @@
+---
+// Pre-paint: apply saved skin/theme/width/text-size to <html> before first paint
+// so there's no flash of the SSR defaults. Re-applies across View Transitions.
+---
+<script is:inline>
+  (() => {
+    const skins = ["wiki-n-go", "wiki"];
+    const apply = (doc) => {
+      const d = doc.documentElement;
+      const saved = localStorage.getItem("wng-skin");
+      d.dataset.skin = skins.includes(saved) ? saved : "wiki-n-go";
+      const pref = localStorage.getItem("wng-theme") || "light";
+      const dark = pref === "dark" ||
+        (pref === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
+      d.dataset.theme = dark ? "dark" : "light";
+      d.dataset.width = localStorage.getItem("wng-width") || "standard";
+      d.dataset.textsize = localStorage.getItem("wng-textsize") || "standard";
+    };
+    apply(document);
+    const ready = () => document.documentElement.classList.add("ready");
+    if (document.readyState === "complete") ready();
+    else addEventListener("load", ready, { once: true });
+    document.addEventListener("astro:before-swap", (e) => apply(e.newDocument));
+  })();
+</script>

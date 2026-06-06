@@ -1,6 +1,4 @@
-import DOMPurify from "dompurify";
 import { config } from "../config";
-import { md } from "./markdown";
 
 export class PageNotFoundError extends Error {
   constructor(public slug: string) {
@@ -43,8 +41,4 @@ export async function fetchMarkdownAt(slug: string, sha: string): Promise<string
   if (res.status === 404) throw new PageNotFoundError(slug);
   if (!res.ok) throw new Error(`Failed to fetch content (HTTP ${res.status}).`);
   return res.text();
-}
-
-export function renderMarkdown(src: string): string {
-  return DOMPurify.sanitize(md.render(src));
 }
