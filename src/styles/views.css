@@ -4,6 +4,11 @@
   margin: 0 auto;
   padding: 1.6rem 1.25rem 3rem;
 }
+.edit-help-hint {
+  margin: 0 0 1rem;
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
 .view-head {
   margin-bottom: 1.3rem;
 }
