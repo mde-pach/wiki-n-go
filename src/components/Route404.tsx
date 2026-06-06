@@ -113,14 +113,13 @@ function PageHead(props: { slug: string; view: string }) {
   const login = userLogin(props.slug);
   const title = login ? `User: ${login}` : prettify(props.slug);
 
-  // A profile's Edit tab is for its owner or a maintainer only — others would
-  // just hit a 403. Hidden until whoami resolves so it never flashes an invite.
+  // A profile's Edit tab is for its owner only — others (maintainers included)
+  // would just hit a 403. Hidden until whoami resolves so it never flashes.
   const { who } = useWhoami();
   const canEdit = () => {
     if (!login) return true;
     const w = who();
-    if (!w) return false;
-    return w.tier === "maintainer" || (!w.isAnon && w.author.toLowerCase() === login);
+    return !!w && !w.isAnon && w.author.toLowerCase() === login;
   };
   const tabs = () => TABS.filter(([id]) => id !== "edit" || canEdit());
 
@@ -157,10 +156,7 @@ function ProfileBody(props: { slug: string }) {
   const { who } = useWhoami();
   const canEdit = (owner: string) => {
     const w = who();
-    return (
-      !!w &&
-      (w.tier === "maintainer" || (!w.isAnon && w.author.toLowerCase() === owner))
-    );
+    return !!w && !w.isAnon && w.author.toLowerCase() === owner;
   };
   return (
     <Show when={login()} fallback={<NoProfile />}>

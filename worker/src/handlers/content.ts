@@ -291,15 +291,17 @@ export async function prepareEdit(
     getCurrentFile(env, repo, path),
   ]);
 
-  // A `user/<login>` page is editable only by its owner (the signed-in login) or
-  // a maintainer — an `ip_hash` can't prove ownership, so anon edits to a profile
-  // are refused outright rather than queued for review. Still the ordinary edit
-  // path (Turnstile, PR, trust); the owner just publishes their own page live.
+  // A `user/<login>` profile is editable only by its owner — the signed-in login
+  // that matches the slug. Not even maintainers edit profile *content* (an
+  // `ip_hash` can't own one, so anon is out too); maintainers moderate a bad
+  // profile through the dedicated delete/rollback endpoints instead of rewriting
+  // someone's page. Still the ordinary edit path (Turnstile, PR); the owner
+  // publishes their own page live.
   const owner = userPageOwner(slug);
   const isOwner =
     owner !== null && !writer.isAnon && writer.name.toLowerCase() === owner;
-  if (owner !== null && !isOwner && tier !== "maintainer")
-    throw new HttpError(403, "Only the owner or a maintainer can edit this user page.");
+  if (owner !== null && !isOwner)
+    throw new HttpError(403, "Only this profile's owner can edit it.");
 
   // Idempotent no-op: the live page already holds exactly this content — e.g. a
   // prior attempt merged but its bookkeeping failed and the user resubmitted, or

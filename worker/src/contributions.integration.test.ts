@@ -173,18 +173,14 @@ describe("POST /edit — user page ownership gate", () => {
     stubPublish();
     const res = await worker.fetch(editReq(page), makeEnv());
     expect(res.status).toBe(403);
-    expect(((await res.json()) as { error: string }).error).toMatch(
-      /owner or a maintainer/,
-    );
+    expect(((await res.json()) as { error: string }).error).toMatch(/owner/);
   });
 
   it("refuses a signed-in user editing someone *else's* profile page", async () => {
     stubPublish();
     const res = await worker.fetch(editReq(page, await bearer("bob")), makeEnv());
     expect(res.status).toBe(403);
-    expect(((await res.json()) as { error: string }).error).toMatch(
-      /owner or a maintainer/,
-    );
+    expect(((await res.json()) as { error: string }).error).toMatch(/owner/);
   });
 
   it("lets the owner edit their own page, and it publishes live", async () => {
@@ -202,10 +198,21 @@ describe("POST /edit — user page ownership gate", () => {
     expect((await drain(res)).live).toBe(true);
   });
 
-  it("lets a maintainer edit anyone's profile page", async () => {
+  it("refuses even a maintainer editing someone else's profile (owner-only)", async () => {
     stubPublish();
-    // REPO_OWNER signs in → maintainer tier by identity, no allowlist entry needed.
+    // REPO_OWNER "o" signs in → maintainer, but profiles aren't his to rewrite;
+    // moderation goes through delete/rollback, not the edit path.
     const res = await worker.fetch(editReq(page, await bearer("o")), makeEnv());
+    expect(res.status).toBe(403);
+    expect(((await res.json()) as { error: string }).error).toMatch(/owner/);
+  });
+
+  it("lets a maintainer edit their *own* profile page", async () => {
+    stubPublish();
+    const res = await worker.fetch(
+      editReq({ slug: "user/o", content: "# Me" }, await bearer("o")),
+      makeEnv(),
+    );
     expect(res.status).toBe(200);
     expect((await drain(res)).live).toBe(true);
   });

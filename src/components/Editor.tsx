@@ -50,17 +50,16 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   const { busy, error, setError, run, mount } = useSubmit();
   const content = () => withFrontmatter(assemble(extra(), fields), body());
 
-  // A `user/<login>` page is editable only by its owner or a maintainer (mirrors
-  // the Worker gate), so don't even show the form to anyone else — they'd only
-  // hit a 403 on save. `loading` while whoami is in flight avoids flashing the
-  // editor to a non-owner before we know who they are.
+  // A `user/<login>` profile is editable only by its owner (mirrors the Worker
+  // gate — not even maintainers edit profile content), so don't show the form to
+  // anyone else; they'd only hit a 403 on save. `loading` while whoami is in
+  // flight avoids flashing the editor before we know who they are.
   const profileOwner = () => userLogin(slug());
   const editGate = (): "ok" | "loading" | "denied" => {
     const owner = profileOwner();
     if (!owner) return "ok";
     const w = who();
     if (!w) return "loading";
-    if (w.tier === "maintainer") return "ok";
     return !w.isAnon && w.author.toLowerCase() === owner.toLowerCase()
       ? "ok"
       : "denied";
@@ -407,7 +406,7 @@ function EditGate(props: { state: "loading" | "denied"; slug: string }) {
         <ViewHead title="Profile page" />
         <p class="wiki-status">
           This is <span class="mono">@{owner()}</span>'s profile page. Only{" "}
-          <span class="mono">@{owner()}</span> (signed in) or a maintainer can edit it.{" "}
+          <span class="mono">@{owner()}</span> can edit it, signed in with GitHub.{" "}
           <a href={readHref(props.slug)}>Back to the page</a>.
         </p>
       </Show>
