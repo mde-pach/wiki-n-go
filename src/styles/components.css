@@ -1339,6 +1339,105 @@ html[data-textsize="large"] {
   }
 }
 
+/* ---- Blocks (bans.json editor) ----------------------------------------- */
+.ban-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.1rem;
+}
+.ban-input {
+  flex: 1 1 12rem;
+  padding: 0.35rem 0.6rem;
+  border: var(--border-w) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: var(--text-sm);
+}
+.ban-list,
+.audit-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+}
+.ban-row {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto auto;
+  gap: 0.65rem;
+  align-items: baseline;
+  padding: 0.5rem 0;
+  border-top: var(--border-w) solid var(--color-border);
+}
+.ban-key {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+.ban-scope {
+  color: var(--color-ink-subtle);
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.ban-scope.partial {
+  font-family: var(--font-mono);
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-warn-ink);
+}
+.ban-reason {
+  color: var(--color-ink-muted);
+}
+.ban-meta {
+  color: var(--color-ink-subtle);
+  white-space: nowrap;
+}
+.ban-unblock {
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
+/* ---- Audit log --------------------------------------------------------- */
+.audit-row {
+  display: grid;
+  grid-template-columns: 4.5rem auto auto 1fr;
+  gap: 0.65rem;
+  align-items: baseline;
+  padding: 0.5rem 0;
+  border-top: var(--border-w) solid var(--color-border);
+}
+.audit-time {
+  color: var(--color-ink-subtle);
+  white-space: nowrap;
+}
+.audit-action {
+  font-size: 0.78em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  color: var(--color-ink-muted);
+}
+.audit-action.act-rollback {
+  color: var(--color-remove-ink);
+}
+.audit-action.act-ban {
+  color: var(--color-warn-ink);
+}
+.audit-target {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+.audit-by {
+  color: var(--color-ink-muted);
+}
+.audit-detail {
+  grid-column: 2 / -1;
+  color: var(--color-ink-subtle);
+}
+
 /* Hatnote: italic disambiguation note above the lead (Wikipedia convention). */
 .hatnote {
   font-family: var(--font-ui);

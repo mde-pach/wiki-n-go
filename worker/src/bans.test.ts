@@ -1,0 +1,66 @@
+import { describe, expect, it } from "vitest";
+import { banApplies, normalizeBan, parseBans, serializeBan } from "./bans";
+
+describe("normalizeBan", () => {
+  it("treats a bare string as a site-wide block", () => {
+    expect(normalizeBan("anon-abc")).toEqual({ key: "anon-abc", paths: [] });
+  });
+  it("keeps object metadata", () => {
+    expect(
+      normalizeBan({ key: "anon-abc", paths: ["foo"], reason: "spam" }),
+    ).toMatchObject({ key: "anon-abc", paths: ["foo"], reason: "spam" });
+  });
+});
+
+describe("serializeBan", () => {
+  it("compacts a bare site-wide ban back to a string", () => {
+    expect(serializeBan({ key: "anon-abc", paths: [] })).toBe("anon-abc");
+  });
+  it("keeps an object when scoped or annotated", () => {
+    expect(serializeBan({ key: "k", paths: ["foo"] })).toEqual({
+      key: "k",
+      paths: ["foo"],
+    });
+    expect(serializeBan({ key: "k", paths: [], reason: "r" })).toEqual({
+      key: "k",
+      reason: "r",
+    });
+  });
+});
+
+describe("banApplies", () => {
+  const sitewide = normalizeBan("anon-abc");
+  const partial = normalizeBan({ key: "anon-abc", paths: ["docs", "blog/2024"] });
+
+  it("ignores entries for a different key", () => {
+    expect(banApplies(sitewide, "anon-xyz", "docs")).toBe(false);
+  });
+  it("site-wide blocks any path, and even a path-less action", () => {
+    expect(banApplies(sitewide, "anon-abc", "anything")).toBe(true);
+    expect(banApplies(sitewide, "anon-abc", undefined)).toBe(true);
+  });
+  it("partial blocks only its subtrees", () => {
+    expect(banApplies(partial, "anon-abc", "docs")).toBe(true);
+    expect(banApplies(partial, "anon-abc", "docs/install")).toBe(true);
+    expect(banApplies(partial, "anon-abc", "blog/2024/post")).toBe(true);
+    expect(banApplies(partial, "anon-abc", "blog/2025/post")).toBe(false);
+    expect(banApplies(partial, "anon-abc", "home")).toBe(false);
+  });
+  it("a partial block never applies to a path-less action (e.g. a comment)", () => {
+    expect(banApplies(partial, "anon-abc", undefined)).toBe(false);
+  });
+});
+
+describe("parseBans", () => {
+  it("returns [] for missing or malformed input", () => {
+    expect(parseBans(undefined)).toEqual([]);
+    expect(parseBans("not json")).toEqual([]);
+    expect(parseBans('{"not":"an array"}')).toEqual([]);
+  });
+  it("normalizes a mixed string/object list", () => {
+    expect(parseBans('["a", {"key":"b","paths":["x"]}]')).toEqual([
+      { key: "a", paths: [] },
+      { key: "b", paths: ["x"], reason: undefined, by: undefined, at: undefined },
+    ]);
+  });
+});

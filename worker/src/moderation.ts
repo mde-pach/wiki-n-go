@@ -39,12 +39,6 @@ export async function enforceRateLimit(env: Env, author: string): Promise<void> 
   });
 }
 
-// Ban list lives at the repo root, outside the anon-writable content/ dir.
-export async function isBanned(env: Env, author: string): Promise<boolean> {
-  const list = await repoJson<unknown>(env, "bans.json");
-  return Array.isArray(list) && list.includes(author);
-}
-
 // Pre-publish abuse filter. Trusted tiers are exempt (abuse concentrates in
 // open-tier edits); everyone else's edit is scored against filters.json.
 export async function runFilters(

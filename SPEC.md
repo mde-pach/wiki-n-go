@@ -295,8 +295,13 @@ The sysop console for the autonomous model (see `FEATURES.md` §N):
 - [x] 🟡 One-click **rollback** ✅ — Worker `POST /rollback` (maintainer-only) restores every page a commit
       touched to its pre-commit state (deletes pages the commit created), busts the content/index cache, lands
       as a new revision (so it's reversible); surfaced as a per-row "roll back" action + confirm in `/admin`.
-      TODO: trailing-run rollback, undo/restore-to-revision, partial (path-scoped) blocks in `bans.json`.
-- [ ] ⬜ Protection & rights management (CODEOWNERS / GitHub team) from the dashboard; append-only audit log.
+      TODO: trailing-run rollback, undo/restore-to-revision.
+- [x] ✅ **Blocks + audit log** — Worker `POST /ban` / `POST /unban` edit `bans.json` (maintainer-only,
+      committed → git is the record), supporting **path-scoped partial blocks** (`{key, paths}`; enforced by
+      threading the edit slug through `isBanned`, so a partial block gags only its subtrees and never a comment).
+      Append-only `audit-log.jsonl` records rollback/ban/unban. New **Blocks** + **Audit log** tabs in `/admin`
+      (`GET /bans`, maintainer-only `GET /audit`). TODO: ban `expires`, path-scoped blocks in the abuse path.
+- [ ] ⬜ Protection & rights management (CODEOWNERS / GitHub team) from the dashboard.
 - [ ] ⬜ **Oversight/suppression**: render-time redaction + owner-only hard-purge (history rewrite + CDN purge).
 - [ ] ⬜ New-Pages queue + Page-Curation-style reviewer overlay; deletion flow (CSD/PROD/AfD via PR policy).
 
@@ -374,3 +379,4 @@ Read-time reports + git-native operations (see `FEATURES.md` §§O–P):
 | 2026-06-06 | Link graph + search index served **live by the Worker** (KV, patched per edit), not only a build-time file | The build-time `*.json` went stale on live edits; the Worker is the only writer, so it updates the index per commit (no rebuild). Static file kept as a no-Worker fallback |
 | 2026-06-06 | M6 starts with a **unified `/admin` console** aggregating existing moderation surfaces (M5 RecentChanges + Pending review), then grows new actions into it | §N calls the sysop console the P0 keystone; the moderation surfaces already existed but were scattered, so a single maintainer-gated home is the highest-leverage first slice |
 | 2026-06-06 | **Rollback** restores each touched page to its pre-commit state as a *new* commit (no force-push / history rewrite) | Keeps the no-rebuild + immutable-history invariants — a rollback is itself a revision, so it can be rolled forward; overwrites intervening edits (git retains them) and the dashboard confirms first |
+| 2026-06-06 | **Blocks edit `bans.json` directly** (committed); partial blocks are `{key, paths}` entries; the **audit log is `audit-log.jsonl`** in the repo, not KV | git is the tamper-evident record (who/when in the commit) and the no-second-store invariant holds; bare site-wide bans still round-trip as plain strings, so hand-edited `bans.json` keeps working. Partial blocks enforce by threading the edit slug into `isBanned` — comments carry no path, so a partial block can't gag talk |

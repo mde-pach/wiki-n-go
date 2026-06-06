@@ -1,7 +1,8 @@
 import { ghNoreplyEmail, type Session, sessionIdentity } from "./auth";
+import { isBanned } from "./bans";
 import { ipHash } from "./crypto";
 import { HttpError } from "./http";
-import { enforceRateLimit, isBanned, verifyTurnstile } from "./moderation";
+import { enforceRateLimit, verifyTurnstile } from "./moderation";
 import { editorTier, type Tier } from "./trust";
 import type { Env } from "./types";
 
@@ -40,7 +41,7 @@ function githubWriter(s: Session): Writer {
 export async function resolve(
   env: Env,
   request: Request,
-  gate?: { token: unknown },
+  gate?: { token: unknown; path?: string },
 ): Promise<Writer> {
   const session = await sessionIdentity(env, request);
   const ip = request.headers.get("CF-Connecting-IP") ?? "0.0.0.0";
@@ -49,7 +50,7 @@ export async function resolve(
     : anonWriter(await ipHash(env.HASH_SECRET, ip));
   if (!gate) return writer;
   if (!session) await verifyTurnstile(env, ip, gate.token ? String(gate.token) : "");
-  if (await isBanned(env, writer.key))
+  if (await isBanned(env, writer.key, gate.path))
     throw new HttpError(
       403,
       writer.isAnon ? "This source is blocked." : "This account is blocked.",

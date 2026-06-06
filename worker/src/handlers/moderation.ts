@@ -1,3 +1,4 @@
+import { appendAudit } from "../audit";
 import { gh } from "../github";
 import { HttpError } from "../http";
 import { requireMaintainer } from "../identity";
@@ -125,5 +126,14 @@ export async function rollback(
     restored.push(slug);
   }
   await invalidateContent(env, writer.name, { keepIndex: true });
+  await appendAudit(
+    env,
+    repo,
+    writer.name,
+    writer.email,
+    "rollback",
+    sha.slice(0, 7),
+    `restored ${restored.join(", ")}`,
+  );
   return { ok: true, restored };
 }

@@ -1,4 +1,5 @@
 import { authCallback, authLogin, oauthConfigured } from "./auth";
+import { auditLog, ban, listBans, unban } from "./handlers/bans";
 import { cite } from "./handlers/cite";
 import { createTopic, getThread, listTopics, postComment } from "./handlers/comments";
 import {
@@ -15,6 +16,7 @@ import { patrol, review, rollback } from "./handlers/moderation";
 import { corsHeaders, HttpError, json, message } from "./http";
 import { whoami } from "./identity";
 import type {
+  BanBody,
   CommentBody,
   EditBody,
   Env,
@@ -23,6 +25,7 @@ import type {
   ReviewBody,
   RollbackBody,
   TopicBody,
+  UnbanBody,
 } from "./types";
 
 export { signSession, verifySession } from "./auth";
@@ -53,6 +56,8 @@ export default {
       "GET /changes": () => listChanges(env, q.get("limit") ?? ""),
       "GET /pending": () => listPending(env),
       "GET /pending-diff": () => pendingDiff(env, q.get("number") ?? ""),
+      "GET /bans": () => listBans(env),
+      "GET /audit": () => auditLog(env, request, q.get("limit") ?? ""),
       "GET /auth/status": () => Promise.resolve({ enabled: oauthConfigured(env) }),
       "GET /auth/login": () => authLogin(env, url),
       "GET /auth/callback": () => authCallback(env, url),
@@ -66,6 +71,9 @@ export default {
         review(env, request, (await request.json()) as ReviewBody),
       "POST /rollback": async () =>
         rollback(env, request, (await request.json()) as RollbackBody),
+      "POST /ban": async () => ban(env, request, (await request.json()) as BanBody),
+      "POST /unban": async () =>
+        unban(env, request, (await request.json()) as UnbanBody),
       "POST /topic": async () =>
         createTopic(env, request, (await request.json()) as TopicBody),
       "POST /comment": async () =>

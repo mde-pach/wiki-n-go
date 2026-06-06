@@ -229,7 +229,7 @@ export async function proposeEdit(env: Env, request: Request, body: EditBody) {
   if (utf8Bytes(content) > MAX_CONTENT_BYTES)
     throw new HttpError(413, "Content too large.");
 
-  const writer = await resolve(env, request, { token: body.token });
+  const writer = await resolve(env, request, { token: body.token, path: slug });
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
   const path = `${env.CONTENT_DIR}/${slug}.md`;
 
@@ -336,7 +336,7 @@ export async function movePage(env: Env, request: Request, body: MoveBody) {
     throw new HttpError(400, "Invalid target slug.");
   if (from === to) throw new HttpError(400, "Source and target are the same.");
 
-  const writer = await resolve(env, request, { token: body.token });
+  const writer = await resolve(env, request, { token: body.token, path: from });
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
   const fromPath = `${env.CONTENT_DIR}/${from}.md`;
   const toPath = `${env.CONTENT_DIR}/${to}.md`;

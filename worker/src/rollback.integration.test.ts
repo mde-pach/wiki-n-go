@@ -30,6 +30,8 @@ function stubGitHub(o: Opts) {
       puts.push({ url, method, body: JSON.parse(String(init.body)) });
       return Response.json({ commit: { sha: "newsha", html_url: "u" } });
     }
+    if (url.includes("/contents/audit-log.jsonl"))
+      return new Response("", { status: 404 }); // appended after the rollback
     const m = url.match(/\/contents\/content\/(.+?)\.md\?/);
     if (m) {
       const raw = o.files[m[1]];
