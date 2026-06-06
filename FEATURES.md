@@ -80,8 +80,8 @@ and undo/thank/tag actions; Newer/Older pagination.
 |---|---|---|---|
 | Revision list: date · author · **summary** · **size + byte delta** | `git log` w/ stats (Worker `/history`, `History`) | ✅ | P0 |
 | Per-row **cur / prev** diff links | diff vs latest / previous | ✅ | P0 |
-| **Compare any two** (radio select) | pick-two → `/diff?from&to` (`DiffView`) | ✅ | P0 |
-| Diff render (add/remove coloring) | split/unified patch render (`DiffView`) | ✅ | P0 |
+| **Compare any two** (radio select) | per-row older/newer radios + "Compare selected" → `/diff?base&head` (`History`→`DiffView`) | ✅ | P0 |
+| Diff render (add/remove coloring) | split/unified render + add/remove **legend** + word-level highlights (`DiffView`) | ✅ | P0 |
 | Permalink to a revision | jsDelivr `@<sha>` via `?rev=` (old-revision banner) | ✅ | P1 |
 | **Undo / revert** a revision | resubmit prior content as an anon edit→PR (⚒) | ⬜ | P1 |
 | Pagination (Newer/Older) | paginate commits (★) | ⬜ | P2 |
@@ -332,7 +332,7 @@ Cross-refs point at the relevant A–Q row so we extend, not duplicate.
 ## V. History / revisions UX
 | # | Item | Type | St | Pri | Ref |
 |---|---|---|---|---|---|
-| V1 | **Richer, friendlier revision page** — e.g. 2-column layout with rendered change view, not just a raw patch. | ✨ | ⬜ | P1 | §F |
+| V1 | **Richer, friendlier revision page** — 2-column side-by-side change view with line numbers, word-level highlights, an add/remove legend, and a split/unified toggle (`DiffView`); revision rows tidied with Wikipedia-style older/newer **compare-any-two** radios + a "Compare selected" button alongside the cur/prev quick links, and a permalink footer on the diff. | ✨ | ✅ | P1 | §F |
 
 ## W. Header & top-of-page chrome (Vector 2022 layout)
 Owner ref (screenshot): title left + **languages** button top-right; below, a tab strip with **Article · Discussion left-aligned** and **Read · Edit · History · Tools right-aligned** on the same row.

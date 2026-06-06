@@ -8,10 +8,15 @@ import {
 } from "../lib/diff";
 
 // Side-by-side / unified diff card, shared by History and the review queue.
+// `aHref`/`bHref`/`permalink` are optional; callers that omit them (e.g. the
+// review queue) render exactly as before.
 export default function DiffView(props: {
   lines: DLine[] | null;
   a: string;
   b: string;
+  aHref?: string;
+  bHref?: string;
+  permalink?: string;
 }) {
   const [mode, setMode] = createSignal<"split" | "unified">("split");
   const rows = createMemo<SplitRow[] | null>(() =>
@@ -23,12 +28,12 @@ export default function DiffView(props: {
     <div class="diff-card">
       <div class="diff-head">
         <div class="dh-side">
-          <span class="dh-rev">{props.a}</span>
+          <RevLabel rev={props.a} href={props.aHref} />
           <span class="dh-meta">old</span>
         </div>
         <span class="dh-arrow">→</span>
         <div class="dh-side">
-          <span class="dh-rev">{props.b}</span>
+          <RevLabel rev={props.b} href={props.bHref} />
           <span class="dh-meta">new</span>
         </div>
         <Show when={stats()}>
@@ -39,6 +44,16 @@ export default function DiffView(props: {
             </span>
           )}
         </Show>
+        <div class="diff-legend">
+          <span class="lg">
+            <span class="sw add" />
+            Added
+          </span>
+          <span class="lg">
+            <span class="sw del" />
+            Removed
+          </span>
+        </div>
         <div class="diff-modes" role="group" aria-label="Diff layout">
           <button
             type="button"
@@ -105,7 +120,29 @@ export default function DiffView(props: {
           </div>
         </Show>
       </Show>
+      <Show when={props.permalink}>
+        {(href) => (
+          <div class="diff-foot">
+            <span class="permalink-box">
+              <span>Permalink</span>
+              <a href={href()}>view this page at the new revision</a>
+            </span>
+          </div>
+        )}
+      </Show>
     </div>
+  );
+}
+
+function RevLabel(props: { rev: string; href?: string }) {
+  return (
+    <Show when={props.href} fallback={<span class="dh-rev">{props.rev}</span>}>
+      {(href) => (
+        <a class="dh-rev" href={href()} target="_blank" rel="noreferrer">
+          {props.rev}
+        </a>
+      )}
+    </Show>
   );
 }
 

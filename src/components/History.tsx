@@ -19,9 +19,24 @@ export default function History(props: { slug?: string }) {
     a: string;
     b: string;
     lines: DLine[] | null;
+    aHref?: string;
+    bHref?: string;
+    permalink?: string;
   }>();
   const [err, setErr] = createSignal<string>();
   const latest = () => revs()?.[0]?.sha;
+
+  // Revisions are listed newest-first, so the "newer" pick is always the lower
+  // index. Defaults compare the two most recent (current vs previous).
+  const [cmpNew, setCmpNew] = createSignal(0);
+  const [cmpOld, setCmpOld] = createSignal(1);
+
+  function compareSelected() {
+    const list = revs();
+    const older = list?.[cmpOld()];
+    const newer = list?.[cmpNew()];
+    if (older && newer) show(older.sha, newer.sha);
+  }
 
   const { isMaintainer } = useWhoami();
   const [restoring, setRestoring] = createSignal<Revision>();
@@ -43,8 +58,15 @@ export default function History(props: { slug?: string }) {
 
   async function show(base: string | null, head: string) {
     setErr();
+    const permalink = `${readHref(slug())}?rev=${head}`;
     if (!base) {
-      setDiff({ a: "(none)", b: short(head), lines: null });
+      setDiff({
+        a: "(none)",
+        b: short(head),
+        lines: null,
+        bHref: commitUrl(head),
+        permalink,
+      });
       return;
     }
     try {
@@ -53,6 +75,9 @@ export default function History(props: { slug?: string }) {
         a: short(base),
         b: short(head),
         lines: patch ? parseDiff(patch) : null,
+        aHref: commitUrl(base),
+        bHref: commitUrl(head),
+        permalink,
       });
     } catch (e) {
       setErr(errMessage(e));
@@ -67,6 +92,20 @@ export default function History(props: { slug?: string }) {
       />
 
       <Show when={revs()} fallback={<RevSkeleton />}>
+        <div class="rev-compare-bar">
+          <button
+            type="button"
+            class="btn btn-outline btn-sm"
+            disabled={(revs()?.length ?? 0) < 2}
+            onClick={compareSelected}
+          >
+            Compare selected revisions
+          </button>
+          <span class="rcb-hint">
+            Pick an older (left) and newer (right) revision, or use the cur / prev
+            links.
+          </span>
+        </div>
         <ol class="rev-list">
           <For each={revs()}>
             {(r: Revision, i) => (
@@ -88,6 +127,28 @@ export default function History(props: { slug?: string }) {
                   >
                     prev
                   </button>
+                </div>
+                <div class="rev-radios">
+                  <span class="rr-col">
+                    <input
+                      type="radio"
+                      name="cmp-old"
+                      aria-label="Compare from this (older) revision"
+                      checked={cmpOld() === i()}
+                      disabled={i() <= cmpNew()}
+                      onChange={() => setCmpOld(i())}
+                    />
+                  </span>
+                  <span class="rr-col">
+                    <input
+                      type="radio"
+                      name="cmp-new"
+                      aria-label="Compare to this (newer) revision"
+                      checked={cmpNew() === i()}
+                      disabled={i() >= cmpOld()}
+                      onChange={() => setCmpNew(i())}
+                    />
+                  </span>
                 </div>
                 <div class="rev-main">
                   <div class="rev-line1">
@@ -133,7 +194,16 @@ export default function History(props: { slug?: string }) {
       </Show>
 
       <Show when={diff()}>
-        {(d) => <DiffView lines={d().lines} a={d().a} b={d().b} />}
+        {(d) => (
+          <DiffView
+            lines={d().lines}
+            a={d().a}
+            b={d().b}
+            aHref={d().aHref}
+            bHref={d().bHref}
+            permalink={d().permalink}
+          />
+        )}
       </Show>
       <ErrorNote msg={err()} />
 
@@ -168,6 +238,7 @@ function RevSkeleton() {
         {() => (
           <li class="rev-row">
             <div class="rev-actions" />
+            <div class="rev-radios" />
             <div class="rev-main">
               <div
                 class="sk-bar skeleton"
