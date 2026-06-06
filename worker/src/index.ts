@@ -905,7 +905,16 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
   if (verdict.action === "disallow")
     throw new HttpError(422, verdict.message ?? "This edit was blocked by a filter.");
 
-  const ctx: EditContext = { repo, path, slug, content, summary, writer, current, verdict };
+  const ctx: EditContext = {
+    repo,
+    path,
+    slug,
+    content,
+    summary,
+    writer,
+    current,
+    verdict,
+  };
   return TIER_RANK[tier] >= TIER_RANK[required]
     ? publishDirect(env, ctx)
     : openEditPr(env, ctx);
@@ -932,7 +941,12 @@ async function publishDirect(env: Env, ctx: EditContext) {
   await updateIndexEntry(env, slug, content);
   if (verdict.tags.length)
     await env.RATE_LIMIT?.put(`tag:${res.commit.sha}`, JSON.stringify(verdict.tags));
-  return { live: true, sha: res.commit.sha, url: res.commit.html_url, author: writer.name };
+  return {
+    live: true,
+    sha: res.commit.sha,
+    url: res.commit.html_url,
+    author: writer.name,
+  };
 }
 
 // The branch prefix carries the author so the in-UI review queue can attribute
