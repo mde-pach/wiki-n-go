@@ -216,10 +216,10 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 | **New Pages Patrol** + Page Curation toolbar | separate queue for *file-creation* PRs; reviewer overlay (approve / tag / propose-delete / message author) | ⬜ | P1 |
 | **AbuseFilter** (rules: tag/warn/throttle/disallow/auto-ban, pre-publish) | Worker rule engine over the diff (`filters.json`, CODEOWNERS-gated) — **the workhorse of immediate-publish safety** | ⬜ | P0 |
 | Spam/title/link blacklists | versioned blocklist files the Worker checks (refuse spam-domain / bad-title PRs) | ⬜ | P1 |
-| Change **tags** (`mw-blank`, `mw-reverted`, mobile…) | auto-label edits at ingest (new-page, blanking, large-removal, revert, source) → drive RC filters | ⬜ | P1 |
-| **Revert-risk score** (Lift Wing / language-agnostic model, ~80%) | per-diff risk score (heuristics → model): byte/removal ratio, link churn, hash history → gates autopatrol & auto-revert | ⬜ | P1 |
+| Change **tags** (`mw-blank`, `mw-reverted`, mobile…) | filter `tags` (`filters.json`) + `edit-war` (3RR) labels on each change → drive the RC badges/filters | 🟡 | P1 |
+| **Revert-risk score** (Lift Wing / language-agnostic model, ~80%) | heuristic 0–100 (`risk.ts`: byte/removal ratio, anon, page-creation, tags) on `/changes` → **high-risk badge + filter**; ML model + link-churn later | 🟡 | P1 |
 | **Automoderator / ClueBot** (configurable auto-revert + FP reporting + dashboard) | bot identity auto-reverts high-confidence vandalism; threshold config, trusted allowlist, FP-report Discussion, per-page revert cap | ⬜ | P2 |
-| **3RR** (>3 reverts/24h → block) | Worker detects revert-churn per `ip_hash`/path → throttle / flag / temp-ban | ⬜ | P1 |
+| **3RR** (>3 reverts/24h → block) | per-author-per-page 24 h KV counter (`THREE_RR_MAX`, default 3) flags the 4th rapid edit `edit-war` → review badge + risk bump (tag, not block; trusted tiers exempt) | 🟡 | P1 |
 | Assisted-revert UI (Twinkle/Huggle/Ultraviolet) | in-site reviewer action menu (revert · warn · propose-delete · protect · report) over Worker endpoints | ⬜ | P2 |
 | Maintenance tags → backlog categories | `{{citation needed}}`-style markers → Worker-computed cleanup backlogs | ⬜ | P2 |
 | Content **assessment** (Stub→…→GA/FA; ML-predicted) | frontmatter grade + optional quality model; GA = single-reviewer, FA = multi-reviewer sign-off | ⬜ | P2 |

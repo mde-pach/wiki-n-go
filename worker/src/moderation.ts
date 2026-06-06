@@ -19,6 +19,27 @@ export async function autopatrol(env: Env, tier: Tier, sha: string): Promise<voi
     await env.RATE_LIMIT.put(`patrol:${sha}`, "1");
 }
 
+const EDIT_WAR_WINDOW_S = 86_400;
+
+export function threeRrMax(env: Env): number {
+  return Number.parseInt(env.THREE_RR_MAX ?? "", 10) || 3;
+}
+
+// 3RR proxy: count an author's edits to one page over 24h; once it passes the
+// bar (the 4th edit) the edit is flagged `edit-war` for review. A tag, not a
+// block — legit rapid edits happen; the score + patrol queue handle the rest.
+export async function bumpEditWar(
+  env: Env,
+  author: string,
+  slug: string,
+): Promise<boolean> {
+  if (!env.RATE_LIMIT) return false;
+  const key = `ew:${author}:${slug}`;
+  const count = Number.parseInt((await env.RATE_LIMIT.get(key)) ?? "0", 10) + 1;
+  await env.RATE_LIMIT.put(key, String(count), { expirationTtl: EDIT_WAR_WINDOW_S });
+  return count > threeRrMax(env);
+}
+
 export async function verifyTurnstile(
   env: Env,
   ip: string,

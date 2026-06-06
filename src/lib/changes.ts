@@ -12,7 +12,11 @@ export interface Change {
   created: string[];
   patrolled: boolean;
   tags: string[];
+  risk: number;
 }
+
+// Keep in sync with RISK_HIGH in worker/src/risk.ts.
+export const RISK_HIGH = 50;
 
 export async function listChanges(limit = 30): Promise<Change[]> {
   const data = await getJson<{ changes: Change[] }>(`/changes?limit=${limit}`);

@@ -2,7 +2,7 @@ import { createResource, createSignal, For, Show } from "solid-js";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
 import { rollbackCommit } from "../lib/admin";
-import { type Change, listChanges, markPatrolled } from "../lib/changes";
+import { type Change, listChanges, markPatrolled, RISK_HIGH } from "../lib/changes";
 import { timeAgo } from "../lib/format";
 import { prettify, readHref } from "../lib/paths";
 import { useWhoami } from "../lib/solid";
@@ -19,10 +19,13 @@ export default function RecentChanges(props: { admin?: boolean }) {
   );
   const { isMaintainer } = useWhoami();
   const [unreviewedOnly, setUnreviewedOnly] = createSignal(false);
+  const [highRiskOnly, setHighRiskOnly] = createSignal(false);
 
   const rows = () => {
-    const all = changes() ?? [];
-    return unreviewedOnly() ? all.filter((c) => !c.patrolled) : all;
+    let all = changes() ?? [];
+    if (unreviewedOnly()) all = all.filter((c) => !c.patrolled);
+    if (highRiskOnly()) all = all.filter((c) => c.risk >= RISK_HIGH);
+    return all;
   };
 
   async function patrol(sha: string) {
@@ -65,14 +68,24 @@ export default function RecentChanges(props: { admin?: boolean }) {
         sub="Every edit to the wiki, newest first — the post-hoc moderation feed."
       />
 
-      <label class="rc-filter">
-        <input
-          type="checkbox"
-          checked={unreviewedOnly()}
-          onChange={(e) => setUnreviewedOnly(e.currentTarget.checked)}
-        />
-        Unreviewed only
-      </label>
+      <div class="rc-filters">
+        <label class="rc-filter">
+          <input
+            type="checkbox"
+            checked={unreviewedOnly()}
+            onChange={(e) => setUnreviewedOnly(e.currentTarget.checked)}
+          />
+          Unreviewed only
+        </label>
+        <label class="rc-filter">
+          <input
+            type="checkbox"
+            checked={highRiskOnly()}
+            onChange={(e) => setHighRiskOnly(e.currentTarget.checked)}
+          />
+          High-risk only
+        </label>
+      </div>
 
       <ErrorNote msg={error()} />
 
@@ -105,6 +118,11 @@ export default function RecentChanges(props: { admin?: boolean }) {
                   <span class="rc-summary">
                     {c.message}
                     <For each={c.tags}>{(t) => <span class="rc-tag">{t}</span>}</For>
+                    <Show when={c.risk >= RISK_HIGH}>
+                      <span class="rc-tag risk" title={`revert-risk ${c.risk}`}>
+                        high risk
+                      </span>
+                    </Show>
                   </span>
                   <span class="rc-actions">
                     <Show

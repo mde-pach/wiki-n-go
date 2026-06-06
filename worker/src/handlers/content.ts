@@ -3,8 +3,9 @@ import { type CommitItem, gh } from "../github";
 import { HttpError } from "../http";
 import { resolve, type Writer } from "../identity";
 import { invalidateContent, kvGetJson, kvPutJson } from "../kv";
-import { autopatrol, runFilters } from "../moderation";
+import { autopatrol, bumpEditWar, runFilters } from "../moderation";
 import { commitPayload, getCurrentFile } from "../repo";
+import { revertRisk } from "../risk";
 import { loadSuppressions, makeRedactor } from "../suppression";
 import {
   editorTier,
@@ -61,6 +62,7 @@ interface OutChange extends ChangeDetail {
   message: string;
   patrolled: boolean;
   tags: string[];
+  risk: number;
 }
 
 // Per-commit files + byte stats. A commit is immutable, so cache it forever.
@@ -110,14 +112,22 @@ export async function listChanges(
         ) ?? Promise.resolve([] as string[]),
       ]);
       const author = c.commit.author.name;
+      const isAnon = author.startsWith("anon-");
       return {
         sha: c.sha,
         author: redact.author(author),
-        isAnon: author.startsWith("anon-"),
+        isAnon,
         date: c.commit.author.date,
         message: redact.revisionSummary(c.sha, c.commit.message.split("\n")[0]),
         patrolled,
         tags,
+        risk: revertRisk({
+          additions: detail.additions,
+          deletions: detail.deletions,
+          isAnon,
+          created: detail.created.length > 0,
+          tags,
+        }),
         ...detail,
       };
     }),
@@ -260,6 +270,14 @@ export async function proposeEdit(env: Env, request: Request, body: EditBody) {
   const verdict = await runFilters(env, tier, current?.raw ?? "", content);
   if (verdict.action === "disallow")
     throw new HttpError(422, verdict.message ?? "This edit was blocked by a filter.");
+
+  // 3RR: trusted tiers are exempt; everyone else's rapid re-edits to one page
+  // get the `edit-war` flag (review badge + revert-risk bump).
+  if (
+    TIER_RANK[tier] < TIER_RANK.extended &&
+    (await bumpEditWar(env, writer.name, slug))
+  )
+    verdict.tags.push("edit-war");
 
   const ctx: EditContext = {
     repo,

@@ -279,16 +279,19 @@ costs; consider salt/epoch rotation to limit long-term linkability (M5).
       lazy-loaded **Mermaid** diagrams (`` ```mermaid ``, own chunk, strict security level).
 - [ ] ⬜ P2 polish (remaining): @mention linkify, named-ref reuse, citation templates.
 
-### M5 — Autonomous editing mode (immediate publish + post-hoc moderation) 🟡
+### M5 — Autonomous editing mode (immediate publish + post-hoc moderation) ✅
 Invert the default selectively. Critical path (see `FEATURES.md` §§K–N):
 - [x] ✅ Worker **direct-commit** path → live branch; busts `meta:latest-sha`/`meta:pages` cache (live, no rebuild).
 - [x] ✅ **Trust tiers** on `ip_hash`, **derived from git history** (not a ledger): count + first-seen of commits the pseudonym authored on the branch → open/auto/extended; `trusted-editors.json` = maintainer. Covers direct commits **and merged PRs** (both are commits by the pseudonym), so PR-only contributors earn trust too — no webhook, single source of truth. KV caches stats (1 h TTL, busted on the author's own commit).
 - [x] ✅ Page protection = a `protection:` **frontmatter field** (env default when unset); a privileged page-property, gated per-field on save (can't raise above / lower from above your tier). Replaced `protection.json`+globs. TODO: `expires`, CODEOWNERS.
 - [x] ✅ Verified end-to-end: anon edit to an `open` page **published live** (no PR); flipping its `protection` rejected 403; protected pages still PR.
 - [x] ✅ AbuseFilter-style pre-publish rule pass (`filters.json`): built-in checks (blanking, added-bytes, added-link count, blocked domains) + maintainer regex rules; actions `disallow` (422) / `tag` (KV `tag:<sha>` → RecentChanges badge + PR body). Trusted tiers exempt. Pure `evaluateFilters` unit-tested.
-- [ ] ⬜ Revert-risk heuristic score on diffs; 3RR revert-churn detection.
+- [x] ✅ **Revert-risk heuristic** (`worker/src/risk.ts`): a 0–100 score per change from byte deltas + anon +
+      page-creation + tags (no extra fetch), surfaced in `/changes` → a **"high risk" badge** + **High-risk-only
+      filter** in the console. **3RR**: a per-author-per-page 24 h KV counter (`THREE_RR_MAX`, default 3) flags the
+      4th rapid edit `edit-war` (trusted tiers exempt) → review badge + risk bump. Both unit-tested.
 - [x] ✅ PR-only contributors earn tiers — solved by deriving from git history (above), no webhook needed.
-- [ ] ⬜ Consider `ip_hash` salt/epoch rotation (cap long-term linkability).
+- [ ] ⬜ (Optional hardening) `ip_hash` salt/epoch rotation to cap long-term linkability — deferred, not a blocker.
 
 ### M6 — Owner admin dashboard & governance ✅
 The sysop console for the autonomous model (see `FEATURES.md` §N). Remaining TODOs are
@@ -452,5 +455,6 @@ page identity. URL shape and the linking mechanism are **independent choices**.
 | 2026-06-06 | **Deletion is an ordinary file-delete commit; undeletion = restore a pre-deletion revision** (no separate undelete endpoint, no tombstone) | Git already retains deleted content + the path's history, so "undelete" is just the existing restore-to-revision from History — one mechanism, no dead-letter store. New-pages queue derives "created" from commit file-status `added`, no extra index |
 | 2026-06-06 | **Rights = editing `trusted-editors.json`** from the console (`/grant`/`/revoke`), not GitHub-team/CODEOWNERS API calls | The maintainer allowlist already drives `editorTier`; editing it is one committed file (git is the record, audited) and needs no extra token scope. GitHub-team/CODEOWNERS sync is a later add-on, not the primitive |
 | 2026-06-06 | **Suppression redacts server-side at read time; hard-purge stays a manual owner op** | The Worker redacts author/revision labels in `/changes`+`/history` before they leave it (stronger than client-side hiding — suppressed text never reaches page source), but it **cannot rewrite git history** via the contents API, so true purge (history rewrite + CDN purge + source PR/Discussion delete) is documented as a manual owner procedure — the one place the no-rebuild model bends |
+| 2026-06-06 | **Revert-risk is a read-time heuristic from data already on each change**, not a score stored per commit; **3RR is a tag, not a block** | Computing risk at read time (byte deltas + anon + tags) covers direct *and* PR-merged commits without the keying problem of storing `risk:<sha>` at edit time, and needs no extra fetch. 3RR flags `edit-war` rather than throttling because legit rapid edits happen — the risk score + patrol queue triage it. Both leave room for an ML model / link-churn upgrade later |
 | 2026-06-06 | Interlanguage (M8): translations are **independent pages** linked by a **symmetric, uniform frontmatter `translationKey`** (every member carries it; default-language version **optional**); **default language is configured + languageless** (bare slugs, no migration), other languages are URL-prefixed + localized (`/fr/cafe`) | Different slug/content per language ⇒ separate pages; a symmetric key (not a pointer to a canonical page) lets an article exist only in non-default languages; key-link is cheap and on-pattern (like `redirect:`); languageless default avoids migration; URL shape and link mechanism are independent choices |
 | 2026-06-06 | **Mermaid** is the first markdown plugin admitted as a dependency, but **dynamically imported** (own chunk, loaded only on pages with a `` ```mermaid `` block) and run at **strict security level** | Diagrams are high-value for a technical wiki, but the engine is ~135 kB gzip — lazy-loading keeps it off the base bundle (read-path stays light), and diagram source is user-editable content, so strict (sanitizing) mode is mandatory. The fence degrades to a code block without JS |
