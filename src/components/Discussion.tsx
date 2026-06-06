@@ -1,96 +1,33 @@
-import { createEffect, createResource, createSignal, For, Show } from "solid-js";
-import { createStore, reconcile } from "solid-js/store";
-import { isServer } from "solid-js/web";
+import { createSignal, For, Show } from "solid-js";
 import { config } from "../config";
-import {
-  type Comment,
-  createTopic,
-  getThread,
-  listTopics,
-  postReply,
-  type Thread,
-  type Topic,
-} from "../lib/comments";
+import type { Thread } from "../lib/comments";
 import { timeAgo } from "../lib/format";
 import { slugFromLocation } from "../lib/paths";
-import { useSubmit } from "../lib/solid";
+import { createThreadStore } from "../lib/thread-store";
+import { CommentView } from "./discussion/CommentView";
+import { Composer } from "./discussion/Composer";
+import { Replies, ReplyTools } from "./discussion/Replies";
+import { CommentSkeleton, TopicSkeleton } from "./discussion/skeletons";
+import type { ComposerState } from "./discussion/types";
 import { Icons } from "./Icons";
-import { ErrorNote, Status } from "./ui";
-
-type ComposerState =
-  | { mode: "topic" }
-  | { mode: "reply"; parentId: string; topicId: string }
-  | null;
+import { Status } from "./ui";
 
 export default function Discussion(props: { slug?: string }) {
   if (!config.workerUrl) return null;
 
   const slug = () => props.slug ?? slugFromLocation();
-  const [topics, { refetch: refetchTopics }] = createResource(
-    () => (isServer ? undefined : slug()),
-    listTopics,
-  );
-  // Search indexing lags discussion creation, so a just-posted topic is held
-  // locally until the search list catches up. `reconcile` keeps the identity of
-  // unchanged rows so an open thread doesn't collapse when the list refreshes.
-  const [extra, setExtra] = createSignal<Topic[]>([]);
-  const [list, setList] = createStore<Topic[]>([]);
-  createEffect(() => {
-    const fetched = topics();
-    if (fetched === undefined) return;
-    const seen = new Set(fetched.map((t) => t.id));
-    setList(
-      reconcile([...extra().filter((t) => !seen.has(t.id)), ...fetched], { key: "id" }),
-    );
-  });
+  const store = createThreadStore(slug);
 
-  const [openId, setOpenId] = createSignal<string>();
-  // Cache fetched threads so re-opening a topic is instant — without it the
-  // panel blinks back through a skeleton on every open. A cached thread does no
-  // network at all; `reconcile` keeps row identity so a post-reply refresh
-  // updates in place rather than re-rendering (and re-flashing) the whole tree.
-  const [threads, setThreads] = createStore<Record<string, Thread>>({});
-  const thread = () => {
-    const id = openId();
-    return id ? threads[id] : undefined;
-  };
-
-  async function loadThread(id: string, force = false) {
-    if (!force && threads[id]) return;
-    setThreads(id, reconcile(await getThread(id), { key: "id" }));
-  }
-  function refetchThread() {
-    const id = openId();
-    if (id) loadThread(id, true);
-  }
   const [composer, setComposer] = createSignal<ComposerState>(null);
 
   function toggle(id: string) {
     setComposer(null);
-    const next = openId() === id ? undefined : id;
-    setOpenId(next);
-    if (next) loadThread(next);
+    store.toggle(id);
   }
 
   async function submitTopic(text: string, token: string | undefined, title: string) {
-    const { id } = await createTopic(slug(), title, text, token);
-    const now = new Date().toISOString();
-    setExtra((e) => [
-      {
-        id,
-        title,
-        author: "you",
-        isAnon: true,
-        avatarUrl: null,
-        createdAt: now,
-        replyCount: 0,
-        lastAt: now,
-      },
-      ...e,
-    ]);
+    await store.submitTopic(text, token, title);
     setComposer(null);
-    refetchTopics();
-    setOpenId(id);
   }
 
   async function submitReply(
@@ -99,9 +36,8 @@ export default function Discussion(props: { slug?: string }) {
     parentId: string,
     topicId: string,
   ) {
-    await postReply(topicId, text, parentId === topicId ? undefined : parentId, token);
+    await store.submitReply(text, token, parentId, topicId);
     setComposer(null);
-    refetchThread();
   }
 
   return (
@@ -139,25 +75,26 @@ export default function Discussion(props: { slug?: string }) {
         />
       </Show>
 
-      <Show when={topics() !== undefined} fallback={<TopicSkeleton />}>
+      <Show when={store.topicsLoaded()} fallback={<TopicSkeleton />}>
         <Show
-          when={list.length > 0}
+          when={store.list.length > 0}
           fallback={<Status>No topics yet — start the discussion.</Status>}
         >
           <ul class="topic-list">
-            <For each={list}>
+            <For each={store.list}>
               {(t) => (
                 <li class="topic">
                   <button
                     type="button"
                     class="topic-summary"
-                    aria-expanded={openId() === t.id}
+                    aria-expanded={store.openId() === t.id}
                     onClick={() => toggle(t.id)}
                   >
                     <Icons.Chevron
                       class="topic-caret"
                       style={{
-                        transform: openId() === t.id ? "rotate(0)" : "rotate(-90deg)",
+                        transform:
+                          store.openId() === t.id ? "rotate(0)" : "rotate(-90deg)",
                       }}
                     />
                     <span class="topic-title">{t.title}</span>
@@ -167,9 +104,9 @@ export default function Discussion(props: { slug?: string }) {
                     </span>
                   </button>
 
-                  <Show when={openId() === t.id}>
+                  <Show when={store.openId() === t.id}>
                     <div class="thread">
-                      <Show when={thread()} fallback={<CommentSkeleton />}>
+                      <Show when={store.thread()} fallback={<CommentSkeleton />}>
                         {(data) => (
                           <>
                             <div class="thread-meta">
@@ -209,198 +146,6 @@ export default function Discussion(props: { slug?: string }) {
         </Show>
       </Show>
     </section>
-  );
-}
-
-interface TreeProps {
-  topicId: string;
-  comments: Comment[];
-  composer: ComposerState;
-  setComposer: (s: ComposerState) => void;
-  onSubmit: (
-    text: string,
-    token: string | undefined,
-    parentId: string,
-    topicId: string,
-  ) => Promise<void>;
-}
-
-function childrenOf(parent: Comment, isRoot: boolean, all: Comment[]): Comment[] {
-  const known = new Set(all.map((c) => c.id));
-  return all.filter((c) =>
-    isRoot
-      ? !c.replyTo || c.replyTo === parent.id || !known.has(c.replyTo)
-      : c.replyTo === parent.id,
-  );
-}
-
-function Replies(props: TreeProps & { parent: Comment; depth: number }) {
-  const isRoot = () => props.parent.replyTo === null && props.depth === 0;
-  const kids = () => childrenOf(props.parent, isRoot(), props.comments);
-  return (
-    <Show when={kids().length > 0}>
-      <ul class="reply-list">
-        <For each={kids()}>
-          {(c) => (
-            <li class="reply">
-              <CommentView comment={c} />
-              <ReplyTools
-                comment={c}
-                topicId={props.topicId}
-                composer={props.composer}
-                setComposer={props.setComposer}
-                onSubmit={props.onSubmit}
-              />
-              <Replies {...props} parent={c} depth={props.depth + 1} />
-            </li>
-          )}
-        </For>
-      </ul>
-    </Show>
-  );
-}
-
-function ReplyTools(props: {
-  comment: Comment;
-  topicId: string;
-  composer: ComposerState;
-  setComposer: (s: ComposerState) => void;
-  onSubmit: TreeProps["onSubmit"];
-}) {
-  const open = () =>
-    props.composer?.mode === "reply" && props.composer.parentId === props.comment.id;
-  return (
-    <>
-      <div class="comment-actions">
-        <button
-          type="button"
-          class="link-btn"
-          onClick={() =>
-            props.setComposer(
-              open()
-                ? null
-                : { mode: "reply", parentId: props.comment.id, topicId: props.topicId },
-            )
-          }
-        >
-          Reply
-        </button>
-      </div>
-      <Show when={open()}>
-        <Composer
-          submitLabel="Post reply"
-          placeholder="Write a reply…"
-          onSubmit={(text, token) =>
-            props.onSubmit(text, token, props.comment.id, props.topicId)
-          }
-          onCancel={() => props.setComposer(null)}
-        />
-      </Show>
-    </>
-  );
-}
-
-function CommentView(props: { comment: Comment; root?: boolean }) {
-  const c = () => props.comment;
-  return (
-    <div class={`comment${props.root ? " comment-root" : ""}`}>
-      <div class="comment-meta">
-        <Show when={c().avatarUrl}>
-          <img class="comment-avatar" src={c().avatarUrl ?? ""} alt="" />
-        </Show>
-        <span class="comment-author" classList={{ anon: c().isAnon }}>
-          {c().author}
-        </span>
-        <a class="comment-date" href={c().url} target="_blank" rel="noreferrer">
-          {timeAgo(c().createdAt)}
-        </a>
-      </div>
-      <div class="comment-body" innerHTML={c().bodyHtml} />
-    </div>
-  );
-}
-
-function Composer(props: {
-  submitLabel: string;
-  placeholder?: string;
-  withTitle?: boolean;
-  onSubmit: (text: string, token: string | undefined, title: string) => Promise<void>;
-  onCancel: () => void;
-}) {
-  const [title, setTitle] = createSignal("");
-  const [draft, setDraft] = createSignal("");
-  const { busy, error, setError, run } = useSubmit();
-
-  function submit() {
-    if (props.withTitle && !title().trim()) {
-      setError("Give the topic a title.");
-      return;
-    }
-    if (!draft().trim()) return;
-    // Verify under the hood — no visible bot-check widget.
-    run((tok) => props.onSubmit(draft(), tok, title().trim()));
-  }
-
-  return (
-    <div class="composer">
-      <Show when={props.withTitle}>
-        <input
-          class="input"
-          placeholder="Topic title"
-          value={title()}
-          onInput={(e) => setTitle(e.currentTarget.value)}
-        />
-      </Show>
-      <textarea
-        class="comment-input"
-        rows={3}
-        placeholder={props.placeholder ?? "Add to the discussion…"}
-        value={draft()}
-        onInput={(e) => setDraft(e.currentTarget.value)}
-      />
-      <div class="editor-actions">
-        <button
-          type="button"
-          class="btn btn-primary btn-sm"
-          disabled={busy()}
-          onClick={submit}
-        >
-          {busy() ? "Posting…" : props.submitLabel}
-        </button>
-        <button type="button" class="btn btn-ghost btn-sm" onClick={props.onCancel}>
-          Cancel
-        </button>
-      </div>
-      <ErrorNote msg={error()} />
-    </div>
-  );
-}
-
-function TopicSkeleton() {
-  return (
-    <ul class="topic-list" aria-hidden="true">
-      <For each={[0, 1, 2]}>
-        {() => (
-          <li class="topic">
-            <div class="topic-summary">
-              <span class="sk-bar skeleton" style={{ width: "40%", height: "1rem" }} />
-            </div>
-          </li>
-        )}
-      </For>
-    </ul>
-  );
-}
-
-function CommentSkeleton() {
-  return (
-    <div aria-hidden="true">
-      <span class="sk-bar skeleton" style={{ width: "8rem", height: "0.85rem" }} />
-      <div
-        class="sk-bar skeleton"
-        style={{ width: "70%", height: "0.9rem", "margin-top": "0.5rem" }}
-      />
-    </div>
   );
 }
 
