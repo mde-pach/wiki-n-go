@@ -10,6 +10,7 @@ infobox:
 kicker: Guide
 image: screenshot — read view
 protection: maintainer
+translationKey: getting-started
 tags:
   - Guides
   - Getting started

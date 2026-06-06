@@ -8,6 +8,18 @@ export function readHref(slug: string): string {
   return `${BASE}/${slug === config.homeSlug ? "" : slug}`;
 }
 
+// Non-default language codes are the reserved slug prefixes (M8): the default
+// language is languageless, so a leading non-default code marks a translation.
+const PREFIX_LANGS = new Set(
+  config.languages.map((l) => l.code).filter((c) => c !== config.defaultLang),
+);
+
+// The language of a page from its slug: a leading non-default code, else default.
+export function langOf(slug: string): string {
+  const seg = slug.split("/")[0];
+  return PREFIX_LANGS.has(seg) ? seg : config.defaultLang;
+}
+
 // Title-case the last path segment for display, e.g. `guides/getting-started`
 // → `Getting started`.
 export function prettify(slug: string): string {

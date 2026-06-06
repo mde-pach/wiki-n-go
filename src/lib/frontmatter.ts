@@ -17,6 +17,9 @@ export interface PageMeta {
   description?: string;
   // Points this page at another: the reader bounces to the target (#REDIRECT).
   redirect?: string;
+  // Groups this page with its translations in other languages (M8): a free-form
+  // shared id (convention: the default-language slug) carried by every sibling.
+  translationKey?: string;
   // Privileged property: minimum trust tier to edit this page (Worker-enforced).
   protection?: "open" | "auto" | "extended" | "maintainer";
 }

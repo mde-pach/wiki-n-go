@@ -9,11 +9,13 @@ import ThemeBoot from "../components/ThemeBoot.astro";
 import TokenCapture from "../components/TokenCapture.astro";
 import { config } from "../config";
 import { gitRevisions } from "../lib/git";
+import { translations } from "../lib/i18n";
 import {
   adminHref,
   BASE,
   categoryHref,
   changesHref,
+  langOf,
   prettify,
   readHref,
   reviewHref,
@@ -47,15 +49,24 @@ const tabs = [
 const display = title ?? prettify(slug);
 const source = `${config.contentDir}/${slug}.md`;
 const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blob/${config.branch}/${source}`;
+
+const pageLang = langOf(slug);
+const langs = translations(slug);
+const alternates = langs.filter((l) => !l.current);
 ---
 
 <!doctype html>
-<html lang="en" data-skin="wiki-n-go" data-theme="light">
+<html lang={pageLang} data-skin="wiki-n-go" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
     {description && <meta name="description" content={description} />}
+    {
+      alternates.map((l) => (
+        <link rel="alternate" hreflang={l.lang} href={new URL(readHref(l.slug), Astro.site)} />
+      ))
+    }
     <title>{display} · wiki-n-go</title>
     <ThemeBoot />
     <ClientRouter />
@@ -80,7 +91,35 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
 
       <div class="page-head">
         <div class="page-head-inner">
-          <h1 class="page-title">{display}</h1>
+          <div class="page-head-top">
+            <h1 class="page-title">{display}</h1>
+            {
+              langs.length > 1 && (
+                <details class="langbar">
+                  <summary class="langbar-toggle">
+                    <svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6">
+                      <circle cx="10" cy="10" r="7.5" />
+                      <path d="M2.5 10h15M10 2.5c2.5 2.4 2.5 12.6 0 15M10 2.5c-2.5 2.4-2.5 12.6 0 15" />
+                    </svg>
+                    <span>{langs.length} languages</span>
+                  </summary>
+                  <ul class="langbar-menu">
+                    {langs.map((l) => (
+                      <li>
+                        <a
+                          href={readHref(l.slug)}
+                          lang={l.lang}
+                          aria-current={l.current ? "page" : undefined}
+                        >
+                          {l.name}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )
+            }
+          </div>
           <div class="page-meta-slot">
             <PageMeta slug={slug} base={BASE} initial={revisions} client:load />
           </div>

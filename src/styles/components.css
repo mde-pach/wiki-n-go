@@ -428,6 +428,12 @@
   margin: 0 auto;
   padding: 1.4rem 1.25rem 0;
 }
+.page-head-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
 .page-title {
   font-family: var(--font-display);
   font-weight: var(--weight-bold);
@@ -468,6 +474,67 @@
   border: var(--border-w) solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: 1px 6px;
+}
+
+/* Interlanguage switcher (M8) — native <details>, server-rendered, no blink. */
+.langbar {
+  position: relative;
+  flex: none;
+  font-family: var(--font-ui);
+  font-size: var(--text-ui);
+}
+.langbar-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 600;
+  color: var(--color-accent);
+  padding: 0.4em 0.6em;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+.langbar-toggle::-webkit-details-marker {
+  display: none;
+}
+.langbar-toggle:hover {
+  background: var(--color-surface-sunken);
+}
+.langbar-toggle svg {
+  width: 16px;
+  height: 16px;
+}
+.langbar-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: var(--z-pop);
+  min-width: 200px;
+  max-height: 60vh;
+  overflow: auto;
+  margin: 0;
+  padding: 0.4rem;
+  list-style: none;
+  background: var(--color-surface);
+  border: var(--border-w) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+.langbar-menu a {
+  display: block;
+  padding: 0.4em 0.6em;
+  border-radius: var(--radius-sm);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+.langbar-menu a:hover {
+  background: var(--color-surface-sunken);
+  color: var(--color-accent);
+}
+.langbar-menu a[aria-current="page"] {
+  font-weight: 700;
+  color: var(--color-accent);
 }
 
 .tabbar {

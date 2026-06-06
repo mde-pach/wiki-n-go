@@ -15,4 +15,13 @@ export const config = {
   workerUrl:
     env.PUBLIC_WORKER_URL || "https://wiki-n-go.maxime-depachtere-80f.workers.dev",
   turnstileSiteKey: env.PUBLIC_TURNSTILE_SITE_KEY || "0x4AAAAAADe7QjsOFAA6Fc8O",
+  // Interlanguage (M8). The default language is languageless: its pages keep bare
+  // slugs (`/coffee`), other languages are URL-prefixed (`/fr/cafe`). The codes
+  // here double as the reserved slug prefixes that mark a page's language.
+  defaultLang: "en",
+  languages: [
+    { code: "en", name: "English" },
+    { code: "fr", name: "Français" },
+    { code: "de", name: "Deutsch" },
+  ],
 };
