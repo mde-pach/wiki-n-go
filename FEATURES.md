@@ -284,3 +284,59 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 4. **AbuseFilter-style Worker rules + per-hash rate limits** (§M) — pre-publish safety net.
 5. **RecentChanges feed + patrol queue + `noindex`-until-patrolled** (§M) — post-hoc moderation surface.
 6. **Rollback/undo/restore + `bans.json` partial blocks** (§K/§N) — fast cleanup, all in the **owner dashboard** (§N).
+
+---
+
+# PART III — Spotted-in-build backlog (2026-06-05)
+
+Items the owner caught while using the in-progress build. Type: 🐛 bug · ✨ enhancement · ❓ decision.
+Cross-refs point at the relevant A–Q row so we extend, not duplicate.
+
+## R. Rendering & SSR (no client blink)
+| # | Item | Type | St | Pri | Ref |
+|---|---|---|---|---|---|
+| R1 | **No client-side lazy loading for content.** Content/layout must arrive server-rendered — no blink, no incomplete layout while data fills in. Treat this as a hard rule for content pages. | 🐛 | ⬜ | P0 | invariant |
+| R2 | **Revision info loads client-side** → fix to render server-side (it's a content surface, not an interaction). | 🐛 | ⬜ | P0 | §F |
+| R3 | **Red link flashes blue before turning red** — link color is resolved client-side; resolve missing-target state at render so it's red on first paint. | 🐛 | ⬜ | P0 | §D |
+| R4 | **Logged-in (GitHub) state blinks on load** — personal-tools / auth UI is resolved client-side, so the header flashes signed-out → signed-in on every paint. Resolve the session at render (server-side, or from a cookie before first paint) so the correct signed-in chrome shows immediately, no blink. | 🐛 | ⬜ | P0 | §A, R1 |
+
+## S. Reading layout
+| # | Item | Type | St | Pri | Ref |
+|---|---|---|---|---|---|
+| S1 | **TOC includes the per-section `[edit]` text** from the heading; TOC entries must be the section title only. | 🐛 | ⬜ | P0 | §C |
+| S2 | **Collapsible sections** (Wikipedia-style show/hide per heading). | ✨ | ⬜ | P1 | §C |
+| S3 | **Third column (`col-info`→`Infobox.tsx`).** The custom `infobox:` mode stays; **kill the auto-generated fallback panel** (Type/Rendering/Editing/Revisions/Last-edit/Source/License) — it's platform-meta, duplicates footer §E + history §F, and its `getHistory`/`onMount` fetches cause the R2 client blink. **Decision (a):** keep facts in frontmatter, add an **inline infobox editor in the edit flow** (edit rows like the body, not raw YAML). | ✨ | ⬜ | P1 | §D, R2 |
+| S4 | **What is the breadcrumb for?** Decide its purpose or remove it. | ❓ | ⬜ | P2 | §J |
+| S5 | **Interwiki link type** — a *third* link class beside internal `[[Page]]` and plain external links: a link that resolves to an **existing Wikipedia article** so we don't maintain a page for well-covered topics. Distinct visual treatment (e.g. W badge / outbound marker) so readers see it leaves the wiki; **documented as a Wikipedia-style interwiki link**. Proposed syntax: `[[w:Title]]` / `[[wikipedia:Title]]` → `en.wikipedia.org/wiki/Title`. Ex: homepage *CDN* → Wikipedia's *Content delivery network*. Open Qs: prefix set (`w:` only, or more wikis later?) and whether to existence-check the target. | ✨ | ⬜ | P1 | §B, §D, T4 |
+| S6 | **Reading-position restore animates from the top** — on refresh the page loads at the top, then scrolls down to the saved reading position. Restore the scroll **synchronously before first paint** (no smooth-scroll) so it opens directly at the saved spot. | 🐛 | ⬜ | P1 | §C |
+| S7 | **`getting-started` shifts the column layout** — its body is too narrow to fill the content column, so the grid collapses to a different layout than other pages. The column geometry must stay **constant regardless of content width**. Likely downstream: the **info card is mispositioned** because the column widths changed (fix S7's width and the card should fall back into place). | 🐛 | ⬜ | P1 | §D, S3 |
+
+## T. Editing
+| # | Item | Type | St | Pri | Ref |
+|---|---|---|---|---|---|
+| T1 | **Hide Turnstile from the user** — keep anti-bot under the hood; on failure print an error; if not yet verified, hold the submission in a waiting state rather than exposing the widget. | 🐛/✨ | ⬜ | P0 | §G, §M |
+| T2 | **Refresh on the edit page wipes the content** — persist the draft (local/session) across reloads. | 🐛 | ⬜ | P0 | §G |
+| T3 | **Hatnote shows as raw markdown in the editor** — preview the hat correctly (rendered), don't surface it inline in the md. | 🐛 | ⬜ | P1 | §D |
+| T4 | **Help/docs pages** (own namespace): how it works, how to contribute, a markdown primer for non-technical editors, and a reference of available md plugins + their syntax — surfaced near the editor. | ✨ | ⬜ | P1 | §P (help/ ns) |
+| T5 | **More markdown plugins** — evaluate e.g. **Mermaid** for technical diagrams; list candidates. | ✨ | ⬜ | P2 | §D |
+
+## U. Talk & profiles
+| # | Item | Type | St | Pri | Ref |
+|---|---|---|---|---|---|
+| U1 | **Opening a thread blinks** — the whole component flashes before rendering/expanding; fix the mount/transition. | 🐛 | ⬜ | P1 | §I |
+| U2 | **Reactions on talk comments.** | ✨ | ⬜ | P2 | §I, §Q |
+| U3 | **Profile page** (Wikipedia user-page equivalent) — currently missing. | ✨ | ⬜ | P2 | §Q |
+
+## V. History / revisions UX
+| # | Item | Type | St | Pri | Ref |
+|---|---|---|---|---|---|
+| V1 | **Richer, friendlier revision page** — e.g. 2-column layout with rendered change view, not just a raw patch. | ✨ | ⬜ | P1 | §F |
+
+## W. Header & top-of-page chrome (Vector 2022 layout)
+Owner ref (screenshot): title left + **languages** button top-right; below, a tab strip with **Article · Discussion left-aligned** and **Read · Edit · History · Tools right-aligned** on the same row.
+
+| # | Item | Type | St | Pri | Ref |
+|---|---|---|---|---|---|
+| W1 | **Header is packed to the left** instead of spanning the bar — wordmark / search / personal-tools should distribute across the available width (justify the bar, don't bunch everything at the start). | 🐛 | ⬜ | P1 | §A |
+| W2 | **Split the tab strip like Vector 2022** — namespace tabs (**Article · Discussion**) left-aligned; view/tool actions (**Read · Edit · History · Tools**) + appearance right-aligned, same row. Today everything sits together; mirror the two-group layout. | ✨ | ⬜ | P1 | §B, §J |
+| W3 | **Interlanguage switcher** ("N languages", like Wikipedia's *209 langues*) — switch between language **versions of the same article**. Distinct from interwiki links (S5, which leave for Wikipedia): this is the same topic in another language, hosted by us. **Spiked → SPEC M8; v1 shipped** (`66e0eca`). Translations are **independent pages** linked by a low-cost frontmatter `translationKey`; **default language languageless** (bare slugs, no migration), other langs URL-prefixed + localized (`/fr/cafe`). SSR switcher + `<html lang>` + hreflang, no blink. | ✨ | 🟡 | P1 | §B, S5 |
