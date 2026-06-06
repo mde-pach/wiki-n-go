@@ -1804,6 +1804,9 @@ html[data-textsize="large"] {
   color: var(--color-add-ink);
   font-family: var(--font-ui);
 }
+.editor-reverted {
+  color: var(--color-remove-ink);
+}
 .editor-err {
   color: var(--color-remove-ink);
   font-family: var(--font-ui);

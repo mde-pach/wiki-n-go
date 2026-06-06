@@ -2,6 +2,7 @@ import { createSignal, For, Match, Show, Switch } from "solid-js";
 import { config } from "../config";
 import { useWhoami } from "../lib/solid";
 import AuditLog from "./AuditLog";
+import Automoderator from "./Automoderator";
 import Bans from "./Bans";
 import NewPages from "./NewPages";
 import Protection from "./Protection";
@@ -14,6 +15,7 @@ import { Status, ViewHead } from "./ui";
 type Panel =
   | "changes"
   | "review"
+  | "automod"
   | "newpages"
   | "bans"
   | "protection"
@@ -23,6 +25,7 @@ type Panel =
 const PANELS: { id: Panel; label: string }[] = [
   { id: "changes", label: "Recent changes" },
   { id: "review", label: "Pending review" },
+  { id: "automod", label: "Automoderator" },
   { id: "newpages", label: "New pages" },
   { id: "bans", label: "Blocks" },
   { id: "protection", label: "Protection" },
@@ -78,6 +81,9 @@ export default function Admin() {
           </Match>
           <Match when={panel() === "review"}>
             <ReviewQueue />
+          </Match>
+          <Match when={panel() === "automod"}>
+            <Automoderator />
           </Match>
           <Match when={panel() === "newpages"}>
             <NewPages />

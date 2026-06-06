@@ -6,6 +6,7 @@ export interface EditResult {
   live: boolean; // true → published straight to the live branch; false → opened a PR
   prUrl?: string; // present when live === false
   url?: string; // commit URL when live === true
+  autoReverted?: boolean; // published, then the automoderator reverted it as vandalism
 }
 
 export type Tier = "open" | "auto" | "extended" | "maintainer";

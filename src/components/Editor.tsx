@@ -294,30 +294,41 @@ export default function Editor(props: { slug?: string; initialContent?: string }
           <ErrorNote msg={error()} />
           <Show when={result()}>
             {(r) => (
-              <p class="editor-ok">
-                <Show
-                  when={r().live}
-                  fallback={
-                    <>
-                      Submitted for review —{" "}
-                      <a href={r().prUrl} target="_blank" rel="noreferrer">
-                        track its status
+              <Show
+                when={!r().autoReverted}
+                fallback={
+                  <p class="editor-ok editor-reverted" role="alert">
+                    This edit was automatically reverted as likely vandalism. If that's
+                    wrong, re-edit the page or raise it on the talk page — a maintainer
+                    can restore it.
+                  </p>
+                }
+              >
+                <p class="editor-ok">
+                  <Show
+                    when={r().live}
+                    fallback={
+                      <>
+                        Submitted for review —{" "}
+                        <a href={r().prUrl} target="_blank" rel="noreferrer">
+                          track its status
+                        </a>
+                        .
+                      </>
+                    }
+                  >
+                    Published live — <a href={cancelHref()}>view the page</a>
+                    <Show when={r().url}>
+                      {" "}
+                      ·{" "}
+                      <a href={r().url} target="_blank" rel="noreferrer">
+                        see the change
                       </a>
-                      .
-                    </>
-                  }
-                >
-                  Published live — <a href={cancelHref()}>view the page</a>
-                  <Show when={r().url}>
-                    {" "}
-                    ·{" "}
-                    <a href={r().url} target="_blank" rel="noreferrer">
-                      see the change
-                    </a>
+                    </Show>
+                    .
                   </Show>
-                  .
-                </Show>
-              </p>
+                </p>
+              </Show>
             )}
           </Show>
         </div>

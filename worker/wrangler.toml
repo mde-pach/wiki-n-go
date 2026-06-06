@@ -31,6 +31,16 @@ AUTOCONFIRM_EDITS = "10"
 AUTOCONFIRM_DAYS = "4"
 EXTENDED_EDITS = "500"
 EXTENDED_DAYS = "30"
+# Automoderator (ClueBot analog): right after an edit auto-merges, auto-revert it
+# when its revert-risk score is at/above AUTOMOD_REVERT_SCORE and the author is
+# below AUTOMOD_EXEMPT_TIER. OFF unless AUTOMOD_REVERT_SCORE is set (an unreviewed
+# auto-revert is a strong action, so opt-in). Set it well above the human-surfacing
+# line (50) — ~80 keeps the bot high-precision. AUTOMOD_REVERT_CAP bounds reverts
+# to one page per 24h so the bot can't edit-war. Reverts land as normal reversible
+# commits, recorded in audit-log.jsonl + the /admin Automoderator view.
+# AUTOMOD_REVERT_SCORE = "80"
+AUTOMOD_EXEMPT_TIER = "auto"
+AUTOMOD_REVERT_CAP = "3"
 
 # No id → Wrangler auto-provisions a namespace on first deploy (and the
 # Deploy-to-Cloudflare button creates one per install). KV here is cache-only

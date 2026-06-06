@@ -27,6 +27,10 @@ export interface Env {
   EXTENDED_DAYS?: string; // age in days for the "extended" tier (default 30)
   AUTOPATROL_TIER?: string; // min tier whose edits land pre-patrolled (default "extended")
   THREE_RR_MAX?: string; // edits to one page per author per 24h before the edit-war flag (default 3)
+  // Automoderator (auto-revert of high-confidence vandalism). Unset → OFF.
+  AUTOMOD_REVERT_SCORE?: string; // revert-risk score (0–100) at/above which the bot auto-reverts; unset = disabled
+  AUTOMOD_EXEMPT_TIER?: string; // authors at/above this tier are never auto-reverted (default "auto")
+  AUTOMOD_REVERT_CAP?: string; // max auto-reverts to one page per 24h before backing off (default 3)
   HOME_SLUG?: string; // slug treated as the home page (excluded from orphans; default "index")
   // Optional GitHub sign-in. Unset → sign-in is disabled and every path stays
   // anonymous. CLIENT_ID is public; CLIENT_SECRET + SESSION_SECRET are secrets.

@@ -1,3 +1,11 @@
+import { appendAudit } from "../audit";
+import {
+  automodActor,
+  automodExemptTier,
+  automodRevertCap,
+  automodScore,
+  decideAutoRevert,
+} from "../automod";
 import { utf8Bytes } from "../crypto";
 import { type CommitItem, gh, ghHeaders } from "../github";
 import { HttpError } from "../http";
@@ -5,6 +13,7 @@ import { resolve, type Writer } from "../identity";
 import { invalidateContent, kvGetJson, kvPutJson } from "../kv";
 import { autopatrol, bumpEditWar, runFilters } from "../moderation";
 import { commitPayload, getCurrentFile } from "../repo";
+import { revertCommit } from "../revert";
 import { revertRisk } from "../risk";
 import { loadSuppressions, makeRedactor } from "../suppression";
 import {
@@ -251,6 +260,7 @@ export interface EditOutcome {
   sha?: string;
   url?: string;
   prUrl?: string;
+  autoReverted?: boolean; // the edit published, then the automoderator reverted it
 }
 
 type Prepared = { done: EditOutcome } | { ctx: EditContext; trusted: boolean };
@@ -346,11 +356,18 @@ export async function runPublish(
     if (merged) {
       emit(0.9, "Going live");
       await finishPublish(env, ctx, pr.branch, merged.sha);
+      // Post-publish safety net. Best-effort: a failure here leaves the edit live
+      // (correct — it did publish) for a human to handle, never erroring the edit.
+      let autoReverted = false;
+      try {
+        autoReverted = await autoModerate(env, ctx, merged.sha);
+      } catch {}
       return {
-        live: true,
+        live: !autoReverted,
         sha: merged.sha,
         url: `https://github.com/${ctx.repo}/commit/${merged.sha}`,
         author: ctx.writer.name,
+        autoReverted,
       };
     }
     // Trusted but not auto-mergeable (overlapping change): leave the PR open and
@@ -460,6 +477,72 @@ async function finishPublish(
   if (ctx.verdict.tags.length)
     await env.RATE_LIMIT?.put(`tag:${sha}`, JSON.stringify(ctx.verdict.tags));
   await deleteBranch(env, ctx.repo, branch);
+}
+
+const AUTOMOD_WINDOW_S = 86_400; // per-page revert-cap window (24h), like 3RR
+
+// Merge `tag` into a commit's KV tag set (preserving any filter tags already
+// stored), so RecentChanges shows it. Read-merge, not overwrite.
+async function addTag(env: Env, sha: string, tag: string): Promise<void> {
+  if (!env.RATE_LIMIT) return;
+  const raw = await env.RATE_LIMIT.get(`tag:${sha}`);
+  const tags = raw ? (JSON.parse(raw) as string[]) : [];
+  if (tags.includes(tag)) return;
+  tags.push(tag);
+  await env.RATE_LIMIT.put(`tag:${sha}`, JSON.stringify(tags));
+}
+
+// Automoderator: right after an edit auto-merges live, score it and — if it's
+// high-confidence vandalism from an untrusted author and the per-page cap isn't
+// hit — revert it through the shared reversible rollback path. Records the action
+// (audit entry + public `auto-reverted` tag + an informative revert commit that
+// tells the contributor how to contest) for recourse. Returns whether it acted.
+async function autoModerate(env: Env, ctx: EditContext, sha: string): Promise<boolean> {
+  const threshold = automodScore(env);
+  if (threshold === null) return false; // disabled → no extra work
+
+  const detail = await changeDetail(env, sha);
+  const score = revertRisk({
+    additions: detail.additions,
+    deletions: detail.deletions,
+    isAnon: ctx.writer.isAnon,
+    created: detail.created.length > 0,
+    tags: ctx.verdict.tags,
+  });
+  const capKey = `automod:${ctx.slug}`;
+  const pageReverts = Number.parseInt((await env.RATE_LIMIT?.get(capKey)) ?? "0", 10);
+  const decision = decideAutoRevert({
+    score,
+    threshold,
+    tier: ctx.tier,
+    exemptTier: automodExemptTier(env),
+    pageReverts,
+    cap: automodRevertCap(env),
+  });
+  if (!decision.revert) return false;
+
+  const actor = automodActor();
+  await revertCommit(
+    env,
+    sha,
+    actor,
+    `Auto-revert ${sha.slice(0, 7)} (${decision.reason}). ` +
+      "False positive? Re-edit the page or raise it on the talk page.",
+  );
+  await env.RATE_LIMIT?.put(capKey, String(pageReverts + 1), {
+    expirationTtl: AUTOMOD_WINDOW_S,
+  });
+  await addTag(env, sha, "auto-reverted");
+  await appendAudit(
+    env,
+    ctx.repo,
+    actor.name,
+    actor.email,
+    "auto-revert",
+    ctx.slug,
+    `risk ${score} · ${sha.slice(0, 7)} · ${ctx.writer.name}`,
+  );
+  return true;
 }
 
 // Squash-merge a PR. Returns the new commit, or null when GitHub reports it
