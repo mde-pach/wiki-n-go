@@ -34,6 +34,25 @@ yet, like [[example draft]], to see a red link you can create.
 See [[getting-started]] for the next steps — or open a page that doesn't exist
 yet, like [[example draft]], to see a red link you can create.
 
+## How it does ?
+
+- Content lives as Markdown in a GitHub repo (the database).
+- The site (this interface) fetches it from the [[w:Content delivery network|CDN]],
+  pinned to the latest commit SHA, and renders it client-side.
+- Soon: edit **in this site** with Wikipedia-level friction — no account, no
+  token.
+
+See [[getting-started]] for the next steps — or open a page that doesn't exist
+yet, like [[example draft]], to see a red link you can create.
+
+- Content lives as Markdown in a GitHub repo (the database).
+- The site (this interface) fetches it from the [[w:Content delivery network|CDN]],
+  pinned to the latest commit SHA, and renders it client-side.
+- Soon: edit **in this site** with Wikipedia-level friction — no account, no
+  token.
+
+## How it ends ?
+
 - Content lives as Markdown in a GitHub repo (the database).
 - The site (this interface) fetches it from the [[w:Content delivery network|CDN]],
   pinned to the latest commit SHA, and renders it client-side.
