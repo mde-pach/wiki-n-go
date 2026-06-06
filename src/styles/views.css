@@ -1,5 +1,6 @@
 /* Shared inner width for non-read views */
 .view-wrap {
+  width: 100%;
   max-width: 1320px;
   margin: 0 auto;
   padding: 1.6rem 1.25rem 3rem;

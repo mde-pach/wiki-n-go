@@ -681,6 +681,11 @@
 
 /* ---- Read layout grid ---------------------------------------------------- */
 .read-grid {
+  /* `.app` is a flex column; `margin: 0 auto` alone would cancel the default
+     cross-axis stretch and shrink this to content width, so `col-main`'s 1fr
+     track would track the content (S7). `width: 100%` keeps the grid filling
+     the container up to max-width → constant column geometry on every page. */
+  width: 100%;
   max-width: 1340px;
   margin: 0 auto;
   padding: 1.6rem 1.25rem 3rem;
