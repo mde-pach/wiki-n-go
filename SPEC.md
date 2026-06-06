@@ -304,8 +304,10 @@ Read-time reports + git-native operations (see `FEATURES.md` §§O–P):
       **Redirects (broken/double)** · AllPages · MostLinked · Statistics · Random. (RecentChanges lives
       at `/changes`.)
 - [x] ✅ **Redirects**: `redirect:` frontmatter bounces the reader (`#REDIRECT`) with a "Redirected from"
-      note + `?redirect=no` escape; broken/double redirects flagged from the graph. TODO: move/rename
-      (`git mv` + redirect stub), merge/split, drafts, creation wizard.
+      note + `?redirect=no` escape; broken/double redirects flagged from the graph.
+- [x] ✅ **Move/rename**: Worker `POST /move` copies the page to the new slug and leaves a redirect stub
+      at the old one (gated to whoever may edit it); `/move?page=` form, linked from PageInfo. TODO:
+      merge/split, drafts, creation wizard.
 - [x] ✅ **Short descriptions** (`description:` frontmatter → `<meta description>`, hover-preview text)
       and **permalink-by-revision** (`?rev=<sha>` renders the page from jsDelivr@sha with an
       "old revision" banner; History rows link to it). TODO: **Citoid-style auto-cite** (URL/DOI/ISBN).

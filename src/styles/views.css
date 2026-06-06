@@ -1137,3 +1137,19 @@
   font-family: var(--font-ui);
   font-size: var(--text-sm);
 }
+
+/* Move / rename form */
+.move-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  max-width: 32rem;
+}
+.move-form .field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}

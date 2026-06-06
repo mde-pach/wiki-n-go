@@ -45,6 +45,13 @@ interface EditBody {
   token?: unknown;
 }
 
+interface MoveBody {
+  from?: unknown;
+  to?: unknown;
+  summary?: unknown;
+  token?: unknown;
+}
+
 interface TopicBody {
   slug?: unknown;
   title?: unknown;
@@ -112,6 +119,8 @@ export default {
       "GET /auth/callback": () => authCallback(env, url),
       "POST /edit": async () =>
         proposeEdit(env, request, (await request.json()) as EditBody),
+      "POST /move": async () =>
+        movePage(env, request, (await request.json()) as MoveBody),
       "POST /patrol": async () =>
         patrol(env, request, (await request.json()) as PatrolBody),
       "POST /review": async () =>
@@ -871,6 +880,68 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
   });
 
   return { live: false, prUrl: pr.html_url, author };
+}
+
+// Move/rename a page: copy it to the new slug and leave a redirect stub behind,
+// so inbound links keep working (Wikipedia's move-leaves-a-redirect). Gated to
+// whoever may edit the source page; commits directly (no PR fallback).
+async function movePage(env: Env, request: Request, body: MoveBody) {
+  const from = String(body.from ?? "");
+  const to = String(body.to ?? "");
+  const summary = body.summary ? String(body.summary) : "";
+  if (!SLUG_RE.test(from) || from.includes(".."))
+    throw new HttpError(400, "Invalid source slug.");
+  if (!SLUG_RE.test(to) || to.includes(".."))
+    throw new HttpError(400, "Invalid target slug.");
+  if (from === to) throw new HttpError(400, "Source and target are the same.");
+
+  const writer = await resolveWriter(env, request, body.token);
+  const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
+  const fromPath = `${env.CONTENT_DIR}/${from}.md`;
+  const toPath = `${env.CONTENT_DIR}/${to}.md`;
+
+  const [tier, current, target] = await Promise.all([
+    editorTier(env, writer.name, writer.email),
+    getCurrentFile(env, repo, fromPath),
+    getCurrentFile(env, repo, toPath),
+  ]);
+  if (!current) throw new HttpError(404, "Page not found.");
+  if (target) throw new HttpError(422, "A page already exists at the target.");
+  const required = pageTier(env, frontmatter(current.raw));
+  if (TIER_RANK[tier] < TIER_RANK[required])
+    throw new HttpError(403, `Moving this page requires ${required} access.`);
+
+  const author = { name: writer.name, email: writer.email };
+  const committer = { name: `${env.REPO_NAME} bot`, email: "bot@anon.invalid" };
+
+  await gh(env, `/repos/${repo}/contents/${toPath}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      message: summary || `Move ${from} → ${to}`,
+      content: toBase64(current.raw),
+      branch: env.BRANCH,
+      author,
+      committer,
+    }),
+  });
+  const stub = `---\nredirect: ${to}\n---\n\n#REDIRECT [[${to}]]\n`;
+  await gh(env, `/repos/${repo}/contents/${fromPath}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      message: `Redirect ${from} → ${to}`,
+      content: toBase64(stub),
+      branch: env.BRANCH,
+      sha: current.sha,
+      author,
+      committer,
+    }),
+  });
+
+  await env.RATE_LIMIT?.delete("meta:latest-sha");
+  await env.RATE_LIMIT?.delete("meta:pages");
+  await env.RATE_LIMIT?.delete("meta:index");
+  await env.RATE_LIMIT?.delete(`trust:${writer.name}`);
+  return { ok: true, from, to };
 }
 
 function ghHeaders(env: Env): Record<string, string> {

@@ -175,6 +175,7 @@ export default function Special() {
                 <p class="sp-info-links">
                   <a href={readHref(page())}>Read</a> ·{" "}
                   <a href={`${BASE}/history/${page()}`}>History</a> ·{" "}
+                  <a href={`${BASE}/move?page=${page()}`}>Move/rename</a> ·{" "}
                   <a
                     href={`https://github.com/${config.repoOwner}/${config.repoName}/blob/${config.branch}/${config.contentDir}/${page()}.md`}
                     target="_blank"
