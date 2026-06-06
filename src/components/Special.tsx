@@ -79,6 +79,9 @@ export default function Special() {
         <button type="button" class="sp-tab sp-random" onClick={randomPage}>
           Random page ↗
         </button>
+        <a class="sp-tab sp-random" href={`${BASE}/cite`}>
+          Cite a source ↗
+        </a>
       </nav>
 
       <Show

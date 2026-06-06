@@ -1,0 +1,58 @@
+---
+import "../styles/app.css";
+import AuthButton from "../components/AuthButton.tsx";
+import Cite from "../components/Cite.tsx";
+import Search from "../components/Search.tsx";
+import { BASE } from "../lib/paths";
+
+const home = `${BASE}/`;
+---
+
+<!doctype html>
+<html lang="en" data-skin="wiki-n-go" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cite a source · wiki-n-go</title>
+    <script is:inline>
+      (() => {
+        const skins = ["wiki-n-go", "wiki"];
+        const d = document.documentElement;
+        const saved = localStorage.getItem("wng-skin");
+        d.dataset.skin = skins.includes(saved) ? saved : "wiki-n-go";
+        const pref = localStorage.getItem("wng-theme") || "light";
+        d.dataset.theme =
+          pref === "dark" ||
+          (pref === "auto" && matchMedia("(prefers-color-scheme: dark)").matches)
+            ? "dark"
+            : "light";
+        d.dataset.width = localStorage.getItem("wng-width") || "standard";
+        d.dataset.textsize = localStorage.getItem("wng-textsize") || "standard";
+        const ready = () => d.classList.add("ready");
+        if (document.readyState === "complete") ready();
+        else addEventListener("load", ready, { once: true });
+      })();
+    </script>
+  </head>
+  <body>
+    <div class="app">
+      <a class="skip-link" href="#main">Skip to content</a>
+      <header class="header">
+        <div class="header-inner">
+          <a class="wordmark" href={home}>
+            <span>wiki</span><span class="wm-accent">-n-</span><span>go</span><span class="wm-dot"></span>
+            <span class="wordmark-sub">the open reference</span>
+          </a>
+          <Search client:load />
+          <div class="header-actions">
+            <AuthButton client:load />
+          </div>
+        </div>
+      </header>
+
+      <main id="main" class="view-wrap">
+        <Cite client:load />
+      </main>
+    </div>
+  </body>
+</html>
