@@ -9,7 +9,7 @@ import { clearDraft, loadDraft, persistDraft } from "../lib/draft";
 import { findSection } from "../lib/editor-section";
 import { splitFrontmatter, withFrontmatter } from "../lib/frontmatter";
 import { renderMarkdown } from "../lib/markdown";
-import { prettify, readHref, slugFromLocation } from "../lib/paths";
+import { prettify, readHref, slugFromLocation, userLogin } from "../lib/paths";
 import { useSubmit, useWhoami } from "../lib/solid";
 import { templateById } from "../lib/templates";
 import { errMessage } from "../lib/util";
@@ -49,6 +49,21 @@ export default function Editor(props: { slug?: string; initialContent?: string }
 
   const { busy, error, setError, run, mount } = useSubmit();
   const content = () => withFrontmatter(assemble(extra(), fields), body());
+
+  // A `user/<login>` profile is editable only by its owner (mirrors the Worker
+  // gate — not even maintainers edit profile content), so don't show the form to
+  // anyone else; they'd only hit a 403 on save. `loading` while whoami is in
+  // flight avoids flashing the editor before we know who they are.
+  const profileOwner = () => userLogin(slug());
+  const editGate = (): "ok" | "loading" | "denied" => {
+    const owner = profileOwner();
+    if (!owner) return "ok";
+    const w = who();
+    if (!w) return "loading";
+    return !w.isAnon && w.author.toLowerCase() === owner.toLowerCase()
+      ? "ok"
+      : "denied";
+  };
 
   function applyDocument(doc: string) {
     const s = splitFrontmatter(doc);
@@ -187,188 +202,213 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   }
 
   return (
-    <div>
-      <ViewHead
-        title={
-          <>
-            {isNew() ? "Creating" : "Editing"} “{prettify(slug())}”
-          </>
-        }
-        sub="Anyone can edit — no account needed. Trusted edits publish immediately; others are submitted for review and go live once a maintainer approves."
-      />
-
-      <PageProperties
-        fields={fields}
-        setField={(k, v) => setFields(k, v)}
-        tier={who()?.tier}
-      />
-
-      <div class="editor-shell">
-        <div class="editor-pane">
-          <div class="pane-bar">
-            <span class="pane-name">Markdown</span>
-            <MarkdownToolbar wrap={wrap} prefixLine={prefixLine} />
-          </div>
-          <textarea
-            ref={ta}
-            class="editor-textarea"
-            rows={20}
-            value={body()}
-            placeholder="Write Markdown…"
-            onInput={(e) => setBody(e.currentTarget.value)}
-          />
-        </div>
-
-        <div class="preview-pane">
-          <div class="pane-bar">
-            <span class="live-dot" />
-            <span class="pane-name">Preview</span>
-          </div>
-          <div class="preview-scroll prose" innerHTML={preview()} />
-        </div>
-      </div>
-
-      <div class="edit-sidebar" style={{ "margin-top": "1.1rem" }}>
-        <div class="panel">
-          <h3>Publish your change</h3>
-          <label class="field-label" for="edit-summary">
-            Edit summary
-          </label>
-          <input
-            id="edit-summary"
-            class="input"
-            value={summary()}
-            placeholder="Briefly describe your change"
-            onInput={(e) => setSummary(e.currentTarget.value)}
-          />
-          <div class="attribution-row" style={{ "margin-top": "0.8rem" }}>
-            Signed as{" "}
-            <span class="pseudonym">{who()?.author ?? "anon · your IP, hashed"}</span>
-            <Show when={who()}>
-              {(w) => <span class="tier-badge"> · {w().tier}</span>}
-            </Show>
-          </div>
-          <Show when={reverting()}>
-            {(rev) => (
-              <p class="editor-hint">
-                Reverting to revision <code>{rev()}</code> — review the diff before you
-                publish.
-              </p>
-            )}
-          </Show>
-          <Show when={restored()}>
-            <p class="editor-hint">Restored your unsaved draft from this device.</p>
-          </Show>
-          <Show when={config.turnstileSiteKey}>
-            <div class="editor-widget" ref={(el) => mount?.(el)} />
-          </Show>
-          <div class="editor-actions" style={{ "margin-top": "0.9rem" }}>
-            <button
-              type="button"
-              class="btn btn-primary"
-              disabled={busy() || !body().trim()}
-              onClick={openConfirm}
-            >
-              Publish…
-            </button>
-            <a class="btn btn-ghost" href={cancelHref()}>
-              Cancel
-            </a>
-          </div>
-          <Show when={busy() && progress()}>
-            {(p) => (
-              <div class="publish-progress" role="status" aria-live="polite">
-                <div class="publish-progress-head">
-                  <span>{p().label}…</span>
-                  <span class="mono">{Math.round(p().progress * 100)}%</span>
-                </div>
-                <div class="publish-progress-track">
-                  <div
-                    class="publish-progress-fill"
-                    style={{ width: `${Math.max(4, p().progress * 100)}%` }}
-                  />
-                </div>
-              </div>
-            )}
-          </Show>
-          <ErrorNote msg={error()} />
-          <Show when={result()}>
-            {(r) => (
-              <Show
-                when={!r().autoReverted}
-                fallback={
-                  <p class="editor-ok editor-reverted" role="alert">
-                    This edit was automatically reverted as likely vandalism. If that's
-                    wrong, re-edit the page or raise it on the talk page — a maintainer
-                    can restore it.
-                  </p>
-                }
-              >
-                <p class="editor-ok">
-                  <Show
-                    when={r().live}
-                    fallback={
-                      <>
-                        Submitted for review —{" "}
-                        <a href={r().prUrl} target="_blank" rel="noreferrer">
-                          track its status
-                        </a>
-                        .
-                      </>
-                    }
-                  >
-                    Published live — <a href={cancelHref()}>view the page</a>
-                    <Show when={r().url}>
-                      {" "}
-                      ·{" "}
-                      <a href={r().url} target="_blank" rel="noreferrer">
-                        see the change
-                      </a>
-                    </Show>
-                    .
-                  </Show>
-                </p>
-              </Show>
-            )}
-          </Show>
-        </div>
-      </div>
-
-      <Show when={modal()}>
-        <ConfirmDialog
-          title="Submit this change"
-          subtitle="Depending on your trust level and the page, this either publishes immediately or is submitted for review."
-          wide
-          body={
+    <Show
+      when={editGate() === "ok"}
+      fallback={<EditGate state={editGate()} slug={slug()} />}
+    >
+      <div>
+        <ViewHead
+          title={
             <>
-              <p>
-                Summary: <strong>{summary() || "(none)"}</strong>
-              </p>
-              <p>
-                Size:{" "}
-                <span class="mono">
-                  {original().length} → {content().length} chars (
-                  {delta() >= 0 ? "+" : ""}
-                  {delta()})
-                </span>
-              </p>
-              <p class="field-label" style={{ "margin-bottom": "0.4rem" }}>
-                Changes
-              </p>
-              <DiffView
-                lines={previewDiff()}
-                a={isNew() ? "(new page)" : "current"}
-                b="your edit"
-                initialMode="unified"
-              />
+              {isNew() ? "Creating" : "Editing"} “{prettify(slug())}”
             </>
           }
-          confirmLabel={busy() ? "Submitting…" : "Submit change"}
-          cancelLabel="Back"
-          busy={busy()}
-          onConfirm={confirmSubmit}
-          onCancel={() => setModal(false)}
+          sub="Anyone can edit — no account needed. Trusted edits publish immediately; others are submitted for review and go live once a maintainer approves."
         />
+
+        <PageProperties
+          fields={fields}
+          setField={(k, v) => setFields(k, v)}
+          tier={who()?.tier}
+        />
+
+        <div class="editor-shell">
+          <div class="editor-pane">
+            <div class="pane-bar">
+              <span class="pane-name">Markdown</span>
+              <MarkdownToolbar wrap={wrap} prefixLine={prefixLine} />
+            </div>
+            <textarea
+              ref={ta}
+              class="editor-textarea"
+              rows={20}
+              value={body()}
+              placeholder="Write Markdown…"
+              onInput={(e) => setBody(e.currentTarget.value)}
+            />
+          </div>
+
+          <div class="preview-pane">
+            <div class="pane-bar">
+              <span class="live-dot" />
+              <span class="pane-name">Preview</span>
+            </div>
+            <div class="preview-scroll prose" innerHTML={preview()} />
+          </div>
+        </div>
+
+        <div class="edit-sidebar" style={{ "margin-top": "1.1rem" }}>
+          <div class="panel">
+            <h3>Publish your change</h3>
+            <label class="field-label" for="edit-summary">
+              Edit summary
+            </label>
+            <input
+              id="edit-summary"
+              class="input"
+              value={summary()}
+              placeholder="Briefly describe your change"
+              onInput={(e) => setSummary(e.currentTarget.value)}
+            />
+            <div class="attribution-row" style={{ "margin-top": "0.8rem" }}>
+              Signed as{" "}
+              <span class="pseudonym">{who()?.author ?? "anon · your IP, hashed"}</span>
+              <Show when={who()}>
+                {(w) => <span class="tier-badge"> · {w().tier}</span>}
+              </Show>
+            </div>
+            <Show when={reverting()}>
+              {(rev) => (
+                <p class="editor-hint">
+                  Reverting to revision <code>{rev()}</code> — review the diff before
+                  you publish.
+                </p>
+              )}
+            </Show>
+            <Show when={restored()}>
+              <p class="editor-hint">Restored your unsaved draft from this device.</p>
+            </Show>
+            <Show when={config.turnstileSiteKey}>
+              <div class="editor-widget" ref={(el) => mount?.(el)} />
+            </Show>
+            <div class="editor-actions" style={{ "margin-top": "0.9rem" }}>
+              <button
+                type="button"
+                class="btn btn-primary"
+                disabled={busy() || !body().trim()}
+                onClick={openConfirm}
+              >
+                Publish…
+              </button>
+              <a class="btn btn-ghost" href={cancelHref()}>
+                Cancel
+              </a>
+            </div>
+            <Show when={busy() && progress()}>
+              {(p) => (
+                <div class="publish-progress" role="status" aria-live="polite">
+                  <div class="publish-progress-head">
+                    <span>{p().label}…</span>
+                    <span class="mono">{Math.round(p().progress * 100)}%</span>
+                  </div>
+                  <div class="publish-progress-track">
+                    <div
+                      class="publish-progress-fill"
+                      style={{ width: `${Math.max(4, p().progress * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </Show>
+            <ErrorNote msg={error()} />
+            <Show when={result()}>
+              {(r) => (
+                <Show
+                  when={!r().autoReverted}
+                  fallback={
+                    <p class="editor-ok editor-reverted" role="alert">
+                      This edit was automatically reverted as likely vandalism. If
+                      that's wrong, re-edit the page or raise it on the talk page — a
+                      maintainer can restore it.
+                    </p>
+                  }
+                >
+                  <p class="editor-ok">
+                    <Show
+                      when={r().live}
+                      fallback={
+                        <>
+                          Submitted for review —{" "}
+                          <a href={r().prUrl} target="_blank" rel="noreferrer">
+                            track its status
+                          </a>
+                          .
+                        </>
+                      }
+                    >
+                      Published live — <a href={cancelHref()}>view the page</a>
+                      <Show when={r().url}>
+                        {" "}
+                        ·{" "}
+                        <a href={r().url} target="_blank" rel="noreferrer">
+                          see the change
+                        </a>
+                      </Show>
+                      .
+                    </Show>
+                  </p>
+                </Show>
+              )}
+            </Show>
+          </div>
+        </div>
+
+        <Show when={modal()}>
+          <ConfirmDialog
+            title="Submit this change"
+            subtitle="Depending on your trust level and the page, this either publishes immediately or is submitted for review."
+            wide
+            body={
+              <>
+                <p>
+                  Summary: <strong>{summary() || "(none)"}</strong>
+                </p>
+                <p>
+                  Size:{" "}
+                  <span class="mono">
+                    {original().length} → {content().length} chars (
+                    {delta() >= 0 ? "+" : ""}
+                    {delta()})
+                  </span>
+                </p>
+                <p class="field-label" style={{ "margin-bottom": "0.4rem" }}>
+                  Changes
+                </p>
+                <DiffView
+                  lines={previewDiff()}
+                  a={isNew() ? "(new page)" : "current"}
+                  b="your edit"
+                  initialMode="unified"
+                />
+              </>
+            }
+            confirmLabel={busy() ? "Submitting…" : "Submit change"}
+            cancelLabel="Back"
+            busy={busy()}
+            onConfirm={confirmSubmit}
+            onCancel={() => setModal(false)}
+          />
+        </Show>
+      </div>
+    </Show>
+  );
+}
+
+// Shown instead of the editor when the current user may not edit a profile page.
+function EditGate(props: { state: "loading" | "denied"; slug: string }) {
+  const owner = () => userLogin(props.slug) ?? "";
+  return (
+    <div class="view-wrap">
+      <Show
+        when={props.state === "denied"}
+        fallback={<p class="wiki-status">Checking permissions…</p>}
+      >
+        <ViewHead title="Profile page" />
+        <p class="wiki-status">
+          This is <span class="mono">@{owner()}</span>'s profile page. Only{" "}
+          <span class="mono">@{owner()}</span> can edit it, signed in with GitHub.{" "}
+          <a href={readHref(props.slug)}>Back to the page</a>.
+        </p>
       </Show>
     </div>
   );
