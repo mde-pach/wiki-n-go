@@ -289,10 +289,14 @@ export default function Editor(props: { slug?: string; initialContent?: string }
                     </>
                   }
                 >
-                  Published live — <a href={cancelHref()}>view the page</a> ·{" "}
-                  <a href={r().url} target="_blank" rel="noreferrer">
-                    see the change
-                  </a>
+                  Published live — <a href={cancelHref()}>view the page</a>
+                  <Show when={r().url}>
+                    {" "}
+                    ·{" "}
+                    <a href={r().url} target="_blank" rel="noreferrer">
+                      see the change
+                    </a>
+                  </Show>
                   .
                 </Show>
               </p>

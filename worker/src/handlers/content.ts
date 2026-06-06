@@ -263,6 +263,17 @@ export async function proposeEdit(env: Env, request: Request, body: EditBody) {
     editorTier(env, writer.name, writer.email),
     getCurrentFile(env, repo, path),
   ]);
+  // Idempotent no-op: the live page already holds exactly this content — e.g. a
+  // prior attempt merged but its bookkeeping failed and the user resubmitted, or
+  // a submit with no actual change. Finish the (idempotent) bookkeeping, clean up
+  // any leftover branch, and report success without opening an empty PR.
+  if (current && current.raw === content) {
+    await invalidateContent(env, writer.name, { keepIndex: true });
+    await updateIndexEntry(env, slug, content);
+    await deleteBranch(env, repo, editBranch(writer, slug));
+    return { live: true, author: writer.name };
+  }
+
   const oldMeta = current ? frontmatter(current.raw) : {};
   enforceFieldPermissions(env, tier, oldMeta, frontmatter(content));
   const required = pageTier(env, oldMeta);
@@ -290,55 +301,96 @@ export async function proposeEdit(env: Env, request: Request, body: EditBody) {
     current,
     verdict,
   };
+
   // Every edit becomes a PR; trust only decides whether it's merged now or waits
   // for review. So git's 3-way merge is the single conflict detector for both
-  // direct and reviewed publishes — no separate base-SHA path.
-  const pr = await openEditPr(env, ctx);
+  // paths. Publishing is treated as one atomic operation: if the merge or its
+  // bookkeeping can't complete, we throw rather than report a half-done success —
+  // the deterministic branch (see openOrReusePr) makes a resubmit converge.
+  const pr = await openOrReusePr(env, ctx);
   if (TIER_RANK[tier] >= TIER_RANK[required]) {
-    const merged = await autoMerge(env, ctx, pr);
-    if (merged)
+    const merged = await mergePr(env, repo, pr.number, summary || `Edit ${slug}`);
+    if (merged) {
+      await finishPublish(env, ctx, pr.branch, merged.sha);
       return {
         live: true,
         sha: merged.sha,
         url: `https://github.com/${repo}/commit/${merged.sha}`,
         author: writer.name,
       };
+    }
+    // Trusted but not auto-mergeable (overlapping change): leave the PR open and
+    // let it fall into the review queue — an expected outcome, not an error.
   }
   return { live: false, prUrl: pr.htmlUrl, author: writer.name };
 }
 
-function editCommit(env: Env, ctx: EditContext, branch: string): string {
+// One branch per author+slug (slug slashes kept so they can't collide), so all of
+// one editor's pending changes to a page live in a single PR — and a retry after
+// a partial failure reconciles that branch/PR instead of stacking a duplicate.
+function editBranch(writer: Writer, slug: string): string {
+  return `${writer.isAnon ? writer.name : `gh-${writer.name}`}/${slug}`;
+}
+
+function editCommit(env: Env, ctx: EditContext, branch: string, sha?: string): string {
   return commitPayload(env, {
     message: ctx.summary || `Edit ${ctx.slug}`,
     content: ctx.content,
     branch,
-    sha: ctx.current?.sha,
+    sha,
     author: { name: ctx.writer.name, email: ctx.writer.email },
   });
 }
 
-// Open a branch + commit + PR for the edit. The branch prefix carries the author
-// so the in-UI review queue can attribute it (see refIdentity).
-async function openEditPr(
+async function deleteBranch(env: Env, repo: string, branch: string): Promise<void> {
+  await gh(env, `/repos/${repo}/git/refs/heads/${branch}`, {
+    method: "DELETE",
+    allow404: true,
+  });
+}
+
+// Commit the edit to the author's deterministic branch (creating it if absent,
+// updating it if a prior edit/attempt left it) and return that branch's open PR,
+// opening one only if none exists yet. The branch prefix carries the author so
+// the review queue can attribute it (see refIdentity).
+async function openOrReusePr(
   env: Env,
   ctx: EditContext,
 ): Promise<{ number: number; branch: string; htmlUrl: string }> {
-  const { repo, path, slug, summary, writer, verdict } = ctx;
+  const { repo, path, slug, summary, writer, current, verdict } = ctx;
   const author = writer.name;
-  const prefix = writer.isAnon ? writer.name : `gh-${writer.name}`;
-  const branch = `${prefix}/${slug.replace(/\//g, "-")}-${crypto.randomUUID().slice(0, 8)}`;
-  const base = await gh<{ object: { sha: string } }>(
+  const branch = editBranch(writer, slug);
+
+  const ref = await gh<{ object: { sha: string } } | undefined>(
     env,
-    `/repos/${repo}/git/ref/heads/${env.BRANCH}`,
+    `/repos/${repo}/git/ref/heads/${branch}`,
+    { allow404: true },
   );
-  await gh(env, `/repos/${repo}/git/refs`, {
-    method: "POST",
-    body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: base.object.sha }),
-  });
+  let fileSha: string | undefined;
+  if (ref) {
+    fileSha = (await getCurrentFile(env, repo, path, branch))?.sha;
+  } else {
+    const base = await gh<{ object: { sha: string } }>(
+      env,
+      `/repos/${repo}/git/ref/heads/${env.BRANCH}`,
+    );
+    await gh(env, `/repos/${repo}/git/refs`, {
+      method: "POST",
+      body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: base.object.sha }),
+    });
+    fileSha = current?.sha; // fresh branch tracks BRANCH, so the file sha matches
+  }
   await gh(env, `/repos/${repo}/contents/${path}`, {
     method: "PUT",
-    body: editCommit(env, ctx, branch),
+    body: editCommit(env, ctx, branch, fileSha),
   });
+
+  const open = await gh<{ number: number; html_url: string }[]>(
+    env,
+    `/repos/${repo}/pulls?head=${env.REPO_OWNER}:${branch}&state=open`,
+  );
+  if (open.length) return { number: open[0].number, branch, htmlUrl: open[0].html_url };
+
   const pr = await gh<{ number: number; html_url: string }>(
     env,
     `/repos/${repo}/pulls`,
@@ -359,27 +411,21 @@ async function openEditPr(
   return { number: pr.number, branch, htmlUrl: pr.html_url };
 }
 
-// Trusted edit: squash-merge immediately (the same path a maintainer's manual
-// merge takes), then do the post-publish bookkeeping. A non-mergeable PR is left
-// open and falls into the review queue for a human to resolve.
-async function autoMerge(
+// Post-merge bookkeeping for a clean auto-merge. Every step is idempotent, so a
+// resubmit that re-reaches it (via the no-op path) after a partial failure
+// converges. The branch delete is last — purely cosmetic cleanup.
+async function finishPublish(
   env: Env,
   ctx: EditContext,
-  pr: { number: number; branch: string },
-): Promise<{ sha: string } | null> {
-  const { repo, slug, content, writer, tier, verdict } = ctx;
-  const merged = await mergePr(env, repo, pr.number, ctx.summary || `Edit ${slug}`);
-  if (!merged) return null;
-  await gh(env, `/repos/${repo}/git/refs/heads/${pr.branch}`, {
-    method: "DELETE",
-    allow404: true,
-  });
-  await invalidateContent(env, writer.name, { keepIndex: true });
-  await updateIndexEntry(env, slug, content);
-  await autopatrol(env, tier, merged.sha);
-  if (verdict.tags.length)
-    await env.RATE_LIMIT?.put(`tag:${merged.sha}`, JSON.stringify(verdict.tags));
-  return merged;
+  branch: string,
+  sha: string,
+): Promise<void> {
+  await invalidateContent(env, ctx.writer.name, { keepIndex: true });
+  await updateIndexEntry(env, ctx.slug, ctx.content);
+  await autopatrol(env, ctx.tier, sha);
+  if (ctx.verdict.tags.length)
+    await env.RATE_LIMIT?.put(`tag:${sha}`, JSON.stringify(ctx.verdict.tags));
+  await deleteBranch(env, ctx.repo, branch);
 }
 
 // Squash-merge a PR. Returns the new commit, or null when GitHub reports it

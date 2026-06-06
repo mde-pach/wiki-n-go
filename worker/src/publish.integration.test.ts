@@ -17,6 +17,8 @@ const calls: { method: string; url: string }[] = [];
 interface Opts {
   files?: Record<string, string>; // path (no repo prefix) → raw content
   mergeable?: boolean; // does PUT …/merge succeed (default true)
+  branchExists?: boolean; // does the author's deterministic branch already exist
+  existingPr?: boolean; // is there already an open PR for that branch
 }
 
 function stubGitHub(o: Opts = {}) {
@@ -31,13 +33,22 @@ function stubGitHub(o: Opts = {}) {
       return mergeable
         ? Response.json({ sha: "mergesha", merged: true })
         : new Response("not mergeable", { status: 405 });
-    if (url.endsWith("/pulls"))
+    if (url.includes("/pulls?") && method === "GET")
+      return Response.json(
+        o.existingPr ? [{ number: 7, html_url: "https://pr.example/7" }] : [],
+      );
+    if (url.endsWith("/pulls") && method === "POST")
       return Response.json({ number: 7, html_url: "https://pr.example/7" });
-    if (url.includes("/git/refs") && method === "POST") return Response.json({});
+    if (url.endsWith("/git/refs") && method === "POST") return Response.json({});
     if (url.includes("/git/refs/heads/") && method === "DELETE")
       return new Response(null, { status: 204 });
-    if (url.includes("/git/ref/heads/"))
-      return Response.json({ object: { sha: "basesha" } });
+    if (url.includes("/git/ref/heads/")) {
+      if (url.endsWith("/heads/main"))
+        return Response.json({ object: { sha: "basesha" } });
+      return o.branchExists
+        ? Response.json({ object: { sha: "branchsha" } })
+        : new Response("", { status: 404 });
+    }
     if (url.includes("/contents/") && method === "PUT")
       return Response.json({ commit: { sha: "branchsha" } });
     const m = url.match(/\/contents\/(.+?)(?:\?|$)/);
@@ -78,6 +89,8 @@ const edit = (body: unknown) =>
 const merged = () => calls.some((c) => c.method === "PUT" && c.url.endsWith("/merge"));
 const branchDeleted = () =>
   calls.some((c) => c.method === "DELETE" && c.url.includes("/git/refs/heads/"));
+const prCreated = () =>
+  calls.some((c) => c.method === "POST" && c.url.endsWith("/pulls"));
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -121,5 +134,34 @@ describe("POST /edit — PR-always with auto-merge", () => {
     expect(out.live).toBe(false);
     expect(out.prUrl).toBe("https://pr.example/7");
     expect(merged()).toBe(false);
+  });
+
+  it("is an idempotent no-op when the live page already has this content", async () => {
+    stubGitHub({ files: { "content/foo.md": "# Foo" } });
+    const res = await worker.fetch(
+      edit({ slug: "foo", content: "# Foo" }), // identical to live
+      makeEnv(),
+    );
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { live: boolean }).live).toBe(true);
+    expect(prCreated()).toBe(false); // no empty PR
+    expect(merged()).toBe(false);
+  });
+
+  it("reuses the author's existing open PR instead of stacking a new one", async () => {
+    stubGitHub({
+      files: { "content/foo.md": "# Foo" },
+      branchExists: true,
+      existingPr: true,
+    });
+    const res = await worker.fetch(
+      edit({ slug: "foo", content: "# Foo edited again" }),
+      makeEnv(),
+    );
+    expect(res.status).toBe(200);
+    const out = (await res.json()) as { live: boolean };
+    expect(out.live).toBe(true);
+    expect(prCreated()).toBe(false); // reused, not duplicated
+    expect(merged()).toBe(true);
   });
 });
