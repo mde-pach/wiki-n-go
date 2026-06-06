@@ -4,7 +4,7 @@ import anchor from "markdown-it-anchor";
 import footnote from "markdown-it-footnote";
 import { figures } from "./figures";
 import { type PageMeta, parseFrontmatter } from "./frontmatter";
-import { slugifyLabel } from "./paths";
+import { BASE, slugifyLabel } from "./paths";
 import { escapeRegExp } from "./util";
 import { wikilink } from "./wikilink";
 
@@ -122,4 +122,27 @@ export function emphasizeLeadHtml(html: string, title: string): string {
 
 export function renderMarkdown(src: string): string {
   return DOMPurify.sanitize(md.render(src));
+}
+
+// Bake the per-section collapse toggle + `[edit]` link into each heading at
+// render time so they're present on first paint instead of popping in when the
+// client decorator runs. The toggle's arrow is pure CSS; `decorate` only wires
+// the click handler onto the existing button. Edit links (h2/h3) are plain
+// anchors needing no JS.
+export function decorateHeadingsHtml(html: string, slug: string): string {
+  return html.replace(
+    /<(h[234]) id="([^"]+)"([^>]*)>([\s\S]*?)<\/\1>/g,
+    (_m, tag, id, attrs, inner) => {
+      const label = inner
+        .replace(/<a class="anchor-link"[\s\S]*?<\/a>/g, "")
+        .replace(/<[^>]+>/g, "")
+        .trim();
+      const toggle = `<button class="section-toggle" type="button" aria-expanded="true" aria-label="Toggle the “${label}” section"></button>`;
+      const edit =
+        tag === "h4"
+          ? ""
+          : `<a class="section-edit" href="${BASE}/edit/${slug}?section=${encodeURIComponent(id)}">edit</a>`;
+      return `<${tag} id="${id}"${attrs}>${toggle}${inner}${edit}</${tag}>`;
+    },
+  );
 }

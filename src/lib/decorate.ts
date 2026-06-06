@@ -70,21 +70,28 @@ export function makeSectionsCollapsible(root: HTMLElement): void {
   };
 
   for (const h of heads) {
-    if (h.querySelector(".section-toggle")) continue;
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "section-toggle";
-    btn.setAttribute("aria-expanded", "true");
-    btn.setAttribute("aria-label", `Toggle the “${h.textContent?.trim()}” section`);
-    btn.addEventListener("click", () => {
+    // The toggle is usually baked into the SSR HTML (no first-paint pop-in); we
+    // just wire its click handler. Fall back to creating it if it's absent.
+    let btn = h.querySelector<HTMLButtonElement>(".section-toggle");
+    if (btn?.dataset.wired) continue;
+    if (!btn) {
+      btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "section-toggle";
+      btn.setAttribute("aria-expanded", "true");
+      btn.setAttribute("aria-label", `Toggle the “${h.textContent?.trim()}” section`);
+      h.prepend(btn);
+    }
+    const button = btn;
+    button.dataset.wired = "1";
+    button.addEventListener("click", () => {
       const open = collapsed.has(h.id);
       if (open) collapsed.delete(h.id);
       else collapsed.add(h.id);
-      btn.setAttribute("aria-expanded", String(open));
+      button.setAttribute("aria-expanded", String(open));
       h.classList.toggle("is-collapsed", !open);
       apply();
     });
-    h.prepend(btn);
   }
 }
 
