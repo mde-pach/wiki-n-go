@@ -9,10 +9,15 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+}
+/* Smooth scrolling waits for `.ready` (added on load, after the browser's
+   scroll-restoration) so a refresh jumps straight to the saved position instead
+   of animating down from the top (S6). In-page anchor + TOC nav still animate. */
+html.ready {
   scroll-behavior: smooth;
 }
 @media (prefers-reduced-motion: reduce) {
-  html {
+  html.ready {
     scroll-behavior: auto;
   }
   *,
