@@ -335,6 +335,43 @@ Read-time reports + git-native operations (see `FEATURES.md` §§O–P):
       the editor reads "Creating" vs "Editing" for pages that don't exist yet. Linked from Special pages.
       TODO: merge/split, drafts.
 
+### M8 — Interlanguage (multilingual articles) 🟡
+Wikipedia-style "N languages" switcher — the **same article in several
+languages**, all hosted in our repo (distinct from interwiki links *out* to
+Wikipedia, `FEATURES.md` S5/W3). A translation is **a fully independent page**
+(its own localized slug, content, git history, talk, edit — all free from
+slug-keying); languages are tied together by a **low-cost link**, not a shared
+page identity. URL shape and the linking mechanism are **independent choices**.
+- [x] ✅ **v1 shipped** (`66e0eca`): `defaultLang` + supported `languages` config,
+  `langOf()`, `translationKey` frontmatter, build-time grouping (`src/lib/i18n.ts`),
+  and an SSR `<details>` switcher + per-page `<html lang>` + `hreflang` in `PageShell`
+  — all server-rendered, no blink. Demo: `content/fr/demarrer.md` ↔ `getting-started`.
+- **Default language is configured + languageless.** A `defaultLang` config (e.g.
+  `en`) is the missing spot: default-language pages keep **bare, unprefixed slugs**
+  (`/coffee`, `/getting-started`, `/`) — so existing content needs **no migration**.
+- **Other languages are URL-prefixed, with their own localized slug:**
+  `/<lang>/<localized-slug>` (`/fr/cafe`), file `content/<lang>/…`. Segment 0 in
+  the reserved ISO-639-1 set ⇒ that's the page's language; otherwise `defaultLang`.
+- **Routing stays cheap:** language is just part of the slug, so view prefixes
+  (`/edit/fr/cafe`, `/history/…`, `/talk/…`) need no `parseRoute` view change. New:
+  a `langOf(slug)` helper; `<html lang>` ← it; `<link rel="alternate" hreflang>` per sibling.
+- **The link (low-cost):** every member carries a frontmatter **`translationKey`**
+  — a free-form group id, by convention the default-language slug but **not required
+  to match any existing page**. The existing build/Worker index inverts it into
+  groups (same shape as `[[links]]`/`redirect`); the switcher renders the group
+  server-side (no blink). Adding a language = create one page carrying the key. A
+  **uniform, symmetric** key (on every member, including the default) means no
+  canonical-must-exist rule and no special-casing.
+- **Default-language version is optional.** An article may exist only in non-default
+  languages (e.g. just `fr`+`de`). Then the bare languageless slug simply doesn't
+  resolve until someone creates the default version; the group still forms from
+  whoever shares the key, and the absent default surfaces as a "translate this page"
+  affordance (P2). This is *why* the link is a symmetric key, not a pointer to a canonical page.
+- [ ] ⬜ Live grouping in the Worker index (v1 groups at build time only); per-language
+  home pages (`/fr` → `fr/index`) — default home `/` unchanged.
+- [ ] ⬜ v1 keeps **wikilinks language-agnostic** (link by slug as today); a
+  language-aware resolver and a "translate this page" create-flow are follow-ons (P2).
+
 ---
 
 ## 10. Open Decisions
@@ -347,6 +384,10 @@ Read-time reports + git-native operations (see `FEATURES.md` §§O–P):
 - [ ] **SSR-edge variant:** when/whether to add it for SEO.
 - [ ] **PKCE watch:** drop the OAuth half of the Worker once GitHub supports
       client-side PKCE.
+- [x] ~~Interlanguage link shape (M8)~~ → **symmetric `translationKey`** on every
+      member (default-language version optional; an article may exist only in non-default langs).
+- [ ] **Language-aware wikilinks (M8):** whether `[[Café]]` on a French page
+      prefers `fr/…`; v1 keeps wikilinks language-agnostic.
 
 ### Resolved
 - ✅ **Framework:** Astro (static output) + Solid islands.
@@ -388,3 +429,4 @@ Read-time reports + git-native operations (see `FEATURES.md` §§O–P):
 | 2026-06-06 | **`noindex`-until-patrolled is client-side + fail-open**, not server-rendered | The read path is static/CDN with no Worker in front (no SSR yet), so the page can't know patrol state at build; a small read-view island sets `robots=noindex` from `GET /patrol-status`. JS-running crawlers honor it; failing open means a Worker/KV blip never deindexes the wiki. Revisit if an edge-SSR variant lands |
 | 2026-06-06 | **restore-to-revision and protection edits are maintainer-only direct commits**, reusing the rollback path | Consistent with rollback (privileged, no Turnstile, lands as a reversible revision); avoids routing a History/console action through the full anon edit+Turnstile flow. Normal-editor undo (gated like a regular edit) can come later |
 | 2026-06-06 | **Page protection set by a targeted frontmatter line edit**, not a YAML reparse-and-redump | Preserves the rest of the frontmatter + body byte-for-byte → clean diffs; the `protection:` field is a simple scalar, so a line replace/insert/remove is safe and unit-tested |
+| 2026-06-06 | Interlanguage (M8): translations are **independent pages** linked by a **symmetric, uniform frontmatter `translationKey`** (every member carries it; default-language version **optional**); **default language is configured + languageless** (bare slugs, no migration), other languages are URL-prefixed + localized (`/fr/cafe`) | Different slug/content per language ⇒ separate pages; a symmetric key (not a pointer to a canonical page) lets an article exist only in non-default languages; key-link is cheap and on-pattern (like `redirect:`); languageless default avoids migration; URL shape and link mechanism are independent choices |
