@@ -15,6 +15,7 @@ export interface ThreadStore {
   topicsLoaded: () => boolean;
   openId: () => string | undefined;
   thread: () => Thread | undefined;
+  slowPending: () => boolean;
   toggle: (id: string) => void;
   submitTopic: (
     text: string,
@@ -59,9 +60,22 @@ export function createThreadStore(slug: () => string): ThreadStore {
     return id ? threads[id] : undefined;
   };
 
+  // A cached thread shows instantly; an uncached one only flashes a skeleton if
+  // the fetch outlasts this delay, so fast opens expand straight to content.
+  const SKELETON_DELAY = 160;
+  const [slowPending, setSlowPending] = createSignal(false);
+  let skeletonTimer: ReturnType<typeof setTimeout> | undefined;
+
   async function loadThread(id: string, force = false) {
-    if (!force && threads[id]) return;
+    const cached = threads[id];
+    if (!force && cached) return;
+    if (!cached) {
+      clearTimeout(skeletonTimer);
+      skeletonTimer = setTimeout(() => setSlowPending(true), SKELETON_DELAY);
+    }
     setThreads(id, reconcile(await getThread(id), { key: "id" }));
+    clearTimeout(skeletonTimer);
+    setSlowPending(false);
   }
   function refetchThread() {
     const id = openId();
@@ -70,6 +84,8 @@ export function createThreadStore(slug: () => string): ThreadStore {
 
   function toggle(id: string) {
     const next = openId() === id ? undefined : id;
+    clearTimeout(skeletonTimer);
+    setSlowPending(false);
     setOpenId(next);
     if (next) loadThread(next);
   }
@@ -109,6 +125,7 @@ export function createThreadStore(slug: () => string): ThreadStore {
     topicsLoaded: () => topics() !== undefined,
     openId,
     thread,
+    slowPending,
     toggle,
     submitTopic,
     submitReply,

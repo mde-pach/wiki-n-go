@@ -104,7 +104,11 @@ export default function Discussion(props: { slug?: string }) {
                     </span>
                   </button>
 
-                  <Show when={store.openId() === t.id}>
+                  <Show
+                    when={
+                      store.openId() === t.id && (store.thread() || store.slowPending())
+                    }
+                  >
                     <div class="thread">
                       <Show when={store.thread()} fallback={<CommentSkeleton />}>
                         {(data) => (
