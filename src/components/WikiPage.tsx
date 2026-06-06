@@ -19,6 +19,9 @@ export default function WikiPage(props: {
   initialHtml?: string;
   initialRaw?: string;
   meta?: PageMeta;
+  // A profile page only the owner/maintainer may create → suppress the "Create
+  // it →" invite for everyone else (they'd be refused anyway).
+  noCreate?: boolean;
 }) {
   const slug = () => props.slug ?? slugFromLocation();
   const [html, setHtml] = createSignal(props.initialHtml);
@@ -93,7 +96,9 @@ export default function WikiPage(props: {
           <div class="wiki-status">
             <Show when={notFound()} fallback={`Could not load this page: ${err()}`}>
               No page named “{slug()}” yet.{" "}
-              <a href={`${BASE}/edit/${slug()}`}>Create it →</a>
+              <Show when={!props.noCreate}>
+                <a href={`${BASE}/edit/${slug()}`}>Create it →</a>
+              </Show>
             </Show>
           </div>
         }

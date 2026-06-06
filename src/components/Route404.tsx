@@ -10,6 +10,7 @@ import {
   reviewHref,
   userLogin,
 } from "../lib/paths";
+import { useWhoami } from "../lib/solid";
 import Appearance from "./Appearance";
 import CategoryList from "./CategoryList";
 import Contributions from "./Contributions";
@@ -111,6 +112,18 @@ function PageHead(props: { slug: string; view: string }) {
   const active = props.view === "user" ? "read" : props.view;
   const login = userLogin(props.slug);
   const title = login ? `User: ${login}` : prettify(props.slug);
+
+  // A profile's Edit tab is for its owner or a maintainer only — others would
+  // just hit a 403. Hidden until whoami resolves so it never flashes an invite.
+  const { who } = useWhoami();
+  const canEdit = () => {
+    if (!login) return true;
+    const w = who();
+    if (!w) return false;
+    return w.tier === "maintainer" || (!w.isAnon && w.author.toLowerCase() === login);
+  };
+  const tabs = () => TABS.filter(([id]) => id !== "edit" || canEdit());
+
   return (
     <div class="page-head">
       <div class="page-head-inner">
@@ -119,7 +132,7 @@ function PageHead(props: { slug: string; view: string }) {
           <PageMeta slug={props.slug} base={BASE} />
         </div>
         <nav class="tabbar" aria-label="Page views">
-          <For each={TABS}>
+          <For each={tabs()}>
             {([id, label]) => (
               <a
                 class={`tab${active === id ? " is-active" : ""}`}
@@ -141,11 +154,19 @@ function PageHead(props: { slug: string; view: string }) {
 // get a soft "no profile" note that points at their contributions filter instead.
 function ProfileBody(props: { slug: string }) {
   const login = () => userLogin(props.slug);
+  const { who } = useWhoami();
+  const canEdit = (owner: string) => {
+    const w = who();
+    return (
+      !!w &&
+      (w.tier === "maintainer" || (!w.isAnon && w.author.toLowerCase() === owner))
+    );
+  };
   return (
     <Show when={login()} fallback={<NoProfile />}>
       {(l) => (
         <Show when={!l().startsWith("anon-")} fallback={<NoProfile anon={l()} />}>
-          <WikiPage slug={props.slug} />
+          <WikiPage slug={props.slug} noCreate={!canEdit(l())} />
           <Contributions login={l()} />
         </Show>
       )}
