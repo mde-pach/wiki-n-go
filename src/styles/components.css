@@ -973,6 +973,21 @@ html[data-textsize="large"] {
   vertical-align: super;
 }
 
+/* @mentions: anon pseudonyms (mono, like history) vs. GitHub logins. */
+.mention {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+.mention:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.mention-anon {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
 .preview-card {
   position: fixed;
   z-index: var(--z-pop);
@@ -1116,6 +1131,12 @@ html[data-textsize="large"] {
   color: var(--color-accent);
   font-weight: 700;
   text-decoration: none;
+}
+/* Reused notes get lettered backlinks (a, b, c) — one per citation. */
+.ref-backlink sup {
+  font-style: italic;
+  font-weight: 600;
+  margin-left: 1px;
 }
 .ref-target:target {
   background: var(--color-accent-subtle);

@@ -56,7 +56,10 @@ The core, in render order observed on the page.
 | **Figures** (images + captions) | markdown images + `<figure>` caption (`lib/figures`) | ✅ | P1 |
 | **Blockquotes / tables** | markdown native | ✅ | P0 |
 | **References / footnotes** `[1]` + reflist + backlinks | markdown-it footnotes → cite markup | ✅ | P1 |
+| **Named-ref reuse** (one note, many cites) | `[^name]` reused → single reflist entry + lettered backlinks (a/b/c) (`markdown.ts`) | ✅ | P2 |
+| **Citation templates** | `{{cite\|url=…\|title=…}}` → formatted footnote; `ref=` reuses one entry (`lib/citetemplate`) | ✅ | P2 |
 | Reference **tooltips** on hover | popover on citation marker (`attachCiteTooltips`) | ✅ | P2 |
+| **@mention** linkify | `@anon-<hash>` → contributions filter, `@login` → GitHub profile (`lib/wikilink` mention rule) | ✅ | P2 |
 | **Internal links `[[Page]]`** + **red links** | rewrite via manifest; red = missing, resolved before paint | ✅ | P0 |
 | **Hover page previews** | popup card on internal link (`lib/previews`); `db1cff8` | ✅ | P2 |
 | **See also / External links** sections | markdown convention | ✅ | P1 |
@@ -159,7 +162,7 @@ only **one** level), reusing the same marker trick as `anon-<hash>`.
 - ✅ Help namespace (`/help` · editing · formatting); main-menu nav drawer; lazy-loaded Mermaid diagrams.
 
 ## Remaining page-level polish (P2)
-- ⬜ Talk **@mention** linkify · ⬜ Named-ref **reuse** + grouped notes · ⬜ citation templates · ⬜ `/design` tokens route
+- ✅ **@mention** linkify · ✅ Named-ref **reuse** + lettered backlinks · ✅ citation templates · ⬜ `/design` tokens route
 
 ---
 

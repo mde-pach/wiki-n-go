@@ -269,7 +269,7 @@ costs; consider salt/epoch rotation to limit long-term linkability (M5).
 - [x] ✅ Multi-host deploy buttons (Netlify / Vercel / Cloudflare) in README.
 - [ ] ⬜ (Optional) edge-SSR variant for SEO.
 
-### M4.5 — Wikipedia page features ✅ (mostly)
+### M4.5 — Wikipedia page features ✅
 - [x] ✅ References/footnotes + citation hover tooltips; captioned figures.
 - [x] ✅ Frontmatter layer → infobox, categories (chips + `/category/<tag>`), hatnotes, maintenance banners.
 - [x] ✅ Per-section `[edit]` links; TOC (desktop + mobile); icons; self-hosted fonts.
@@ -277,7 +277,9 @@ costs; consider salt/epoch rotation to limit long-term linkability (M5).
       sections; wikilink **hover page previews**; interwiki `[[w:…]]` links; lead-term emphasis; full-text search.
 - [x] ✅ Editing/chrome: draft persistence across reloads; in-site help namespace (`/help`); main-menu nav drawer;
       lazy-loaded **Mermaid** diagrams (`` ```mermaid ``, own chunk, strict security level).
-- [ ] ⬜ P2 polish (remaining): @mention linkify, named-ref reuse, citation templates.
+- [x] ✅ P2 polish: **@mention** linkify (`@anon-<hash>` → contributions filter, `@login` → GitHub profile);
+      **named-ref reuse** (`[^name]` cited many times → one reflist entry + lettered backlinks a/b/c);
+      **citation templates** (`{{cite|url=…|title=…}}` → formatted footnote, `ref=` reuses one entry).
 
 ### M5 — Autonomous editing mode (immediate publish + post-hoc moderation) ✅
 Invert the default selectively. Critical path (see `FEATURES.md` §§K–N):
@@ -457,4 +459,5 @@ page identity. URL shape and the linking mechanism are **independent choices**.
 | 2026-06-06 | **Suppression redacts server-side at read time; hard-purge stays a manual owner op** | The Worker redacts author/revision labels in `/changes`+`/history` before they leave it (stronger than client-side hiding — suppressed text never reaches page source), but it **cannot rewrite git history** via the contents API, so true purge (history rewrite + CDN purge + source PR/Discussion delete) is documented as a manual owner procedure — the one place the no-rebuild model bends |
 | 2026-06-06 | **Revert-risk is a read-time heuristic from data already on each change**, not a score stored per commit; **3RR is a tag, not a block** | Computing risk at read time (byte deltas + anon + tags) covers direct *and* PR-merged commits without the keying problem of storing `risk:<sha>` at edit time, and needs no extra fetch. 3RR flags `edit-war` rather than throttling because legit rapid edits happen — the risk score + patrol queue triage it. Both leave room for an ML model / link-churn upgrade later |
 | 2026-06-06 | Interlanguage (M8): translations are **independent pages** linked by a **symmetric, uniform frontmatter `translationKey`** (every member carries it; default-language version **optional**); **default language is configured + languageless** (bare slugs, no migration), other languages are URL-prefixed + localized (`/fr/cafe`) | Different slug/content per language ⇒ separate pages; a symmetric key (not a pointer to a canonical page) lets an article exist only in non-default languages; key-link is cheap and on-pattern (like `redirect:`); languageless default avoids migration; URL shape and link mechanism are independent choices |
+| 2026-06-06 | M4.5 P2 syntax: **@mention** = `@anon-<hash>` / `@<github-login>` (bare `@`, no brackets); **citations** = `{{cite\|key=value\|…}}` (MediaWiki-style double-brace); both are **markdown-it inline rules**, citations reuse the footnote plugin's machinery | A bare `@handle` matches the universal social convention and GitHub's own login grammar (so anon-hashes and logins share one rule, classified by an `anon-` prefix); `{{cite\|…}}` mirrors Wikipedia's template syntax editors expect. Inline rules (not regex over rendered HTML) means code spans / emails / fenced blocks are skipped for free, and routing `{{cite}}` through `markdown-it-footnote`'s env gives shared `[n]` numbering, reuse, backlinks, and hover tooltips with no parallel reference system |
 | 2026-06-06 | **Mermaid** is the first markdown plugin admitted as a dependency, but **dynamically imported** (own chunk, loaded only on pages with a `` ```mermaid `` block) and run at **strict security level** | Diagrams are high-value for a technical wiki, but the engine is ~135 kB gzip — lazy-loading keeps it off the base bundle (read-path stays light), and diagram source is user-editable content, so strict (sanitizing) mode is mandatory. The fence degrades to a code block without JS |
