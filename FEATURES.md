@@ -100,7 +100,7 @@ and undo/thank/tag actions; Newer/Older pagination.
 | Section editing | `?section=` deep-link selects + scrolls to that section | ✅ | P1 |
 | Create-new-page (red link → create) | red link → create; `/new` wizard (title → slug + template) | ✅ | P0 |
 | Show diff before submit | confirm dialog shows size delta **+ a full side-by-side/unified diff** of the pending edit (`diffLines` → `DiffView`, computed client-side; long unchanged runs collapsed) | ✅ | P1 |
-| Edit-conflict detection | editor sends loaded blob SHA → Worker 409 on mismatch; non-destructive notice | ✅ | P1 |
+| Edit-conflict detection | git 3-way merge on the auto-merged PR; overlapping conflict → PR stays in the review queue (see §K) | ✅ | P1 |
 | Anti-bot (already have) | Turnstile | ✅ | — |
 
 ## H. Theming / appearance (our "Appearance" menu)
@@ -192,9 +192,9 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 ## K. Editing model — autonomous publish + post-hoc moderation
 | Wikipedia mechanism | Ours (GitHub-backed) | St | Pri |
 |---|---|---|---|
-| **Immediate publish** (most edits go live instantly) | Worker **direct-commit / auto-merge** path to `main` → live on CDN (purge jsDelivr on commit) | ⬜ | P0 |
+| **Immediate publish** (most edits go live instantly) | every edit → PR; trusted tiers **squash-auto-merge** to `main` at once (untrusted wait for review) → live on CDN, no rebuild | ✅ | P0 |
 | **Pending Changes / FlaggedRevs** (hold untrusted edits on select pages) | the **current PR-review flow**, but made **per-path** not global (see §L protection) | 🟡 | P0 |
-| **Edit conflicts** (base-rev compare → diff3 auto-merge; manual only on overlap) | capture **base commit SHA**; 3-way merge onto `main`; conflict view only on overlapping hunks | ⬜ | P1 |
+| **Edit conflicts** (base-rev compare → diff3 auto-merge; manual only on overlap) | git's **3-way merge** on the PR auto-resolves non-overlapping edits; an overlapping conflict leaves the PR open in the review queue | ✅ | P1 |
 | Edit summary · minor-edit flag | commit message / PR title; `Minor:` trailer or label | 🟡 | P1 |
 | **Undo** one edit · **restore to revision** | Worker `POST /restore {slug, rev}` writes the page's content at `rev` (History-row "restore", maintainer); undo-latest = restore the prior row | 🟡 | P1 |
 | **Rollback** (1-click revert a contributor's trailing run) | maintainer-gated Worker `POST /rollback` restores each page a commit touched to its pre-commit state (per-commit; trailing-run TODO) | 🟡 | P1 |
@@ -283,7 +283,7 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 | Growth: newcomer homepage · **structured "Add a Link" tasks** · guided tours · mentorship | guided onboarding tour + structured micro-edits (anon-friendly → small PRs); homepage/mentorship are account-path | ⬜ | P2 |
 
 ### The "autonomous mode" critical path (smallest set to flip the default safely)
-1. **Direct-commit/auto-merge** path (§K) + jsDelivr purge — the core flip.
+1. **Auto-merge** path (§K) — every edit is a PR; trusted tiers merge at once — the core flip. ✅
 2. **`protection.json` per-path tiers** + CODEOWNERS (§L) — make review *selective*.
 3. **Trust ledger on `ip_hash`** (autoconfirmed analog, §L) — earned autonomy. *Highest leverage.*
 4. **AbuseFilter-style Worker rules + per-hash rate limits** (§M) — pre-publish safety net.

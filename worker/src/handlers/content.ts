@@ -1,5 +1,5 @@
 import { utf8Bytes } from "../crypto";
-import { type CommitItem, gh } from "../github";
+import { type CommitItem, gh, ghHeaders } from "../github";
 import { HttpError } from "../http";
 import { resolve, type Writer } from "../identity";
 import { invalidateContent, kvGetJson, kvPutJson } from "../kv";
@@ -263,17 +263,6 @@ export async function proposeEdit(env: Env, request: Request, body: EditBody) {
     editorTier(env, writer.name, writer.email),
     getCurrentFile(env, repo, path),
   ]);
-
-  // Edit-conflict guard: the editor sends the blob SHA it loaded the page at.
-  // If the page has changed since (or was deleted), reject rather than silently
-  // overwrite. Absent base = no check (back-compatible).
-  const base = typeof body.baseSha === "string" ? body.baseSha : "";
-  if (base && current?.sha !== base)
-    throw new HttpError(
-      409,
-      "This page changed while you were editing. Reload to see the latest version, then reapply your edit.",
-    );
-
   const oldMeta = current ? frontmatter(current.raw) : {};
   enforceFieldPermissions(env, tier, oldMeta, frontmatter(content));
   const required = pageTier(env, oldMeta);
@@ -301,9 +290,21 @@ export async function proposeEdit(env: Env, request: Request, body: EditBody) {
     current,
     verdict,
   };
-  return TIER_RANK[tier] >= TIER_RANK[required]
-    ? publishDirect(env, ctx)
-    : openEditPr(env, ctx);
+  // Every edit becomes a PR; trust only decides whether it's merged now or waits
+  // for review. So git's 3-way merge is the single conflict detector for both
+  // direct and reviewed publishes — no separate base-SHA path.
+  const pr = await openEditPr(env, ctx);
+  if (TIER_RANK[tier] >= TIER_RANK[required]) {
+    const merged = await autoMerge(env, ctx, pr);
+    if (merged)
+      return {
+        live: true,
+        sha: merged.sha,
+        url: `https://github.com/${repo}/commit/${merged.sha}`,
+        author: writer.name,
+      };
+  }
+  return { live: false, prUrl: pr.htmlUrl, author: writer.name };
 }
 
 function editCommit(env: Env, ctx: EditContext, branch: string): string {
@@ -316,29 +317,12 @@ function editCommit(env: Env, ctx: EditContext, branch: string): string {
   });
 }
 
-async function publishDirect(env: Env, ctx: EditContext) {
-  const { repo, path, slug, content, writer, tier, verdict } = ctx;
-  const res = await gh<{ commit: { sha: string; html_url: string } }>(
-    env,
-    `/repos/${repo}/contents/${path}`,
-    { method: "PUT", body: editCommit(env, ctx, env.BRANCH) },
-  );
-  await invalidateContent(env, writer.name, { keepIndex: true });
-  await updateIndexEntry(env, slug, content);
-  await autopatrol(env, tier, res.commit.sha);
-  if (verdict.tags.length)
-    await env.RATE_LIMIT?.put(`tag:${res.commit.sha}`, JSON.stringify(verdict.tags));
-  return {
-    live: true,
-    sha: res.commit.sha,
-    url: res.commit.html_url,
-    author: writer.name,
-  };
-}
-
-// The branch prefix carries the author so the in-UI review queue can attribute
-// it (see refIdentity).
-async function openEditPr(env: Env, ctx: EditContext) {
+// Open a branch + commit + PR for the edit. The branch prefix carries the author
+// so the in-UI review queue can attribute it (see refIdentity).
+async function openEditPr(
+  env: Env,
+  ctx: EditContext,
+): Promise<{ number: number; branch: string; htmlUrl: string }> {
   const { repo, path, slug, summary, writer, verdict } = ctx;
   const author = writer.name;
   const prefix = writer.isAnon ? writer.name : `gh-${writer.name}`;
@@ -355,19 +339,69 @@ async function openEditPr(env: Env, ctx: EditContext) {
     method: "PUT",
     body: editCommit(env, ctx, branch),
   });
-  const pr = await gh<{ html_url: string }>(env, `/repos/${repo}/pulls`, {
-    method: "POST",
-    body: JSON.stringify({
-      title:
-        summary || `${writer.isAnon ? "Anonymous edit" : `Edit by ${author}`}: ${slug}`,
-      head: branch,
-      base: env.BRANCH,
-      body:
-        `Proposed in-site by \`${author}\`.` +
-        (verdict.tags.length ? `\n\nFilter tags: ${verdict.tags.join(", ")}` : ""),
-    }),
+  const pr = await gh<{ number: number; html_url: string }>(
+    env,
+    `/repos/${repo}/pulls`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        title:
+          summary ||
+          `${writer.isAnon ? "Anonymous edit" : `Edit by ${author}`}: ${slug}`,
+        head: branch,
+        base: env.BRANCH,
+        body:
+          `Proposed in-site by \`${author}\`.` +
+          (verdict.tags.length ? `\n\nFilter tags: ${verdict.tags.join(", ")}` : ""),
+      }),
+    },
+  );
+  return { number: pr.number, branch, htmlUrl: pr.html_url };
+}
+
+// Trusted edit: squash-merge immediately (the same path a maintainer's manual
+// merge takes), then do the post-publish bookkeeping. A non-mergeable PR is left
+// open and falls into the review queue for a human to resolve.
+async function autoMerge(
+  env: Env,
+  ctx: EditContext,
+  pr: { number: number; branch: string },
+): Promise<{ sha: string } | null> {
+  const { repo, slug, content, writer, tier, verdict } = ctx;
+  const merged = await mergePr(env, repo, pr.number, ctx.summary || `Edit ${slug}`);
+  if (!merged) return null;
+  await gh(env, `/repos/${repo}/git/refs/heads/${pr.branch}`, {
+    method: "DELETE",
+    allow404: true,
   });
-  return { live: false, prUrl: pr.html_url, author };
+  await invalidateContent(env, writer.name, { keepIndex: true });
+  await updateIndexEntry(env, slug, content);
+  await autopatrol(env, tier, merged.sha);
+  if (verdict.tags.length)
+    await env.RATE_LIMIT?.put(`tag:${merged.sha}`, JSON.stringify(verdict.tags));
+  return merged;
+}
+
+// Squash-merge a PR. Returns the new commit, or null when GitHub reports it
+// isn't mergeable (405 conflict / 409 base moved) — the one expected non-error
+// outcome, so it bypasses gh()'s throw-on-non-2xx.
+async function mergePr(
+  env: Env,
+  repo: string,
+  number: number,
+  title: string,
+): Promise<{ sha: string } | null> {
+  const res = await fetch(
+    `https://api.github.com/repos/${repo}/pulls/${number}/merge`,
+    {
+      method: "PUT",
+      headers: ghHeaders(env),
+      body: JSON.stringify({ merge_method: "squash", commit_title: title }),
+    },
+  );
+  if (res.ok) return (await res.json()) as { sha: string };
+  if (res.status === 405 || res.status === 409) return null;
+  throw new HttpError(502, `GitHub ${res.status}: ${await res.text()}`);
 }
 
 // Move/rename a page: copy it to the new slug and leave a redirect stub behind,

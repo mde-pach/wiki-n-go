@@ -35,9 +35,6 @@ export interface EditBody {
   content?: unknown;
   summary?: unknown;
   token?: unknown;
-  // Blob SHA the editor loaded the page at. When present, the save is rejected
-  // (409) if the page changed since — optional, so a missing base = no check.
-  baseSha?: unknown;
 }
 
 export interface MoveBody {
