@@ -90,10 +90,22 @@ export const changesHref = `${BASE}/changes`;
 export const reviewHref = `${BASE}/review`;
 export const adminHref = `${BASE}/admin`;
 
+// Profile page for a GitHub login, stored as content at `user/<login>`. Logins
+// are case-insensitive on GitHub, so the slug is canonicalised to lowercase.
+export function userHref(login: string): string {
+  return `${BASE}/user/${login.toLowerCase()}`;
+}
+
+// The owning login of a `user/<login>` profile slug, or null for any other slug.
+export function userLogin(slug: string): string | null {
+  const m = slug.match(/^user\/([^/]+)$/);
+  return m ? m[1] : null;
+}
+
 // Map the current URL to a view + slug. The edit/history/talk/category/changes/
-// review prefixes select a view; everything else is a read.
+// review/user prefixes select a view; everything else is a read.
 export function parseRoute(): {
-  view: View | "category" | "changes" | "review";
+  view: View | "category" | "changes" | "review" | "user";
   slug: string;
 } {
   let path = window.location.pathname;
@@ -101,6 +113,10 @@ export function parseRoute(): {
   path = path.replace(/^\/+/, "").replace(/\/+$/, "");
   if (path === "changes") return { view: "changes", slug: "" };
   if (path === "review") return { view: "review", slug: "" };
+  if (path === "user" || path.startsWith("user/")) {
+    const login = path.slice("user".length).replace(/^\/+/, "");
+    return { view: "user", slug: login ? `user/${login.toLowerCase()}` : "user" };
+  }
   for (const v of ["edit", "history", "talk", "category"] as const) {
     if (path === v || path.startsWith(`${v}/`)) {
       return {

@@ -1375,6 +1375,21 @@ html[data-textsize="large"] {
 .rc-clear {
   color: var(--color-accent);
 }
+.contribs {
+  margin-top: 2rem;
+  border-top: var(--border-w) solid var(--color-border);
+  padding-top: 1.2rem;
+}
+.contribs-tier {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.9rem;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
 .rc-filters {
   display: flex;
   flex-wrap: wrap;

@@ -66,7 +66,7 @@ interface OutChange extends ChangeDetail {
 }
 
 // Per-commit files + byte stats. A commit is immutable, so cache it forever.
-async function changeDetail(env: Env, sha: string): Promise<ChangeDetail> {
+export async function changeDetail(env: Env, sha: string): Promise<ChangeDetail> {
   const key = `change:${sha}`;
   const cached = await kvGetJson<ChangeDetail>(env, key);
   if (cached) return { ...cached, created: cached.created ?? [] };
@@ -280,6 +280,17 @@ export async function prepareEdit(
     editorTier(env, writer.name, writer.email),
     getCurrentFile(env, repo, path),
   ]);
+
+  // A `user/<login>` page is editable only by its owner (the signed-in login) or
+  // a maintainer — an `ip_hash` can't prove ownership, so anon edits to a profile
+  // are refused outright rather than queued for review. Still the ordinary edit
+  // path (Turnstile, PR, trust); the owner just publishes their own page live.
+  const owner = userPageOwner(slug);
+  const isOwner =
+    owner !== null && !writer.isAnon && writer.name.toLowerCase() === owner;
+  if (owner !== null && !isOwner && tier !== "maintainer")
+    throw new HttpError(403, "Only the owner or a maintainer can edit this user page.");
+
   // Idempotent no-op: the live page already holds exactly this content — e.g. a
   // prior attempt merged but its bookkeeping failed and the user resubmitted, or
   // a submit with no actual change. Finish the (idempotent) bookkeeping, clean up
@@ -319,7 +330,14 @@ export async function prepareEdit(
     current,
     verdict,
   };
-  return { ctx, trusted: TIER_RANK[tier] >= TIER_RANK[required] };
+  return { ctx, trusted: isOwner || TIER_RANK[tier] >= TIER_RANK[required] };
+}
+
+// `user/<login>` is a profile page owned by that GitHub login. Returns the login
+// (lowercase, as SLUG_RE requires) or null for any slug outside the namespace.
+export function userPageOwner(slug: string): string | null {
+  const m = slug.match(/^user\/([^/]+)$/);
+  return m ? m[1] : null;
 }
 
 // The mutating half, streamed: a progress milestone is emitted before each real

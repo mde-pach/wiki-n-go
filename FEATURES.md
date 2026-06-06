@@ -147,7 +147,7 @@ only **one** level), reusing the same marker trick as `anon-<hash>`.
 |---|---|---|---|
 | Same header/footer/TOC/appearance on Article, Talk, History | one shared layout across all page types | 🟡 | P0 |
 | Namespace tabs adapt (Article↔Talk, Read/Edit/History) | tab bar reflects current view | ⬜ | P0 |
-| User links: profile · **talk** · **contributions** | for GitHub users: profile/commits; for anon: filter-by-`anon-<hash>` | ⬜ | P2 |
+| User links: profile · **talk** · **contributions** | GitHub users: in-site `/user/<login>` profile + contributions panel (`@login` mention links to it); anon: filter-by-`anon-<hash>` on `/changes` (no profile by design) | 🟡 | P2 |
 
 ---
 
@@ -257,7 +257,7 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 ## P. Structure: namespaces · templates · special pages · the link graph
 | Wikipedia mechanism | Ours | St | Pri |
 |---|---|---|---|
-| **Namespaces** (Article/Talk/User/Project/Template/Category/File/Help/Draft/Module) | **directory prefixes** (`meta/`, `templates/`, `help/`, `drafts/`, `media/`); Talk = Discussions; decide prefix-vs-frontmatter early | 🟡 | P1 |
+| **Namespaces** (Article/Talk/User/Project/Template/Category/File/Help/Draft/Module) | **directory prefixes** (`user/` profiles, `meta/`, `templates/`, `help/`, `drafts/`, `media/`); Talk = Discussions; decide prefix-vs-frontmatter early | 🟡 | P1 |
 | **Templates / transclusion** (params, `{{subst:}}`) | `{{slug}}` transcludes a page body, filled from the CDN at read time (no rebuild); recursion-bounded + cycle-safe (`lib/transclude`). Params / `{{subst:}}` still TODO | ✅ | P2 |
 | **Navboxes** | author a page as a link grid, transclude it with `{{slug}}` at the bottom of articles | ✅ | P2 |
 | **Lua/Scribunto modules**, full parser functions | **out of scope** (conflicts with single-Worker invariant); minimal magic-words only (`noindex`, `notoc`) | ⊘ | — |
@@ -275,7 +275,7 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 |---|---|---|---|
 | **Temporary Accounts** (`~2025-NNN`, IP masked, 90-day) | our `anon-<hash>` is the precedent realized **more privately** (no reveal tier); show pseudonym in history/talk | ✅ | — |
 | Account login (optional) / SUL / 2FA / OAuth | **offload entirely to GitHub** ("Sign in with GitHub"); no own credential store | ⬜ | P2 |
-| **User contributions** (per-user history) | filter git log / PRs by author (GitHub handle or `anon-<hash>`) | ⬜ | P1 |
+| **User contributions** (per-user history) | Worker `GET /contributions?author=` (full per-author history from git, KV-cached, static fallback) → profile panel for logins; anon uses the `/changes?author=` recent-window filter | ✅ | P1 |
 | **Watchlist** + **Echo notifications** (pings, reverts, thanks) | **account-path only** (needs durable, reachable identity): GitHub watch/subscribe + native @mention/reaction/email; anon has no inbox by design | ⬜ | P2 |
 | **Thanks** / reactions · barnstars/WikiLove | GitHub reactions on commit/PR/Discussion; kudos templated post (account path) | ⬜ | P2 |
 | **Pageview analytics** ("watched by N", with privacy threshold) | edge-counted per-path views (privacy-safe, no identity); apply min-count threshold | ⬜ | P2 |
@@ -331,7 +331,7 @@ Cross-refs point at the relevant A–Q row so we extend, not duplicate.
 |---|---|---|---|---|---|
 | U1 | **Opening a thread blinks** — the whole component flashes before rendering/expanding; fix the mount/transition. Delayed-skeleton (160ms) + gated expand + ease-in; cached re-opens instant. `f7d3d50` | 🐛 | ✅ | P1 | §I |
 | U2 | **Reactions on talk comments.** | ✨ | ⬜ | P2 | §I, §Q |
-| U3 | **Profile page** (Wikipedia user-page equivalent) — currently missing. | ✨ | ⬜ | P2 | §Q |
+| U3 | **Profile page** (Wikipedia user-page equivalent) — `/user/<login>`, **GitHub-signed-in users only** (an `ip_hash` can't prove ownership, so anon ids get a soft "no profile" note pointing at their contributions filter). The page is an ordinary Markdown page in a `user/` namespace edited through the exact same edit/PR/trust/Turnstile pipeline — owner-or-maintainer gated, owner publishes live. Beside it, an auto-rendered **contributions + trust-tier** panel (Worker `GET /contributions?author=`, KV-cached, static-manifest fallback) reusing the /changes shape. `@login` mentions now resolve in-site to the profile. | ✨ | ✅ | P2 | §Q |
 
 ## V. History / revisions UX
 | # | Item | Type | St | Pri | Ref |

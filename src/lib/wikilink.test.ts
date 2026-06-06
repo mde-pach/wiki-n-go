@@ -11,11 +11,11 @@ describe("@mention linkify", () => {
     expect(html).toContain("@anon-3f9a2c");
   });
 
-  it("links a GitHub login to its profile in a new tab", () => {
+  it("links a GitHub login to its in-site profile page", () => {
     const html = render("cc @octocat");
-    expect(html).toContain('href="https://github.com/octocat"');
+    expect(html).toContain('href="/user/octocat"');
     expect(html).toContain('class="mention mention-user"');
-    expect(html).toContain('target="_blank"');
+    expect(html).not.toContain('target="_blank"');
   });
 
   it("does not fire inside an email address", () => {
