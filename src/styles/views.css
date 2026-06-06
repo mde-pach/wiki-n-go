@@ -351,6 +351,11 @@
 .rev-permalink:hover {
   color: var(--color-accent);
 }
+.rev-undo {
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  color: var(--color-accent);
+}
 .rev-tag.tag-current {
   background: var(--color-add-bg);
   color: var(--color-add-ink);
