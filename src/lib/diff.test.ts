@@ -162,4 +162,14 @@ describe("diffLines", () => {
     const lines = diffLines("a\nb\nc", "a\nX\nc", 3);
     expect(lines.some((l) => l.cls === "hunk")).toBe(false);
   });
+
+  it("attaches the elided lines to the collapse marker so it can expand", () => {
+    const before = Array.from({ length: 12 }, (_, k) => `line ${k}`).join("\n");
+    const after = before.replace("line 6", "LINE 6");
+    const marker = diffLines(before, after, 2).find((l) => l.cls === "hunk");
+    expect(marker?.hidden?.length).toBeGreaterThan(0);
+    // Every stashed line is unchanged context, and matches the marker's count.
+    expect(marker?.hidden?.every((h) => h.cls === "")).toBe(true);
+    expect(marker?.text).toBe(`⋯ ${marker?.hidden?.length} unchanged lines ⋯`);
+  });
 });

@@ -84,6 +84,24 @@ export default function History(props: { slug?: string }) {
     }
   }
 
+  // Keyboard nav: ↑/↓ move focus between rows, Enter/Space diffs the focused
+  // revision against its parent. Ignored when a child control (button/radio)
+  // holds focus, so those keep their native keys.
+  function handleRowKey(e: KeyboardEvent, r: Revision) {
+    if (e.target !== e.currentTarget) return;
+    const li = e.currentTarget as HTMLElement;
+    if (e.key === "ArrowDown") {
+      (li.nextElementSibling as HTMLElement | null)?.focus();
+      e.preventDefault();
+    } else if (e.key === "ArrowUp") {
+      (li.previousElementSibling as HTMLElement | null)?.focus();
+      e.preventDefault();
+    } else if (e.key === "Enter" || e.key === " ") {
+      if (r.parent) show(r.parent, r.sha);
+      e.preventDefault();
+    }
+  }
+
   return (
     <div>
       <ViewHead
@@ -103,13 +121,17 @@ export default function History(props: { slug?: string }) {
           </button>
           <span class="rcb-hint">
             Pick an older (left) and newer (right) revision, or use the cur / prev
-            links.
+            links. Focus a row and press ↑/↓ to step, Enter to diff.
           </span>
         </div>
         <ol class="rev-list">
           <For each={revs()}>
             {(r: Revision, i) => (
-              <li class={`rev-row${i() === 0 ? " is-current" : ""}`}>
+              <li
+                class={`rev-row${i() === 0 ? " is-current" : ""}`}
+                tabindex={0}
+                onKeyDown={(e) => handleRowKey(e, r)}
+              >
                 <div class="rev-actions">
                   <button
                     type="button"

@@ -5,6 +5,7 @@ export interface DLine {
   cls: string;
   onum: string; // old-file line number ("" on added lines)
   nnum: string; // new-file line number ("" on removed lines)
+  hidden?: DLine[]; // on a collapse marker: the unchanged lines it stands in for
 }
 
 // Turn a unified-diff patch into renderable lines, tracking old/new line numbers
@@ -81,6 +82,7 @@ export interface SplitRow {
   text?: string; // hunk header
   left: SplitCell | null;
   right: SplitCell | null;
+  hidden?: DLine[]; // on a collapse marker: the unchanged lines it stands in for
 }
 
 // Re-shape the unified lines into side-by-side rows: paired removed/added lines
@@ -91,7 +93,13 @@ export function splitDiff(lines: DLine[]): SplitRow[] {
   for (let i = 0; i < lines.length; ) {
     const l = lines[i];
     if (l.cls === "hunk") {
-      rows.push({ cls: "hunk", text: l.text, left: null, right: null });
+      rows.push({
+        cls: "hunk",
+        text: l.text,
+        left: null,
+        right: null,
+        hidden: l.hidden,
+      });
       i++;
     } else if (l.cls === "") {
       const plain = [{ t: l.text, changed: false }];
@@ -252,22 +260,24 @@ function collapseContext(ops: DLine[], context: number): DLine[] {
   if (!changed) return [];
 
   const out: DLine[] = [];
-  let skipped = 0;
+  let hidden: DLine[] = [];
   for (let k = 0; k < ops.length; k++) {
     if (!keep[k]) {
-      skipped++;
+      hidden.push(ops[k]);
       continue;
     }
-    if (skipped > 0) {
+    if (hidden.length > 0) {
+      const n = hidden.length;
       out.push({
         num: "",
         sign: "",
-        text: `⋯ ${skipped} unchanged line${skipped === 1 ? "" : "s"} ⋯`,
+        text: `⋯ ${n} unchanged line${n === 1 ? "" : "s"} ⋯`,
         cls: "hunk",
         onum: "",
         nnum: "",
+        hidden,
       });
-      skipped = 0;
+      hidden = [];
     }
     out.push(ops[k]);
   }
