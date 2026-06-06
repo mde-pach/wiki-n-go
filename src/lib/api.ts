@@ -70,7 +70,6 @@ export function submitEdit(
   content: string,
   token?: string,
   summary?: string,
-  baseSha?: string,
 ): Promise<EditResult> {
-  return postJson<EditResult>("/edit", { slug, content, token, summary, baseSha });
+  return postJson<EditResult>("/edit", { slug, content, token, summary });
 }

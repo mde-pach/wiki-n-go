@@ -2,7 +2,7 @@ import { createEffect, createSignal, onMount, Show } from "solid-js";
 import { createStore } from "solid-js/store";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
-import { ApiError, type EditResult, submitEdit } from "../lib/api";
+import { type EditResult, submitEdit } from "../lib/api";
 import { fetchMarkdown, PageNotFoundError } from "../lib/content";
 import { clearDraft, loadDraft, persistDraft } from "../lib/draft";
 import { findSection } from "../lib/editor-section";
@@ -13,8 +13,6 @@ import { useSubmit, useWhoami } from "../lib/solid";
 import { templateById } from "../lib/templates";
 import { errMessage } from "../lib/util";
 import { ConfirmDialog } from "./editor/ConfirmDialog";
-import { ConflictNotice } from "./editor/ConflictNotice";
-import { gitBlobSha } from "./editor/conflict";
 import { MarkdownToolbar } from "./editor/MarkdownToolbar";
 import PageProperties, {
   assemble,
@@ -38,8 +36,6 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   const [original, setOriginal] = createSignal(props.initialContent ?? "");
   const [summary, setSummary] = createSignal("");
   const [result, setResult] = createSignal<EditResult>();
-  const [baseSha, setBaseSha] = createSignal<string>();
-  const [conflict, setConflict] = createSignal(false);
   const [modal, setModal] = createSignal(false);
   const { who } = useWhoami();
   const [ready, setReady] = createSignal(false);
@@ -61,7 +57,6 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     try {
       const raw = await fetchMarkdown(slug());
       setOriginal(raw);
-      setBaseSha(await gitBlobSha(raw));
       if (raw !== props.initialContent) applyDocument(raw);
     } catch (e) {
       if (e instanceof PageNotFoundError) {
@@ -153,18 +148,9 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     // Close the confirm dialog first so an in-panel bot-check (if Cloudflare
     // asks for one) is reachable rather than behind the modal backdrop.
     setModal(false);
-    setConflict(false);
     run(async (tok) => {
-      try {
-        setResult(await submitEdit(slug(), content(), tok, summary(), baseSha()));
-        clearDraft(slug());
-      } catch (e) {
-        if (e instanceof ApiError && e.status === 409) {
-          setConflict(true);
-          return;
-        }
-        throw e;
-      }
+      setResult(await submitEdit(slug(), content(), tok, summary()));
+      clearDraft(slug());
     });
   }
 
@@ -250,12 +236,6 @@ export default function Editor(props: { slug?: string; initialContent?: string }
             </a>
           </div>
           <ErrorNote msg={error()} />
-          <Show when={conflict()}>
-            <ConflictNotice
-              viewHref={cancelHref()}
-              onReload={() => window.location.reload()}
-            />
-          </Show>
           <Show when={result()}>
             {(r) => (
               <p class="editor-ok">
