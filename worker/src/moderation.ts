@@ -7,6 +7,18 @@ import type { Env } from "./types";
 const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW_S = 600;
 
+// Autopatrol: an edit by a trusted-enough author counts as reviewed on landing,
+// so the patrol queue (and noindex-until-patrolled) only flags edits that need
+// eyes. Default bar is `extended`; set AUTOPATROL_TIER to tune it.
+export function autopatrolTier(env: Env): Tier {
+  return asTier(env.AUTOPATROL_TIER, "extended");
+}
+
+export async function autopatrol(env: Env, tier: Tier, sha: string): Promise<void> {
+  if (env.RATE_LIMIT && TIER_RANK[tier] >= TIER_RANK[autopatrolTier(env)])
+    await env.RATE_LIMIT.put(`patrol:${sha}`, "1");
+}
+
 export async function verifyTurnstile(
   env: Env,
   ip: string,

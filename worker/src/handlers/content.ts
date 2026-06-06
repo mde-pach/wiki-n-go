@@ -3,7 +3,7 @@ import { type CommitItem, gh } from "../github";
 import { HttpError } from "../http";
 import { resolve, type Writer } from "../identity";
 import { invalidateContent, kvGetJson, kvPutJson } from "../kv";
-import { runFilters } from "../moderation";
+import { autopatrol, runFilters } from "../moderation";
 import { commitPayload, getCurrentFile } from "../repo";
 import {
   editorTier,
@@ -11,6 +11,7 @@ import {
   frontmatter,
   pageTier,
   TIER_RANK,
+  type Tier,
 } from "../trust";
 import type { Env } from "../types";
 import {
@@ -215,6 +216,7 @@ interface EditContext {
   content: string;
   summary: string;
   writer: Writer;
+  tier: Tier;
   current: { sha: string; raw: string } | null;
   verdict: Awaited<ReturnType<typeof runFilters>>;
 }
@@ -252,6 +254,7 @@ export async function proposeEdit(env: Env, request: Request, body: EditBody) {
     content,
     summary,
     writer,
+    tier,
     current,
     verdict,
   };
@@ -271,7 +274,7 @@ function editCommit(env: Env, ctx: EditContext, branch: string): string {
 }
 
 async function publishDirect(env: Env, ctx: EditContext) {
-  const { repo, path, slug, content, writer, verdict } = ctx;
+  const { repo, path, slug, content, writer, tier, verdict } = ctx;
   const res = await gh<{ commit: { sha: string; html_url: string } }>(
     env,
     `/repos/${repo}/contents/${path}`,
@@ -279,6 +282,7 @@ async function publishDirect(env: Env, ctx: EditContext) {
   );
   await invalidateContent(env, writer.name, { keepIndex: true });
   await updateIndexEntry(env, slug, content);
+  await autopatrol(env, tier, res.commit.sha);
   if (verdict.tags.length)
     await env.RATE_LIMIT?.put(`tag:${res.commit.sha}`, JSON.stringify(verdict.tags));
   return {

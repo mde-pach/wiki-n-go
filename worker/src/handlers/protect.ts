@@ -3,6 +3,7 @@ import { gh } from "../github";
 import { HttpError } from "../http";
 import { requireMaintainer } from "../identity";
 import { invalidateContent } from "../kv";
+import { autopatrol } from "../moderation";
 import { setProtectionField } from "../protection";
 import { commitPayload, getCurrentFile } from "../repo";
 import { TIER_RANK } from "../trust";
@@ -32,18 +33,23 @@ export async function protect(
   const next = setProtectionField(current.raw, tier === "default" ? null : tier);
   if (next === current.raw) return { ok: true, tier };
 
-  await gh(env, `/repos/${repo}/contents/${path}`, {
-    method: "PUT",
-    body: commitPayload(env, {
-      message: `Set protection of ${slug} to ${tier}`,
-      content: next,
-      branch: env.BRANCH,
-      sha: current.sha,
-      author: { name: writer.name, email: writer.email },
-    }),
-  });
+  const res = await gh<{ commit: { sha: string } }>(
+    env,
+    `/repos/${repo}/contents/${path}`,
+    {
+      method: "PUT",
+      body: commitPayload(env, {
+        message: `Set protection of ${slug} to ${tier}`,
+        content: next,
+        branch: env.BRANCH,
+        sha: current.sha,
+        author: { name: writer.name, email: writer.email },
+      }),
+    },
+  );
   await invalidateContent(env, writer.name, { keepIndex: true });
   await updateIndexEntry(env, slug, next);
+  await autopatrol(env, "maintainer", res.commit.sha);
   await appendAudit(env, repo, writer.name, writer.email, "protect", slug, tier);
   return { ok: true, tier };
 }

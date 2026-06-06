@@ -20,6 +20,7 @@ export interface Env {
   AUTOCONFIRM_DAYS?: string; // age in days for the "auto" tier (default 4)
   EXTENDED_EDITS?: string; // accepted edits for the "extended" tier (default 500)
   EXTENDED_DAYS?: string; // age in days for the "extended" tier (default 30)
+  AUTOPATROL_TIER?: string; // min tier whose edits land pre-patrolled (default "extended")
   HOME_SLUG?: string; // slug treated as the home page (excluded from orphans; default "index")
   // Optional GitHub sign-in. Unset → sign-in is disabled and every path stays
   // anonymous. CLIENT_ID is public; CLIENT_SECRET + SESSION_SECRET are secrets.

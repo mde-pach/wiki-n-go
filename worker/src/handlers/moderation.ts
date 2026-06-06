@@ -3,6 +3,7 @@ import { type CommitItem, gh } from "../github";
 import { HttpError } from "../http";
 import { requireMaintainer } from "../identity";
 import { invalidateContent } from "../kv";
+import { autopatrol } from "../moderation";
 import { botCommitter, commitPayload, getCurrentFile } from "../repo";
 import type { Env, RestoreBody } from "../types";
 import {
@@ -105,29 +106,39 @@ export async function rollback(
     const before = parentSha ? await getCurrentFile(env, repo, path, parentSha) : null;
     const onBranch = await getCurrentFile(env, repo, path);
     if (before) {
-      await gh(env, `/repos/${repo}/contents/${path}`, {
-        method: "PUT",
-        body: commitPayload(env, {
-          message,
-          content: before.raw,
-          branch: env.BRANCH,
-          sha: onBranch?.sha,
-          author,
-        }),
-      });
+      const res = await gh<{ commit: { sha: string } }>(
+        env,
+        `/repos/${repo}/contents/${path}`,
+        {
+          method: "PUT",
+          body: commitPayload(env, {
+            message,
+            content: before.raw,
+            branch: env.BRANCH,
+            sha: onBranch?.sha,
+            author,
+          }),
+        },
+      );
       await updateIndexEntry(env, slug, before.raw);
+      await autopatrol(env, "maintainer", res.commit.sha);
     } else if (onBranch) {
-      await gh(env, `/repos/${repo}/contents/${path}`, {
-        method: "DELETE",
-        body: JSON.stringify({
-          message,
-          sha: onBranch.sha,
-          branch: env.BRANCH,
-          author,
-          committer: botCommitter(env),
-        }),
-      });
+      const res = await gh<{ commit: { sha: string } }>(
+        env,
+        `/repos/${repo}/contents/${path}`,
+        {
+          method: "DELETE",
+          body: JSON.stringify({
+            message,
+            sha: onBranch.sha,
+            branch: env.BRANCH,
+            author,
+            committer: botCommitter(env),
+          }),
+        },
+      );
       await removeIndexEntry(env, slug);
+      await autopatrol(env, "maintainer", res.commit.sha);
     }
     restored.push(slug);
   }
@@ -167,18 +178,23 @@ export async function restore(
   ]);
   if (!at) throw new HttpError(404, "That revision has no content for this page.");
 
-  await gh(env, `/repos/${repo}/contents/${path}`, {
-    method: "PUT",
-    body: commitPayload(env, {
-      message: `Restore ${slug} to ${rev.slice(0, 7)}`,
-      content: at.raw,
-      branch: env.BRANCH,
-      sha: onBranch?.sha,
-      author: { name: writer.name, email: writer.email },
-    }),
-  });
+  const res = await gh<{ commit: { sha: string } }>(
+    env,
+    `/repos/${repo}/contents/${path}`,
+    {
+      method: "PUT",
+      body: commitPayload(env, {
+        message: `Restore ${slug} to ${rev.slice(0, 7)}`,
+        content: at.raw,
+        branch: env.BRANCH,
+        sha: onBranch?.sha,
+        author: { name: writer.name, email: writer.email },
+      }),
+    },
+  );
   await invalidateContent(env, writer.name, { keepIndex: true });
   await updateIndexEntry(env, slug, at.raw);
+  await autopatrol(env, "maintainer", res.commit.sha);
   await appendAudit(
     env,
     repo,

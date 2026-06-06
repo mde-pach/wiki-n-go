@@ -210,7 +210,7 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 |---|---|---|---|
 | **RecentChanges** feed (+ New-Filters: anon/bot/minor/size/namespace/experience/risk) | feed over `git log`/merged PRs; same filter vocabulary as query params | ⬜ | P0 |
 | Live patrol stream (EventStreams) | Worker SSE/webhook fan-out of commit/merge events | ⬜ | P2 |
-| **Patrol flag / autopatrol**; new pages **noindex** until reviewed | per-edit "reviewed" bit + maintainer **patrol queue**; unpatrolled pages get `noindex` (client island → `GET /patrol-status`, fail-open) | ✅ | P1 |
+| **Patrol flag / autopatrol**; new pages **noindex** until reviewed | per-edit "reviewed" bit + maintainer **patrol queue**; **autopatrol** = edits at tier ≥ `AUTOPATROL_TIER` (default extended) land pre-patrolled; unpatrolled pages get `noindex` (client island → `GET /patrol-status`, fail-open) | ✅ | P1 |
 | **New Pages Patrol** + Page Curation toolbar | separate queue for *file-creation* PRs; reviewer overlay (approve / tag / propose-delete / message author) | ⬜ | P1 |
 | **AbuseFilter** (rules: tag/warn/throttle/disallow/auto-ban, pre-publish) | Worker rule engine over the diff (`filters.json`, CODEOWNERS-gated) — **the workhorse of immediate-publish safety** | ⬜ | P0 |
 | Spam/title/link blacklists | versioned blocklist files the Worker checks (refuse spam-domain / bad-title PRs) | ⬜ | P1 |
