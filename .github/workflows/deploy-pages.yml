@@ -24,6 +24,19 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build Astro site
         uses: withastro/action@v3
+        env:
+          # Repo identity + URLs derived from context, so a fork needs no config
+          # edits. WORKER_URL is a repo variable (set once, or auto-set by the
+          # worker deploy); the rest are optional and gate their features.
+          # config.ts / astro.config.mjs fall back to this repo's values when
+          # any of these are unset.
+          SITE_URL: https://${{ github.repository_owner }}.github.io
+          BASE_PATH: /${{ github.event.repository.name }}
+          PUBLIC_REPO_OWNER: ${{ github.repository_owner }}
+          PUBLIC_REPO_NAME: ${{ github.event.repository.name }}
+          PUBLIC_WORKER_URL: ${{ vars.WORKER_URL }}
+          PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
+          PUBLIC_OAUTH_ENABLED: ${{ vars.OAUTH_ENABLED }}
 
   deploy:
     needs: build

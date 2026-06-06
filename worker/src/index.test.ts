@@ -5,6 +5,7 @@ import {
   ipHash,
   lastPage,
   pageTier,
+  pickCategory,
   SLUG_RE,
   signSession,
   verifySession,
@@ -120,6 +121,24 @@ describe("authorOf (Discussion attribution markers)", () => {
       isAnon: false,
       avatarUrl: "a",
     });
+  });
+});
+
+describe("pickCategory (discussion category by name)", () => {
+  const cats = [
+    { id: "DIC_a", name: "Announcements" },
+    { id: "DIC_g", name: "General" },
+    { id: "DIC_q", name: "Q&A" },
+  ];
+  it("matches by name, case-insensitively", () => {
+    expect(pickCategory(cats, "General")).toBe("DIC_g");
+    expect(pickCategory(cats, "q&a")).toBe("DIC_q");
+  });
+  it("falls back to the first category when the name is missing", () => {
+    expect(pickCategory(cats, "Nope")).toBe("DIC_a");
+  });
+  it("returns null when there are no categories", () => {
+    expect(pickCategory([], "General")).toBeNull();
   });
 });
 

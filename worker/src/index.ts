@@ -18,8 +18,12 @@ interface Env {
   ALLOWED_ORIGIN: string;
   RATE_LIMIT?: KVNamespace; // unset until a KV namespace is bound; rate limiting then activates
   TURNSTILE_SECRET?: string; // unset until a Turnstile widget is wired; bot check then activates
-  REPO_ID: string;
-  DISCUSSION_CATEGORY_ID: string;
+  // Discussion target. Both IDs are derived at runtime from REPO_OWNER/REPO_NAME
+  // + DISCUSSION_CATEGORY (so a fork needs no manual lookup); set them only to
+  // override the derivation.
+  REPO_ID?: string;
+  DISCUSSION_CATEGORY_ID?: string;
+  DISCUSSION_CATEGORY?: string; // category name to post talk topics in (default "General")
   // Autonomous-editing knobs (all optional; defaults keep the reviewed-PR model).
   DEFAULT_EDIT_TIER?: string; // tier required to edit a path with no protection.json rule (default "maintainer")
   AUTOCONFIRM_EDITS?: string; // accepted edits for the "auto" tier (default 10)
@@ -1247,6 +1251,46 @@ async function ghGraphQL<T>(
   return data.data;
 }
 
+const DISCUSSION_CTX_TTL_MS = 86_400_000; // repo id is immutable; categories rarely change
+const DISCUSSION_CTX_QUERY = `query($owner:String!,$name:String!){
+  repository(owner:$owner,name:$name){
+    id discussionCategories(first:25){ nodes{ id name } }
+  }
+}`;
+
+// Pick the discussion category by name (case-insensitive), falling back to the
+// first category so a repo without the configured one still works.
+export function pickCategory(
+  nodes: { id: string; name: string }[],
+  name: string,
+): string | null {
+  const want = name.toLowerCase();
+  return nodes.find((c) => c.name.toLowerCase() === want)?.id ?? nodes[0]?.id ?? null;
+}
+
+// Repo node id + target discussion category id. Derived from the repo + category
+// name and cached (env IDs override, for anyone who'd rather pin them).
+async function discussionContext(
+  env: Env,
+): Promise<{ repoId: string; categoryId: string }> {
+  if (env.REPO_ID && env.DISCUSSION_CATEGORY_ID)
+    return { repoId: env.REPO_ID, categoryId: env.DISCUSSION_CATEGORY_ID };
+  return cached(env, "meta:discussion-ctx", DISCUSSION_CTX_TTL_MS, async () => {
+    const data = await ghGraphQL<{
+      repository: {
+        id: string;
+        discussionCategories: { nodes: { id: string; name: string }[] };
+      };
+    }>(env, DISCUSSION_CTX_QUERY, { owner: env.REPO_OWNER, name: env.REPO_NAME });
+    const categoryId = pickCategory(
+      data.repository.discussionCategories.nodes,
+      env.DISCUSSION_CATEGORY ?? "General",
+    );
+    if (!categoryId) throw new HttpError(502, "No discussion categories on this repo.");
+    return { repoId: data.repository.id, categoryId };
+  });
+}
+
 export function authorOf(
   body: string,
   author: { login: string; avatarUrl: string } | null,
@@ -1348,12 +1392,13 @@ async function createTopic(
     throw new HttpError(413, "Message too large.");
 
   const writer = await resolveWriter(env, request, body.token);
+  const { repoId, categoryId } = await discussionContext(env);
   const created = await ghGraphQL<{ createDiscussion: { discussion: { id: string } } }>(
     env,
     CREATE_DISCUSSION,
     {
-      repo: env.REPO_ID,
-      cat: env.DISCUSSION_CATEGORY_ID,
+      repo: repoId,
+      cat: categoryId,
       title: topicPrefix(slug) + title,
       body: `${identityMarker(writer)}\n\n${text}`,
     },

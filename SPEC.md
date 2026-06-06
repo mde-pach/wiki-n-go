@@ -236,7 +236,10 @@ costs; consider salt/epoch rotation to limit long-term linkability (M5).
 - [x] ✅ Cloudflare Worker: bot token, `ip_hash`, PR as `anon-<hash>` — `worker/`; typechecks clean.
 - [x] ✅ Editor → Worker → PR loop verified end to end (PR authored as `anon-<hash>`).
 - [x] ✅ Worker live: `https://wiki-n-go.maxime-depachtere-80f.workers.dev` (secrets + RATE_LIMIT KV bound).
-      Deploy via `worker/deploy.sh` reading gitignored `worker/.deploy.env`.
+      Deploy + secret provisioning fully in CI (`deploy-worker.yml`): random
+      secrets auto-generated (never rotated), the rest from repo secrets. Repo +
+      discussion-category IDs derived at runtime; site config injected from repo
+      context at build. Fork-and-go needs only repo secrets/variables, no edits.
 
 ### M2 — Optional GitHub-login attribution ✅
 - [x] ✅ "Sign in with GitHub" → Worker OAuth exchange (`read:user` only). Worker

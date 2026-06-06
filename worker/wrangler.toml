@@ -11,8 +11,9 @@ BRANCH = "main"
 CONTENT_DIR = "content"
 HOME_SLUG = "index"
 ALLOWED_ORIGIN = "https://mde-pach.github.io,http://localhost:4321"
-REPO_ID = "R_kgDOSxZFTg"
-DISCUSSION_CATEGORY_ID = "DIC_kwDOSxZFTs4C-huV"
+# Talk topics post to this Discussions category; its node id (and the repo id)
+# are derived at runtime, so a fork only names the category here.
+DISCUSSION_CATEGORY = "General"
 # Optional GitHub sign-in. Set OAUTH_CLIENT_ID to your OAuth App's client id
 # (public); leave commented to keep sign-in disabled. The matching secrets are
 # OAUTH_CLIENT_SECRET and SESSION_SECRET (a long random string for signing

@@ -1,3 +1,6 @@
+# Local `wrangler dev` only. In production these are managed by the
+# deploy-worker.yml Action (HASH_SECRET/SESSION_SECRET are auto-generated there);
+# locally any random string is fine.
 GITHUB_TOKEN=fine_grained_pat_with_contents_and_pull_requests_write
 HASH_SECRET=a_long_random_string_set_once_never_rotated
 
