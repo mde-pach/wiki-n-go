@@ -1599,6 +1599,16 @@ html[data-textsize="large"] {
   color: var(--color-ink-subtle);
 }
 
+.protect-done {
+  font-family: var(--font-ui);
+  color: var(--color-add-ink);
+}
+.protect-note {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-ink-subtle);
+}
+
 /* Hatnote: italic disambiguation note above the lead (Wikipedia convention). */
 .hatnote {
   font-family: var(--font-ui);

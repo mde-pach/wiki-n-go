@@ -21,6 +21,14 @@ export async function rollbackCommit(sha: string): Promise<string[]> {
   return data.restored;
 }
 
+export async function restoreRevision(slug: string, rev: string): Promise<void> {
+  await postJson<{ ok: true }>("/restore", { slug, rev });
+}
+
+export async function setProtection(slug: string, tier: string): Promise<void> {
+  await postJson<{ ok: true }>("/protect", { slug, tier });
+}
+
 export async function listBans(): Promise<Ban[]> {
   const data = await getJson<{ bans: Ban[] }>("/bans");
   return data.bans;

@@ -1,11 +1,17 @@
 import { appendAudit } from "../audit";
-import { gh } from "../github";
+import { type CommitItem, gh } from "../github";
 import { HttpError } from "../http";
 import { requireMaintainer } from "../identity";
 import { invalidateContent } from "../kv";
 import { botCommitter, commitPayload, getCurrentFile } from "../repo";
-import type { Env } from "../types";
-import { type PatrolBody, type ReviewBody, type RollbackBody, SHA_RE } from "../types";
+import type { Env, RestoreBody } from "../types";
+import {
+  type PatrolBody,
+  type ReviewBody,
+  type RollbackBody,
+  SHA_RE,
+  SLUG_RE,
+} from "../types";
 import { isInSiteRef, refIdentity } from "./content";
 import { removeIndexEntry, updateIndexEntry } from "./index-cache";
 
@@ -136,4 +142,69 @@ export async function rollback(
     `restored ${restored.join(", ")}`,
   );
   return { ok: true, restored };
+}
+
+// Restore one page to its content at a past revision — the History-row "restore
+// this version" / "undo" action (undo passes the parent sha). Direct, lands as
+// a new revision; maintainer-only like rollback.
+export async function restore(
+  env: Env,
+  request: Request,
+  body: RestoreBody,
+): Promise<{ ok: true; slug: string }> {
+  const slug = String(body.slug ?? "");
+  const rev = String(body.rev ?? "");
+  if (!SLUG_RE.test(slug) || slug.includes(".."))
+    throw new HttpError(400, "Invalid slug.");
+  if (!SHA_RE.test(rev)) throw new HttpError(400, "Invalid revision.");
+  const writer = await requireMaintainer(env, request, "Restore");
+
+  const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
+  const path = `${env.CONTENT_DIR}/${slug}.md`;
+  const [at, onBranch] = await Promise.all([
+    getCurrentFile(env, repo, path, rev),
+    getCurrentFile(env, repo, path),
+  ]);
+  if (!at) throw new HttpError(404, "That revision has no content for this page.");
+
+  await gh(env, `/repos/${repo}/contents/${path}`, {
+    method: "PUT",
+    body: commitPayload(env, {
+      message: `Restore ${slug} to ${rev.slice(0, 7)}`,
+      content: at.raw,
+      branch: env.BRANCH,
+      sha: onBranch?.sha,
+      author: { name: writer.name, email: writer.email },
+    }),
+  });
+  await invalidateContent(env, writer.name, { keepIndex: true });
+  await updateIndexEntry(env, slug, at.raw);
+  await appendAudit(
+    env,
+    repo,
+    writer.name,
+    writer.email,
+    "restore",
+    slug,
+    rev.slice(0, 7),
+  );
+  return { ok: true, slug };
+}
+
+// Whether a page's latest revision has been patrolled — drives noindex-until-
+// patrolled in the reader. Fails open (patrolled: true) with no KV or no
+// commits, so a Worker/KV hiccup never deindexes the wiki.
+export async function patrolStatus(
+  env: Env,
+  slug: string,
+): Promise<{ patrolled: boolean; sha: string | null }> {
+  if (!SLUG_RE.test(slug) || !env.RATE_LIMIT) return { patrolled: true, sha: null };
+  const path = `${env.CONTENT_DIR}/${slug}.md`;
+  const commits = await gh<CommitItem[]>(
+    env,
+    `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits?path=${path}&sha=${env.BRANCH}&per_page=1`,
+  );
+  const sha = commits[0]?.sha ?? null;
+  if (!sha) return { patrolled: true, sha: null };
+  return { patrolled: Boolean(await env.RATE_LIMIT.get(`patrol:${sha}`)), sha };
 }

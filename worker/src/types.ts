@@ -79,6 +79,16 @@ export interface UnbanBody {
   key?: unknown;
 }
 
+export interface RestoreBody {
+  slug?: unknown;
+  rev?: unknown;
+}
+
+export interface ProtectBody {
+  slug?: unknown;
+  tier?: unknown;
+}
+
 export const MAX_CONTENT_BYTES = 100_000;
 export const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/;
 export const NODE_ID_RE = /^[A-Za-z0-9_=-]+$/;

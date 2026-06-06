@@ -191,7 +191,7 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 | **Pending Changes / FlaggedRevs** (hold untrusted edits on select pages) | the **current PR-review flow**, but made **per-path** not global (see §L protection) | 🟡 | P0 |
 | **Edit conflicts** (base-rev compare → diff3 auto-merge; manual only on overlap) | capture **base commit SHA**; 3-way merge onto `main`; conflict view only on overlapping hunks | ⬜ | P1 |
 | Edit summary · minor-edit flag | commit message / PR title; `Minor:` trailer or label | 🟡 | P1 |
-| **Undo** one edit · **restore to revision** | inverse-patch commit · `git checkout <sha> -- path` | ⬜ | P1 |
+| **Undo** one edit · **restore to revision** | Worker `POST /restore {slug, rev}` writes the page's content at `rev` (History-row "restore", maintainer); undo-latest = restore the prior row | 🟡 | P1 |
 | **Rollback** (1-click revert a contributor's trailing run) | maintainer-gated Worker `POST /rollback` restores each page a commit touched to its pre-commit state (per-commit; trailing-run TODO) | 🟡 | P1 |
 | CAPTCHA only for risky/untrusted edits (autoconfirmed exempt) | Turnstile on untrusted `ip_hash` / external-link adds; **exempt trusted tiers** | 🟡 | P1 |
 
@@ -201,7 +201,7 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 | **Autoconfirmed** (≥10 edits & ≥4 days) | Worker **trust ledger** on `ip_hash`: N clean merged edits over M days → flips to auto-merge | ⬜ | P0 |
 | **Extended-confirmed** (≥500 & ≥30 days) | higher tier unlocking sensitive paths | ⬜ | P1 |
 | **Autopatrolled / Reviewer / Rollbacker** (human-granted) | maintainer-curated `trusted-editors.json` / GitHub team → auto-merge & approve others | ⬜ | P1 |
-| **Protection levels** (semi / extended-confirmed / full / create / move / cascading; temp vs indefinite) | per-path `protection.json` (required tier + `expires`) the Worker enforces; **full** = branch protection + **CODEOWNERS** | ⬜ | P0 |
+| **Protection levels** (semi / extended-confirmed / full / create / move / cascading; temp vs indefinite) | `protection:` frontmatter tier the Worker enforces; set via `POST /protect` + `/admin` Protection tab; `expires` / CODEOWNERS / **full** = branch protection still TODO | 🟡 | P0 |
 | Protection edit-notices (`{{pp}}`) | per-path "protected / under review" banner (UI metadata) | ⬜ | P2 |
 | *Note:* auto tiers are gameable via IP rotation | keep auto thresholds modest; reserve real power for human-granted tiers | — | — |
 
@@ -210,7 +210,7 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 |---|---|---|---|
 | **RecentChanges** feed (+ New-Filters: anon/bot/minor/size/namespace/experience/risk) | feed over `git log`/merged PRs; same filter vocabulary as query params | ⬜ | P0 |
 | Live patrol stream (EventStreams) | Worker SSE/webhook fan-out of commit/merge events | ⬜ | P2 |
-| **Patrol flag / autopatrol**; new pages **noindex** until reviewed | per-edit "reviewed" bit + maintainer **patrol queue**; unpatrolled pages get `noindex` | ⬜ | P1 |
+| **Patrol flag / autopatrol**; new pages **noindex** until reviewed | per-edit "reviewed" bit + maintainer **patrol queue**; unpatrolled pages get `noindex` (client island → `GET /patrol-status`, fail-open) | ✅ | P1 |
 | **New Pages Patrol** + Page Curation toolbar | separate queue for *file-creation* PRs; reviewer overlay (approve / tag / propose-delete / message author) | ⬜ | P1 |
 | **AbuseFilter** (rules: tag/warn/throttle/disallow/auto-ban, pre-publish) | Worker rule engine over the diff (`filters.json`, CODEOWNERS-gated) — **the workhorse of immediate-publish safety** | ⬜ | P0 |
 | Spam/title/link blacklists | versioned blocklist files the Worker checks (refuse spam-domain / bad-title PRs) | ⬜ | P1 |

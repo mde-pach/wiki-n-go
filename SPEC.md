@@ -291,17 +291,22 @@ The sysop console for the autonomous model (see `FEATURES.md` §N):
 - [x] ✅ **Unified `/admin` console** — maintainer-gated sysop dashboard (`src/pages/admin.astro` +
       `Admin.tsx`) with tabs aggregating the existing **Recent changes** + **Pending review** surfaces;
       `noindex`, linked from the footer. The home for every governance action below.
-- [x] 🟡 RecentChanges feed (from `git log`/PRs) + **patrol queue** done (M5); `noindex`-until-patrolled still TODO.
-- [x] 🟡 One-click **rollback** ✅ — Worker `POST /rollback` (maintainer-only) restores every page a commit
-      touched to its pre-commit state (deletes pages the commit created), busts the content/index cache, lands
-      as a new revision (so it's reversible); surfaced as a per-row "roll back" action + confirm in `/admin`.
-      TODO: trailing-run rollback, undo/restore-to-revision.
+- [x] ✅ RecentChanges feed + **patrol queue** (M5) + **`noindex`-until-patrolled**: a `PatrolMeta` read-view
+      island queries Worker `GET /patrol-status?slug=` and adds `robots=noindex` when the page's latest revision
+      is unpatrolled. Client-side (the read path is static/CDN) so only JS-running crawlers honor it; **fails open**
+      (no KV / Worker blip → indexable), so a hiccup never deindexes the wiki.
+- [x] ✅ One-click **rollback** + **restore-to-revision** — Worker `POST /rollback` (maintainer) restores every
+      page a commit touched to its pre-commit state (deletes pages it created); `POST /restore {slug, rev}` sets one
+      page to its content at any past revision (History-row "restore", maintainer-only). Both land as a new,
+      reversible revision and bust the content/index cache. TODO: trailing-run rollback.
 - [x] ✅ **Blocks + audit log** — Worker `POST /ban` / `POST /unban` edit `bans.json` (maintainer-only,
       committed → git is the record), supporting **path-scoped partial blocks** (`{key, paths}`; enforced by
       threading the edit slug through `isBanned`, so a partial block gags only its subtrees and never a comment).
       Append-only `audit-log.jsonl` records rollback/ban/unban. New **Blocks** + **Audit log** tabs in `/admin`
       (`GET /bans`, maintainer-only `GET /audit`). TODO: ban `expires`, path-scoped blocks in the abuse path.
-- [ ] ⬜ Protection & rights management (CODEOWNERS / GitHub team) from the dashboard.
+- [x] 🟡 **Protection management** ✅ — Worker `POST /protect {slug, tier}` (maintainer) rewrites the page's
+      `protection:` frontmatter field via a targeted line edit (clean diff), audited; **Protection** tab in `/admin`
+      (slug + tier picker). TODO: rights management (CODEOWNERS / GitHub team), `expires`, current-protection display.
 - [ ] ⬜ **Oversight/suppression**: render-time redaction + owner-only hard-purge (history rewrite + CDN purge).
 - [ ] ⬜ New-Pages queue + Page-Curation-style reviewer overlay; deletion flow (CSD/PROD/AfD via PR policy).
 
@@ -380,3 +385,6 @@ Read-time reports + git-native operations (see `FEATURES.md` §§O–P):
 | 2026-06-06 | M6 starts with a **unified `/admin` console** aggregating existing moderation surfaces (M5 RecentChanges + Pending review), then grows new actions into it | §N calls the sysop console the P0 keystone; the moderation surfaces already existed but were scattered, so a single maintainer-gated home is the highest-leverage first slice |
 | 2026-06-06 | **Rollback** restores each touched page to its pre-commit state as a *new* commit (no force-push / history rewrite) | Keeps the no-rebuild + immutable-history invariants — a rollback is itself a revision, so it can be rolled forward; overwrites intervening edits (git retains them) and the dashboard confirms first |
 | 2026-06-06 | **Blocks edit `bans.json` directly** (committed); partial blocks are `{key, paths}` entries; the **audit log is `audit-log.jsonl`** in the repo, not KV | git is the tamper-evident record (who/when in the commit) and the no-second-store invariant holds; bare site-wide bans still round-trip as plain strings, so hand-edited `bans.json` keeps working. Partial blocks enforce by threading the edit slug into `isBanned` — comments carry no path, so a partial block can't gag talk |
+| 2026-06-06 | **`noindex`-until-patrolled is client-side + fail-open**, not server-rendered | The read path is static/CDN with no Worker in front (no SSR yet), so the page can't know patrol state at build; a small read-view island sets `robots=noindex` from `GET /patrol-status`. JS-running crawlers honor it; failing open means a Worker/KV blip never deindexes the wiki. Revisit if an edge-SSR variant lands |
+| 2026-06-06 | **restore-to-revision and protection edits are maintainer-only direct commits**, reusing the rollback path | Consistent with rollback (privileged, no Turnstile, lands as a reversible revision); avoids routing a History/console action through the full anon edit+Turnstile flow. Normal-editor undo (gated like a regular edit) can come later |
+| 2026-06-06 | **Page protection set by a targeted frontmatter line edit**, not a YAML reparse-and-redump | Preserves the rest of the frontmatter + body byte-for-byte → clean diffs; the `protection:` field is a simple scalar, so a line replace/insert/remove is safe and unit-tested |

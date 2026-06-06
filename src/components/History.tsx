@@ -1,11 +1,13 @@
 import { createSignal, For, Show } from "solid-js";
 import { config } from "../config";
+import { restoreRevision } from "../lib/admin";
 import { type DLine, parseDiff } from "../lib/diff";
 import { getDiff, getHistory, type Revision } from "../lib/history";
 import { readHref, slugFromLocation } from "../lib/paths";
-import { clientResource } from "../lib/solid";
+import { clientResource, useWhoami } from "../lib/solid";
 import { errMessage } from "../lib/util";
 import DiffView from "./DiffView";
+import { ConfirmDialog } from "./editor/ConfirmDialog";
 import { ErrorNote, ViewHead } from "./ui";
 
 export default function History(props: { slug?: string }) {
@@ -20,6 +22,24 @@ export default function History(props: { slug?: string }) {
   }>();
   const [err, setErr] = createSignal<string>();
   const latest = () => revs()?.[0]?.sha;
+
+  const { isMaintainer } = useWhoami();
+  const [restoring, setRestoring] = createSignal<Revision>();
+  const [busy, setBusy] = createSignal(false);
+
+  async function doRestore() {
+    const r = restoring();
+    if (!r) return;
+    setBusy(true);
+    setErr();
+    try {
+      await restoreRevision(slug(), r.sha);
+      window.location.assign(readHref(slug()));
+    } catch (e) {
+      setErr(errMessage(e));
+      setBusy(false);
+    }
+  }
 
   async function show(base: string | null, head: string) {
     setErr();
@@ -94,6 +114,15 @@ export default function History(props: { slug?: string }) {
                     <a class="rev-permalink" href={`${readHref(slug())}?rev=${r.sha}`}>
                       permalink
                     </a>
+                    <Show when={isMaintainer() && i() !== 0}>
+                      <button
+                        type="button"
+                        class="link-btn rev-restore"
+                        onClick={() => setRestoring(r)}
+                      >
+                        restore
+                      </button>
+                    </Show>
                   </div>
                   <div class="rev-summary">{r.message}</div>
                 </div>
@@ -107,6 +136,27 @@ export default function History(props: { slug?: string }) {
         {(d) => <DiffView lines={d().lines} a={d().a} b={d().b} />}
       </Show>
       <ErrorNote msg={err()} />
+
+      <Show when={restoring()}>
+        {(r) => (
+          <ConfirmDialog
+            title="Restore this revision"
+            subtitle={<>The current page content will be replaced.</>}
+            body={
+              <p>
+                Restore this page to its content at <code>{r().sha.slice(0, 7)}</code>?
+                The current version is replaced, but kept in history — this restore is
+                itself a new revision.
+              </p>
+            }
+            confirmLabel={busy() ? "Restoring…" : "Restore"}
+            cancelLabel="Cancel"
+            busy={busy()}
+            onConfirm={doRestore}
+            onCancel={() => setRestoring(undefined)}
+          />
+        )}
+      </Show>
     </div>
   );
 }

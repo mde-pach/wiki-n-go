@@ -4,6 +4,7 @@ import { ClientRouter } from "astro:transitions";
 import AuthButton from "../components/AuthButton.tsx";
 import MainMenu from "../components/MainMenu.tsx";
 import PageMeta from "../components/PageMeta.tsx";
+import PatrolMeta from "../components/PatrolMeta.tsx";
 import Search from "../components/Search.tsx";
 import ThemeBoot from "../components/ThemeBoot.astro";
 import TokenCapture from "../components/TokenCapture.astro";
@@ -123,6 +124,7 @@ const alternates = langs.filter((l) => !l.current);
           <div class="page-meta-slot">
             <PageMeta slug={slug} base={BASE} initial={revisions} client:load />
           </div>
+          {view === "read" && <PatrolMeta slug={slug} client:idle />}
           <nav class="tabbar" aria-label="Page views">
             {
               tabs.map(([id, label]) => (
