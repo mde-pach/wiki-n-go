@@ -15,7 +15,7 @@ This page is **served from GitHub via jsDelivr**[^cdn] and rendered in your brow
 runtime. Editing this file and committing it updates the page **with no
 rebuild**[^norebuild] — the reader always fetches the latest commit.
 
-## How it works
+## How it works ?
 
 - Content lives as Markdown in a GitHub repo (the database).
 - The site (this interface) fetches it from the [[w:Content delivery network|CDN]],
