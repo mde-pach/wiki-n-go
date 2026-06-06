@@ -22,9 +22,20 @@ interface RequestOptions {
   cache?: RequestCache;
 }
 
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 async function readJson<T>(res: Response): Promise<T> {
   const data = (await res.json()) as T & { error?: string };
-  if (!res.ok) throw new Error(data.error ?? `Request failed (${res.status})`);
+  if (!res.ok)
+    throw new ApiError(res.status, data.error ?? `Request failed (${res.status})`);
   return data;
 }
 
@@ -59,6 +70,7 @@ export function submitEdit(
   content: string,
   token?: string,
   summary?: string,
+  baseSha?: string,
 ): Promise<EditResult> {
-  return postJson<EditResult>("/edit", { slug, content, token, summary });
+  return postJson<EditResult>("/edit", { slug, content, token, summary, baseSha });
 }
