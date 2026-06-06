@@ -15,10 +15,10 @@ The persistent top bar: menu, wordmark, search, personal tools.
 | Wikipedia | Ours | St | Pri |
 |---|---|---|---|
 | Wordmark / home link | site title → home | 🟡 | P0 |
-| **Search box** (full-text) | search over the manifest/content (⚒) | ⬜ | P1 |
-| Main-menu button (nav drawer) | configurable sidebar/nav (⚒) | ⬜ | P1 |
+| **Search box** (full-text) | full-text search over the manifest/content (AND-ranked, snippets, keyboard nav) | ✅ | P1 |
+| Main-menu button (nav drawer) | header hamburger → left slide-out drawer (Home · Help · Special · Recent changes · Create); `452b0a7` | ✅ | P1 |
 | Personal tools (login/donate/account) | optional GitHub sign-in only; no login wall | ⬜ | P2 |
-| "Jump to content" skip link | a11y skip link | ⬜ | P1 |
+| "Jump to content" skip link | a11y skip link | ✅ | P1 |
 
 ## B. Page header (title + action bars)
 Sits above the article: title, the two tab rows, page tools, appearance, languages.
@@ -38,37 +38,37 @@ A sticky, collapsible, nested sidebar auto-built from headings.
 
 | Wikipedia | Ours | St | Pri |
 |---|---|---|---|
-| Auto TOC from heading tree | build TOC from rendered headings (⚒) | ⬜ | P0 |
-| Sticky + active-section highlight on scroll | IntersectionObserver (⚒) | ⬜ | P1 |
-| Collapse / hide; mobile drawer | responsive behavior (⚒) | ⬜ | P1 |
+| Auto TOC from heading tree | build TOC from rendered headings (`Toc`, SSR initial items) | ✅ | P0 |
+| Sticky + active-section highlight on scroll | IntersectionObserver | ✅ | P1 |
+| Collapse / hide; mobile drawer | responsive behavior (`TocMobile`) | ✅ | P1 |
 
 ## D. Article body (`main` content)
 The core, in render order observed on the page.
 
 | Wikipedia | Ours | St | Pri |
 |---|---|---|---|
-| **Hatnotes** ("This article is about… For…") | frontmatter/markdown admonition (⚒) | ⬜ | P2 |
-| **Maintenance banners** ("needs additional citations") | status banners from frontmatter (⚒) | ⬜ | P2 |
-| **Lead section** (bold title term, summary) | first block before H1-sub; bold term | ⬜ | P1 |
-| **Infobox** (fact panel, floats top-right) | frontmatter-driven; float desktop / stack mobile (⚒) | ⬜ | P1 |
-| **Section headings** + `#` anchors | slugged headings, hover anchor (⚒) | ⬜ | P0 |
-| **Per-section `[edit]`** links | split markdown by heading, edit one (⚒) | ⬜ | P1 |
-| **Figures** (images + captions) | markdown images + `<figure>` caption (⚒) | ⬜ | P1 |
+| **Hatnotes** ("This article is about… For…") | frontmatter `hatnote` | ✅ | P2 |
+| **Maintenance banners** ("needs additional citations") | frontmatter `banner` (info/warn) | ✅ | P2 |
+| **Lead section** (bold title term, summary) | `emphasizeLeadHtml` bolds the title term when the lead opens with it | ✅ | P1 |
+| **Infobox** (fact panel, floats top-right) | frontmatter-driven; float desktop / stack mobile (`Infobox`) | ✅ | P1 |
+| **Section headings** + `#` anchors | slugged headings, hover anchor (markdown-it-anchor) | ✅ | P0 |
+| **Per-section `[edit]`** links | split markdown by heading, edit one (`addSectionEditLinks`) | ✅ | P1 |
+| **Figures** (images + captions) | markdown images + `<figure>` caption (`lib/figures`) | ✅ | P1 |
 | **Blockquotes / tables** | markdown native | ✅ | P0 |
-| **References / footnotes** `[1]` + reflist + backlinks | markdown-it footnotes (⚒) | ⬜ | P1 |
-| Reference **tooltips** on hover | popover on citation marker (⚒) | ⬜ | P2 |
-| **Internal links `[[Page]]`** + **red links** | rewrite via manifest; red = missing (⚒) | ⬜ | P0 |
-| **Hover page previews** | popup card on internal link (⚒) | ⬜ | P2 |
+| **References / footnotes** `[1]` + reflist + backlinks | markdown-it footnotes → cite markup | ✅ | P1 |
+| Reference **tooltips** on hover | popover on citation marker (`attachCiteTooltips`) | ✅ | P2 |
+| **Internal links `[[Page]]`** + **red links** | rewrite via manifest; red = missing, resolved before paint | ✅ | P0 |
+| **Hover page previews** | popup card on internal link (`lib/previews`); `db1cff8` | ✅ | P2 |
 | **See also / External links** sections | markdown convention | ✅ | P1 |
 | **Navboxes** (bottom template grids) | transclusion/includes (⚒) | ⬜ | P2 |
-| **Categories** footer | frontmatter `tags` → `/category/<x>` (⚒) | ⬜ | P1 |
+| **Categories** footer | frontmatter `tags` → `/category/<x>` (footer chips) | ✅ | P1 |
 | Authority/Wikidata strip | n/a → **"view source on GitHub"** provenance | ⬜ | P2 |
 
 ## E. Footer (`contentinfo`)
 | Wikipedia | Ours | St | Pri |
 |---|---|---|---|
-| "**Last edited** on `<date>`" | "last edited by `anon-<hash>` · `<date>`" from git (★) | ⬜ | P0 |
-| License / terms / trademark | configurable license + provenance line | ⬜ | P1 |
+| "**Last edited** on `<date>`" | "last edited by `anon-<hash>` · `<date>`" from git, SSR'd (`PageMeta`) | ✅ | P0 |
+| License / terms / trademark | license + "view page source" provenance line in the footer | ✅ | P1 |
 | Mobile view toggle | responsive (no separate view) | — | — |
 
 ## F. History & revisions (git = our superpower)
@@ -78,11 +78,11 @@ and undo/thank/tag actions; Newer/Older pagination.
 
 | Wikipedia | Ours | St | Pri |
 |---|---|---|---|
-| Revision list: date · author · **summary** · **size + byte delta** | `git log` w/ stats (Worker `/history`) (★) | ⬜ | P0 |
-| Per-row **cur / prev** diff links | diff vs latest / previous (★) | ⬜ | P0 |
-| **Compare any two** (radio select) | pick-two → `/diff?from&to` (★) | ⬜ | P0 |
-| Diff render (add/remove coloring) | GitHub compare/commit patch → render (★) | ⬜ | P0 |
-| Permalink to a revision | jsDelivr `@<sha>` (★) | ⬜ | P1 |
+| Revision list: date · author · **summary** · **size + byte delta** | `git log` w/ stats (Worker `/history`, `History`) | ✅ | P0 |
+| Per-row **cur / prev** diff links | diff vs latest / previous | ✅ | P0 |
+| **Compare any two** (radio select) | pick-two → `/diff?from&to` (`DiffView`) | ✅ | P0 |
+| Diff render (add/remove coloring) | split/unified patch render (`DiffView`) | ✅ | P0 |
+| Permalink to a revision | jsDelivr `@<sha>` via `?rev=` (old-revision banner) | ✅ | P1 |
 | **Undo / revert** a revision | resubmit prior content as an anon edit→PR (⚒) | ⬜ | P1 |
 | Pagination (Newer/Older) | paginate commits (★) | ⬜ | P2 |
 | Per-line blame | GraphQL `blame` (★) | ⬜ | P2 |
@@ -92,11 +92,11 @@ and undo/thank/tag actions; Newer/Older pagination.
 | Wikipedia | Ours | St | Pri |
 |---|---|---|---|
 | In-page editor | textarea editor → PR | ✅ | P0 |
-| Edit summary | Worker param; surface field (★) | 🟡 | P0 |
-| **Live preview** | reuse renderer beside textarea (⚒) | ⬜ | P0 |
-| Section editing | edit one section (⚒) | ⬜ | P1 |
-| Create-new-page (red link → create) | Worker already creates new files (★) | 🟡 | P0 |
-| Show diff before submit | diff draft vs current (⚒) | ⬜ | P1 |
+| Edit summary | surfaced summary field → commit/PR | ✅ | P0 |
+| **Live preview** | renderer beside textarea, updates as you type | ✅ | P0 |
+| Section editing | `?section=` deep-link selects + scrolls to that section | ✅ | P1 |
+| Create-new-page (red link → create) | red link → create; `/new` wizard (title → slug + template) | ✅ | P0 |
+| Show diff before submit | confirm dialog shows size delta (full diff preview ⬜) | 🟡 | P1 |
 | Edit-conflict detection | base-SHA check in Worker (⚒) | ⬜ | P1 |
 | Anti-bot (already have) | Turnstile | ✅ | — |
 
@@ -129,12 +129,12 @@ only **one** level), reusing the same marker trick as `anon-<hash>`.
 |---|---|---|---|
 | Anonymous comments | via Worker → GitHub Discussions | ✅ | P0 |
 | **Topics** = titled threads; "New topic" | one Discussion per topic, titled | ✅ | P1 |
-| Per-topic metadata (last-comment age · #comments · #participants) | reply count + last-activity age (participants deferred) | 🟡 | P2 |
+| Per-topic metadata (last-comment age · #comments · #participants) | reply count + last-activity age + participant/message counts; `0b62678` | ✅ | P2 |
 | **Arbitrary-depth replies** (indentation) | reply-to marker → client-rebuilt tree | ✅ | P1 |
 | Per-comment **reply** button + more menu | reply box under each comment (more-menu deferred) | 🟡 | P1 |
 | **Signature**: author · timestamp · **comment permalink** | author + relative time + per-comment permalink | ✅ | P1 |
 | **@mentions** of contributors | parse + link (anon handle / GitHub user) (⚒) | ⬜ | P2 |
-| Talk header / guidelines banner | config/frontmatter (⚒) | ⬜ | P2 |
+| Talk header / guidelines banner | guidelines banner above the topic list; `0b62678` | ✅ | P2 |
 | Unsigned-comment attribution | n/a — we always stamp the author | ✅ | — |
 | Archives, WikiProject/assessment, find-sources | Wikipedia-specific | ⊘ | — |
 
@@ -154,10 +154,12 @@ only **one** level), reusing the same marker trick as `anon-<hash>`.
 - ✅ Frontmatter layer: infobox, categories (chips + `/category/<tag>`), hatnotes, maintenance banners.
 - ✅ Per-section `[edit]` links; live preview; edit-summary; History (`/history` + `/diff`).
 - ✅ Moderation: Turnstile, rate-limit, `bans.json`, slug hardening. Foundation: Tailwind tokens + skins, `/pages` manifest.
+- ✅ SSR (no client blink): server-rendered content + revision line, red links resolved before paint, clean TOC.
+- ✅ Reading UX: collapsible sections, wikilink hover previews, interwiki `[[w:…]]` links, lead-term emphasis, draft persistence.
+- ✅ Help namespace (`/help` · editing · formatting); main-menu nav drawer; lazy-loaded Mermaid diagrams.
 
 ## Remaining page-level polish (P2)
-- ⬜ Lead-section emphasis / bold title term · ⬜ wikilink **hover page previews** · ⬜ Talk **@mention** linkify
-- ⬜ Named-ref **reuse** + grouped notes · ⬜ citation templates · ⬜ richer full-text search · ⬜ `/design` tokens route
+- ⬜ Talk **@mention** linkify · ⬜ Named-ref **reuse** + grouped notes · ⬜ citation templates · ⬜ `/design` tokens route
 
 ---
 
@@ -295,35 +297,35 @@ Cross-refs point at the relevant A–Q row so we extend, not duplicate.
 ## R. Rendering & SSR (no client blink)
 | # | Item | Type | St | Pri | Ref |
 |---|---|---|---|---|---|
-| R1 | **No client-side lazy loading for content.** Content/layout must arrive server-rendered — no blink, no incomplete layout while data fills in. Treat this as a hard rule for content pages. | 🐛 | ⬜ | P0 | invariant |
-| R2 | **Revision info loads client-side** → fix to render server-side (it's a content surface, not an interaction). | 🐛 | ⬜ | P0 | §F |
-| R3 | **Red link flashes blue before turning red** — link color is resolved client-side; resolve missing-target state at render so it's red on first paint. | 🐛 | ⬜ | P0 | §D |
+| R1 | **No client-side lazy loading for content.** Content/layout must arrive server-rendered — no blink, no incomplete layout while data fills in. Treat this as a hard rule for content pages. | 🐛 | ✅ | P0 | invariant |
+| R2 | **Revision info loads client-side** → fix to render server-side (it's a content surface, not an interaction). `PageMeta` now SSRs from build-time `gitRevisions` as `initialValue`. `0e878f4` | 🐛 | ✅ | P0 | §F |
+| R3 | **Red link flashes blue before turning red** — link color is resolved client-side; resolve missing-target state at render so it's red on first paint. Build bakes `is-red`; client paths resolve before `setHtml`. `07d82b2` | 🐛 | ✅ | P0 | §D |
 | R4 | **Logged-in (GitHub) state blinks on load** — personal-tools / auth UI is resolved client-side, so the header flashes signed-out → signed-in on every paint. Resolve the session at render (server-side, or from a cookie before first paint) so the correct signed-in chrome shows immediately, no blink. | 🐛 | ⬜ | P0 | §A, R1 |
 
 ## S. Reading layout
 | # | Item | Type | St | Pri | Ref |
 |---|---|---|---|---|---|
-| S1 | **TOC includes the per-section `[edit]` text** from the heading; TOC entries must be the section title only. | 🐛 | ⬜ | P0 | §C |
-| S2 | **Collapsible sections** (Wikipedia-style show/hide per heading). | ✨ | ⬜ | P1 | §C |
+| S1 | **TOC includes the per-section `[edit]` text** from the heading; TOC entries must be the section title only. `0e878f4` | 🐛 | ✅ | P0 | §C |
+| S2 | **Collapsible sections** (Wikipedia-style show/hide per heading). `makeSectionsCollapsible` in `lib/decorate`. | ✨ | ✅ | P1 | §C |
 | S3 | **Third column (`col-info`→`Infobox.tsx`).** The custom `infobox:` mode stays; **kill the auto-generated fallback panel** (Type/Rendering/Editing/Revisions/Last-edit/Source/License) — it's platform-meta, duplicates footer §E + history §F, and its `getHistory`/`onMount` fetches cause the R2 client blink. **Decision (a):** keep facts in frontmatter, add an **inline infobox editor in the edit flow** (edit rows like the body, not raw YAML). | ✨ | ⬜ | P1 | §D, R2 |
-| S4 | **What is the breadcrumb for?** Decide its purpose or remove it. | ❓ | ⬜ | P2 | §J |
-| S5 | **Interwiki link type** — a *third* link class beside internal `[[Page]]` and plain external links: a link that resolves to an **existing Wikipedia article** so we don't maintain a page for well-covered topics. Distinct visual treatment (e.g. W badge / outbound marker) so readers see it leaves the wiki; **documented as a Wikipedia-style interwiki link**. Proposed syntax: `[[w:Title]]` / `[[wikipedia:Title]]` → `en.wikipedia.org/wiki/Title`. Ex: homepage *CDN* → Wikipedia's *Content delivery network*. Open Qs: prefix set (`w:` only, or more wikis later?) and whether to existence-check the target. | ✨ | ⬜ | P1 | §B, §D, T4 |
+| S4 | **What is the breadcrumb for?** Decide its purpose or remove it. Resolved: no breadcrumb exists in the codebase — nothing to keep or remove. | ❓ | ✅ | P2 | §J |
+| S5 | **Interwiki link type** — a *third* link class beside internal `[[Page]]` and plain external links: a link that resolves to an **existing Wikipedia article** so we don't maintain a page for well-covered topics. Distinct visual treatment (e.g. W badge / outbound marker) so readers see it leaves the wiki; **documented as a Wikipedia-style interwiki link**. Proposed syntax: `[[w:Title]]` / `[[wikipedia:Title]]` → `en.wikipedia.org/wiki/Title`. Ex: homepage *CDN* → Wikipedia's *Content delivery network*. Open Qs: prefix set (`w:` only, or more wikis later?) and whether to existence-check the target. Shipped: `[[w:Title]]`/`[[wikipedia:Title]]` → Wikipedia, `.interwiki` badge. `0e878f4` | ✨ | ✅ | P1 | §B, §D, T4 |
 | S6 | **Reading-position restore animates from the top** — on refresh the page loads at the top, then scrolls down to the saved reading position. Restore the scroll **synchronously before first paint** (no smooth-scroll) so it opens directly at the saved spot. | 🐛 | ⬜ | P1 | §C |
 | S7 | **`getting-started` shifts the column layout** — its body is too narrow to fill the content column, so the grid collapses to a different layout than other pages. The column geometry must stay **constant regardless of content width**. Likely downstream: the **info card is mispositioned** because the column widths changed (fix S7's width and the card should fall back into place). | 🐛 | ⬜ | P1 | §D, S3 |
 
 ## T. Editing
 | # | Item | Type | St | Pri | Ref |
 |---|---|---|---|---|---|
-| T1 | **Hide Turnstile from the user** — keep anti-bot under the hood; on failure print an error; if not yet verified, hold the submission in a waiting state rather than exposing the widget. | 🐛/✨ | ⬜ | P0 | §G, §M |
-| T2 | **Refresh on the edit page wipes the content** — persist the draft (local/session) across reloads. | 🐛 | ⬜ | P0 | §G |
-| T3 | **Hatnote shows as raw markdown in the editor** — preview the hat correctly (rendered), don't surface it inline in the md. | 🐛 | ⬜ | P1 | §D |
-| T4 | **Help/docs pages** (own namespace): how it works, how to contribute, a markdown primer for non-technical editors, and a reference of available md plugins + their syntax — surfaced near the editor. | ✨ | ⬜ | P1 | §P (help/ ns) |
-| T5 | **More markdown plugins** — evaluate e.g. **Mermaid** for technical diagrams; list candidates. | ✨ | ⬜ | P2 | §D |
+| T1 | **Hide Turnstile from the user** — keep anti-bot under the hood; on failure print an error; if not yet verified, hold the submission in a waiting state rather than exposing the widget. | 🐛/✨ | ✅ | P0 | §G, §M |
+| T2 | **Refresh on the edit page wipes the content** — persist the draft (local/session) across reloads. `lib/draft` restores on mount, persists on change, clears on submit. | 🐛 | ✅ | P0 | §G |
+| T3 | **Hatnote shows as raw markdown in the editor** — preview the hat correctly (rendered), don't surface it inline in the md. Hatnote is a `PageProperties` field; the preview renders the body only (frontmatter split off). | 🐛 | ✅ | P1 | §D |
+| T4 | **Help/docs pages** (own namespace): how it works, how to contribute, a markdown primer for non-technical editors, and a reference of available md plugins + their syntax — surfaced near the editor. Shipped `help/` (index · editing · formatting) + editor hint. `2cc750d` | ✨ | ✅ | P1 | §P (help/ ns) |
+| T5 | **More markdown plugins** — evaluate e.g. **Mermaid** for technical diagrams; list candidates. Mermaid shipped, lazy-loaded (dynamic import, own chunk), strict security level. `0ac3e86` | ✨ | ✅ | P2 | §D |
 
 ## U. Talk & profiles
 | # | Item | Type | St | Pri | Ref |
 |---|---|---|---|---|---|
-| U1 | **Opening a thread blinks** — the whole component flashes before rendering/expanding; fix the mount/transition. | 🐛 | ⬜ | P1 | §I |
+| U1 | **Opening a thread blinks** — the whole component flashes before rendering/expanding; fix the mount/transition. Delayed-skeleton (160ms) + gated expand + ease-in; cached re-opens instant. `f7d3d50` | 🐛 | ✅ | P1 | §I |
 | U2 | **Reactions on talk comments.** | ✨ | ⬜ | P2 | §I, §Q |
 | U3 | **Profile page** (Wikipedia user-page equivalent) — currently missing. | ✨ | ⬜ | P2 | §Q |
 

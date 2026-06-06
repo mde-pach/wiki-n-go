@@ -273,7 +273,11 @@ costs; consider salt/epoch rotation to limit long-term linkability (M5).
 - [x] ✅ References/footnotes + citation hover tooltips; captioned figures.
 - [x] ✅ Frontmatter layer → infobox, categories (chips + `/category/<tag>`), hatnotes, maintenance banners.
 - [x] ✅ Per-section `[edit]` links; TOC (desktop + mobile); icons; self-hosted fonts.
-- [ ] ⬜ P2 polish: hover page previews, @mention linkify, named-ref reuse, citation templates, richer search.
+- [x] ✅ Reading polish: SSR'd content/revision line + red links resolved before paint (no blink); collapsible
+      sections; wikilink **hover page previews**; interwiki `[[w:…]]` links; lead-term emphasis; full-text search.
+- [x] ✅ Editing/chrome: draft persistence across reloads; in-site help namespace (`/help`); main-menu nav drawer;
+      lazy-loaded **Mermaid** diagrams (`` ```mermaid ``, own chunk, strict security level).
+- [ ] ⬜ P2 polish (remaining): @mention linkify, named-ref reuse, citation templates.
 
 ### M5 — Autonomous editing mode (immediate publish + post-hoc moderation) 🟡
 Invert the default selectively. Critical path (see `FEATURES.md` §§K–N):
@@ -430,3 +434,4 @@ page identity. URL shape and the linking mechanism are **independent choices**.
 | 2026-06-06 | **restore-to-revision and protection edits are maintainer-only direct commits**, reusing the rollback path | Consistent with rollback (privileged, no Turnstile, lands as a reversible revision); avoids routing a History/console action through the full anon edit+Turnstile flow. Normal-editor undo (gated like a regular edit) can come later |
 | 2026-06-06 | **Page protection set by a targeted frontmatter line edit**, not a YAML reparse-and-redump | Preserves the rest of the frontmatter + body byte-for-byte → clean diffs; the `protection:` field is a simple scalar, so a line replace/insert/remove is safe and unit-tested |
 | 2026-06-06 | Interlanguage (M8): translations are **independent pages** linked by a **symmetric, uniform frontmatter `translationKey`** (every member carries it; default-language version **optional**); **default language is configured + languageless** (bare slugs, no migration), other languages are URL-prefixed + localized (`/fr/cafe`) | Different slug/content per language ⇒ separate pages; a symmetric key (not a pointer to a canonical page) lets an article exist only in non-default languages; key-link is cheap and on-pattern (like `redirect:`); languageless default avoids migration; URL shape and link mechanism are independent choices |
+| 2026-06-06 | **Mermaid** is the first markdown plugin admitted as a dependency, but **dynamically imported** (own chunk, loaded only on pages with a `` ```mermaid `` block) and run at **strict security level** | Diagrams are high-value for a technical wiki, but the engine is ~135 kB gzip — lazy-loading keeps it off the base bundle (read-path stays light), and diagram source is user-editable content, so strict (sanitizing) mode is mandatory. The fence degrades to a code block without JS |
