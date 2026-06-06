@@ -4,13 +4,16 @@ import { isServer } from "solid-js/web";
 import { config } from "../config";
 import { type EditResult, submitEdit } from "../lib/api";
 import { fetchMarkdown, PageNotFoundError } from "../lib/content";
+import { clearDraft, loadDraft, persistDraft } from "../lib/draft";
+import { findSection } from "../lib/editor-section";
 import { splitFrontmatter, withFrontmatter } from "../lib/frontmatter";
 import { renderMarkdown } from "../lib/markdown";
-import { prettify, readHref, slugFromLocation, slugifyLabel } from "../lib/paths";
+import { prettify, readHref, slugFromLocation } from "../lib/paths";
 import { useSubmit, useWhoami } from "../lib/solid";
 import { templateById } from "../lib/templates";
 import { errMessage } from "../lib/util";
-import { Icons } from "./Icons";
+import { ConfirmDialog } from "./editor/ConfirmDialog";
+import { MarkdownToolbar } from "./editor/MarkdownToolbar";
 import PageProperties, {
   assemble,
   extraFrom,
@@ -42,18 +45,19 @@ export default function Editor(props: { slug?: string; initialContent?: string }
 
   const { busy, error, setError, run, mount } = useSubmit();
   const content = () => withFrontmatter(assemble(extra(), fields), body());
-  const draftKey = () => `wng-draft:${slug()}`;
+
+  function applyDocument(doc: string) {
+    const s = splitFrontmatter(doc);
+    setBody(s.body);
+    setFields(fieldsFrom(s.data));
+    setExtra(extraFrom(s.data));
+  }
 
   onMount(async () => {
     try {
       const raw = await fetchMarkdown(slug());
       setOriginal(raw);
-      if (raw !== props.initialContent) {
-        const fresh = splitFrontmatter(raw);
-        setBody(fresh.body);
-        setFields(fieldsFrom(fresh.data));
-        setExtra(extraFrom(fresh.data));
-      }
+      if (raw !== props.initialContent) applyDocument(raw);
     } catch (e) {
       if (e instanceof PageNotFoundError) {
         setIsNew(true);
@@ -71,37 +75,22 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     if (isServer) return;
     const id = new URLSearchParams(window.location.search).get("template");
     if (!id) return;
-    const seeded = splitFrontmatter(templateById(id).build(prettify(slug())));
-    setBody(seeded.body);
-    setFields(fieldsFrom(seeded.data));
-    setExtra(extraFrom(seeded.data));
+    applyDocument(templateById(id).build(prettify(slug())));
   }
 
-  // Survive a reload: persist the in-progress edit per slug, restore it on mount
-  // (over the freshly fetched content), and clear it once the edit is submitted.
   function restoreDraft() {
-    const saved = localStorage.getItem(draftKey());
-    if (!saved) return;
-    try {
-      const d = JSON.parse(saved) as { content?: string; summary?: string };
-      if (!d.content || d.content === content()) return;
-      const s = splitFrontmatter(d.content);
-      setBody(s.body);
-      setFields(fieldsFrom(s.data));
-      setExtra(extraFrom(s.data));
-      if (d.summary) setSummary(d.summary);
-      setRestored(true);
-    } catch {
-      localStorage.removeItem(draftKey());
-    }
+    const draft = loadDraft(slug(), content());
+    if (!draft) return;
+    applyDocument(draft.content);
+    if (draft.summary) setSummary(draft.summary);
+    setRestored(true);
   }
 
   createEffect(() => {
     const c = content();
     const s = summary();
-    if (isServer || !ready()) return;
-    if (c === original() && !s.trim()) localStorage.removeItem(draftKey());
-    else localStorage.setItem(draftKey(), JSON.stringify({ content: c, summary: s }));
+    if (!ready()) return;
+    persistDraft(slug(), c, s, original());
   });
 
   // Deep-link from a heading's `[edit]`: select that section and seed a summary.
@@ -109,29 +98,12 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     if (isServer || !ta) return;
     const section = new URLSearchParams(window.location.search).get("section");
     if (!section) return;
-    const lines = body().split("\n");
-    let offset = 0;
-    let start = -1;
-    let end = body().length;
-    let heading = "";
-    for (const line of lines) {
-      const m = line.match(/^#{2,3}\s+(.+?)\s*$/);
-      if (m) {
-        if (start === -1 && slugifyLabel(m[1]) === section) {
-          start = offset;
-          heading = m[1];
-        } else if (start !== -1) {
-          end = offset;
-          break;
-        }
-      }
-      offset += line.length + 1;
-    }
-    if (start === -1) return;
-    if (!summary().trim()) setSummary(`Edit ${heading} section`);
+    const span = findSection(body(), section);
+    if (!span) return;
+    if (!summary().trim()) setSummary(`Edit ${span.heading} section`);
     ta.focus();
-    ta.setSelectionRange(start, end);
-    ta.scrollTop = (start / Math.max(1, body().length)) * ta.scrollHeight;
+    ta.setSelectionRange(span.start, span.end);
+    ta.scrollTop = (span.start / Math.max(1, body().length)) * ta.scrollHeight;
   }
 
   const preview = () =>
@@ -169,7 +141,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     setModal(false);
     run(async (tok) => {
       setResult(await submitEdit(slug(), content(), tok, summary()));
-      localStorage.removeItem(draftKey());
+      clearDraft(slug());
     });
   }
 
@@ -194,74 +166,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
         <div class="editor-pane">
           <div class="pane-bar">
             <span class="pane-name">Markdown</span>
-            <div class="md-toolbar">
-              <button
-                type="button"
-                class="md-btn"
-                title="Bold"
-                aria-label="Bold"
-                onClick={() => wrap("**")}
-              >
-                <Icons.Bold />
-              </button>
-              <button
-                type="button"
-                class="md-btn"
-                title="Italic"
-                aria-label="Italic"
-                onClick={() => wrap("_")}
-              >
-                <Icons.Italic />
-              </button>
-              <span class="md-sep" />
-              <button
-                type="button"
-                class="md-btn"
-                title="Heading"
-                aria-label="Heading"
-                onClick={() => prefixLine("## ")}
-              >
-                <Icons.H2 />
-              </button>
-              <button
-                type="button"
-                class="md-btn"
-                title="List"
-                aria-label="List"
-                onClick={() => prefixLine("- ")}
-              >
-                <Icons.List />
-              </button>
-              <button
-                type="button"
-                class="md-btn"
-                title="Quote"
-                aria-label="Quote"
-                onClick={() => prefixLine("> ")}
-              >
-                <Icons.Quote />
-              </button>
-              <span class="md-sep" />
-              <button
-                type="button"
-                class="md-btn"
-                title="Wiki link"
-                aria-label="Insert wiki link"
-                style={{ "font-family": "var(--font-mono)" }}
-                onClick={() => wrap("[[", "]]")}
-              >
-                [[ ]]
-              </button>
-              <button
-                type="button"
-                class="md-btn"
-                title="Code"
-                aria-label="Code"
-                onClick={() => wrap("`")}
-              >
-                <Icons.Code />
-              </button>
-            </div>
+            <MarkdownToolbar wrap={wrap} prefixLine={prefixLine} />
           </div>
           <textarea
             ref={ta}
@@ -350,18 +255,11 @@ export default function Editor(props: { slug?: string; initialContent?: string }
       </div>
 
       <Show when={modal()}>
-        <div class="overlay">
-          <div class="modal" role="dialog" aria-modal="true">
-            <div class="modal-head">
-              <div>
-                <p class="mh-title">Submit this change</p>
-                <p class="mh-sub">
-                  Depending on your trust level and the page, this either publishes
-                  immediately or is submitted for review.
-                </p>
-              </div>
-            </div>
-            <div class="modal-body">
+        <ConfirmDialog
+          title="Submit this change"
+          subtitle="Depending on your trust level and the page, this either publishes immediately or is submitted for review."
+          body={
+            <>
               <p>
                 Summary: <strong>{summary() || "(none)"}</strong>
               </p>
@@ -373,26 +271,14 @@ export default function Editor(props: { slug?: string; initialContent?: string }
                   {delta()})
                 </span>
               </p>
-            </div>
-            <div class="modal-foot">
-              <button
-                type="button"
-                class="btn btn-primary"
-                disabled={busy()}
-                onClick={confirmSubmit}
-              >
-                {busy() ? "Submitting…" : "Submit change"}
-              </button>
-              <button
-                type="button"
-                class="btn btn-ghost"
-                onClick={() => setModal(false)}
-              >
-                Back
-              </button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+          confirmLabel={busy() ? "Submitting…" : "Submit change"}
+          cancelLabel="Back"
+          busy={busy()}
+          onConfirm={confirmSubmit}
+          onCancel={() => setModal(false)}
+        />
       </Show>
     </div>
   );
