@@ -155,6 +155,25 @@ export default {
   },
 };
 
+async function kvGetJson<T>(env: Env, key: string): Promise<T | null> {
+  const raw = await env.RATE_LIMIT?.get(key);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function kvPutJson(
+  env: Env,
+  key: string,
+  value: unknown,
+  opts?: KVNamespacePutOptions,
+): Promise<void> {
+  await env.RATE_LIMIT?.put(key, JSON.stringify(value), opts);
+}
+
 // Read-through KV cache so many readers share one GitHub call. KV is the
 // RATE_LIMIT binding; until it's bound, every call goes straight to `produce`.
 async function cached<T>(
@@ -180,13 +199,7 @@ async function latestSha(env: Env): Promise<{ sha: string }> {
   const sha = await cached(env, "meta:latest-sha", 20_000, async () => {
     const res = await fetch(
       `https://api.github.com/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits/${env.BRANCH}`,
-      {
-        headers: {
-          Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-          Accept: "application/vnd.github.sha",
-          "User-Agent": `${env.REPO_NAME}-worker`,
-        },
-      },
+      { headers: { ...ghAuth(env), Accept: "application/vnd.github.sha" } },
     );
     if (!res.ok) throw new HttpError(502, `GitHub ${res.status}`);
     return (await res.text()).trim();
@@ -242,17 +255,25 @@ function nodeFromRaw(slug: string, raw: string) {
 // Patch one page's entry after a direct commit — no refetch, the content is in
 // hand. If the index isn't built yet, skip; the next read builds it fresh.
 async function updateIndexEntry(env: Env, slug: string, raw: string): Promise<void> {
+  const hit = await kvGetJson<{ v: IndexMap }>(env, "meta:index");
+  if (!hit) return;
+  hit.v[slug] = nodeFromRaw(slug, raw);
+  await kvPutJson(env, "meta:index", { v: hit.v, ts: Date.now() });
+}
+
+// Drop the cached content pointers so the next read reflects a write. The direct-edit
+// path keeps `meta:index` (it patches that entry in place via updateIndexEntry).
+async function invalidateContent(
+  env: Env,
+  author?: string,
+  opts: { keepIndex?: boolean } = {},
+): Promise<void> {
   const kv = env.RATE_LIMIT;
   if (!kv) return;
-  const existing = await kv.get("meta:index");
-  if (!existing) return;
-  try {
-    const hit = JSON.parse(existing) as { v: IndexMap };
-    hit.v[slug] = nodeFromRaw(slug, raw);
-    await kv.put("meta:index", JSON.stringify({ v: hit.v, ts: Date.now() }));
-  } catch {
-    await kv.delete("meta:index");
-  }
+  await kv.delete("meta:latest-sha");
+  await kv.delete("meta:pages");
+  if (!opts.keepIndex) await kv.delete("meta:index");
+  if (author) await kv.delete(`trust:${author}`);
 }
 
 function linkGraph(env: Env) {
@@ -374,8 +395,8 @@ const SHA_RE = /^[0-9a-f]{7,40}$/;
 // Per-commit files + byte stats. A commit is immutable, so cache it forever.
 async function changeDetail(env: Env, sha: string): Promise<ChangeDetail> {
   const key = `change:${sha}`;
-  const cached = await env.RATE_LIMIT?.get(key);
-  if (cached) return JSON.parse(cached) as ChangeDetail;
+  const cached = await kvGetJson<ChangeDetail>(env, key);
+  if (cached) return cached;
   const d = await gh<{
     stats?: { additions: number; deletions: number };
     files?: { filename: string }[];
@@ -388,7 +409,7 @@ async function changeDetail(env: Env, sha: string): Promise<ChangeDetail> {
     additions: d.stats?.additions ?? 0,
     deletions: d.stats?.deletions ?? 0,
   };
-  await env.RATE_LIMIT?.put(key, JSON.stringify(detail));
+  await kvPutJson(env, key, detail);
   return detail;
 }
 
@@ -563,10 +584,7 @@ async function review(
       method: "PUT",
       body: JSON.stringify({ merge_method: "squash", commit_title: pr.title }),
     });
-    await env.RATE_LIMIT?.delete("meta:latest-sha");
-    await env.RATE_LIMIT?.delete("meta:pages");
-    await env.RATE_LIMIT?.delete("meta:index");
-    await env.RATE_LIMIT?.delete(`trust:${refIdentity(pr.head.ref).author}`);
+    await invalidateContent(env, refIdentity(pr.head.ref).author);
   } else {
     await gh(env, `/repos/${repo}/pulls/${number}`, {
       method: "PATCH",
@@ -582,7 +600,7 @@ async function review(
 
 async function diff(env: Env, slug: string, base: string, head: string) {
   if (!SLUG_RE.test(slug)) throw new HttpError(400, "Invalid slug.");
-  if (!/^[0-9a-f]{7,40}$/.test(base) || !/^[0-9a-f]{7,40}$/.test(head)) {
+  if (!SHA_RE.test(base) || !SHA_RE.test(head)) {
     throw new HttpError(400, "Invalid revision.");
   }
   const path = `${env.CONTENT_DIR}/${slug}.md`;
@@ -719,16 +737,8 @@ function enforceFieldPermissions(
 
 // Maintainer allowlist lives at the repo root, same store as bans.json.
 async function trustedEditors(env: Env): Promise<string[]> {
-  const res = await fetch(
-    `https://raw.githubusercontent.com/${env.REPO_OWNER}/${env.REPO_NAME}/${env.BRANCH}/trusted-editors.json`,
-  );
-  if (!res.ok) return [];
-  try {
-    const list = (await res.json()) as unknown;
-    return Array.isArray(list) ? (list as string[]) : [];
-  } catch {
-    return [];
-  }
+  const list = await repoJson<unknown>(env, "trusted-editors.json");
+  return Array.isArray(list) ? (list as string[]) : [];
 }
 
 // A JSON config file from the repo root (same store as bans/trusted-editors).
@@ -792,14 +802,11 @@ async function editorTier(env: Env, name: string, email: string): Promise<Tier> 
 // GitHub API on every edit.
 async function trustStats(env: Env, name: string, email: string): Promise<TrustStats> {
   const key = `trust:${name}`;
-  const cached = await env.RATE_LIMIT?.get(key);
-  if (cached) {
-    const s = JSON.parse(cached) as Partial<TrustStats>;
-    if (typeof s.n === "number" && typeof s.firstMs === "number")
-      return s as TrustStats;
-  }
+  const s = await kvGetJson<Partial<TrustStats>>(env, key);
+  if (s && typeof s.n === "number" && typeof s.firstMs === "number")
+    return s as TrustStats;
   const stats = await countAuthored(env, email);
-  await env.RATE_LIMIT?.put(key, JSON.stringify(stats), { expirationTtl: TRUST_TTL_S });
+  await kvPutJson(env, key, stats, { expirationTtl: TRUST_TTL_S });
   return stats;
 }
 
@@ -834,6 +841,31 @@ async function countAuthored(env: Env, email: string): Promise<TrustStats> {
 
 // Current file on the live branch: blob sha (for the next commit) + raw text
 // (for protection / field checks). Null when the page is new.
+const BOT_COMMITTER_EMAIL = "bot@anon.invalid";
+const botCommitter = (env: Env) => ({
+  name: `${env.REPO_NAME} bot`,
+  email: BOT_COMMITTER_EMAIL,
+});
+
+interface CommitArgs {
+  message: string;
+  content: string;
+  branch: string;
+  author: { name: string; email: string };
+  sha?: string;
+}
+
+function commitPayload(env: Env, args: CommitArgs): string {
+  return JSON.stringify({
+    message: args.message,
+    content: toBase64(args.content),
+    branch: args.branch,
+    sha: args.sha,
+    author: args.author,
+    committer: botCommitter(env),
+  });
+}
+
 async function getCurrentFile(
   env: Env,
   repo: string,
@@ -880,13 +912,12 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
     throw new HttpError(422, verdict.message ?? "This edit was blocked by a filter.");
 
   const filePut = (branch: string) =>
-    JSON.stringify({
+    commitPayload(env, {
       message: summary || `Edit ${slug}`,
-      content: toBase64(content),
+      content,
       branch,
       sha: current?.sha,
       author: { name: writer.name, email: writer.email },
-      committer: { name: `${env.REPO_NAME} bot`, email: "bot@anon.invalid" },
     });
 
   // Trusted enough for this page → publish straight to the live branch.
@@ -896,11 +927,7 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
       `/repos/${repo}/contents/${path}`,
       { method: "PUT", body: filePut(env.BRANCH) },
     );
-    // Invalidate cached pointers so the edit is live on the next read, and the
-    // author's trust stats so this new commit counts immediately.
-    await env.RATE_LIMIT?.delete("meta:latest-sha");
-    await env.RATE_LIMIT?.delete("meta:pages");
-    await env.RATE_LIMIT?.delete(`trust:${writer.name}`);
+    await invalidateContent(env, writer.name, { keepIndex: true });
     await updateIndexEntry(env, slug, content);
     if (verdict.tags.length)
       await env.RATE_LIMIT?.put(`tag:${res.commit.sha}`, JSON.stringify(verdict.tags));
@@ -969,43 +996,42 @@ async function movePage(env: Env, request: Request, body: MoveBody) {
     throw new HttpError(403, `Moving this page requires ${required} access.`);
 
   const author = { name: writer.name, email: writer.email };
-  const committer = { name: `${env.REPO_NAME} bot`, email: "bot@anon.invalid" };
-
   await gh(env, `/repos/${repo}/contents/${toPath}`, {
     method: "PUT",
-    body: JSON.stringify({
+    body: commitPayload(env, {
       message: summary || `Move ${from} → ${to}`,
-      content: toBase64(current.raw),
+      content: current.raw,
       branch: env.BRANCH,
       author,
-      committer,
     }),
   });
   const stub = `---\nredirect: ${to}\n---\n\n#REDIRECT [[${to}]]\n`;
   await gh(env, `/repos/${repo}/contents/${fromPath}`, {
     method: "PUT",
-    body: JSON.stringify({
+    body: commitPayload(env, {
       message: `Redirect ${from} → ${to}`,
-      content: toBase64(stub),
+      content: stub,
       branch: env.BRANCH,
       sha: current.sha,
       author,
-      committer,
     }),
   });
 
-  await env.RATE_LIMIT?.delete("meta:latest-sha");
-  await env.RATE_LIMIT?.delete("meta:pages");
-  await env.RATE_LIMIT?.delete("meta:index");
-  await env.RATE_LIMIT?.delete(`trust:${writer.name}`);
+  await invalidateContent(env, writer.name);
   return { ok: true, from, to };
+}
+
+function ghAuth(env: Env): Record<string, string> {
+  return {
+    Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+    "User-Agent": `${env.REPO_NAME}-worker`,
+  };
 }
 
 function ghHeaders(env: Env): Record<string, string> {
   return {
-    Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+    ...ghAuth(env),
     Accept: "application/vnd.github+json",
-    "User-Agent": `${env.REPO_NAME}-worker`,
     "X-GitHub-Api-Version": "2022-11-28",
   };
 }
@@ -1053,16 +1079,8 @@ async function enforceRateLimit(env: Env, author: string): Promise<void> {
 
 // Ban list lives at the repo root, outside the anon-writable content/ dir.
 async function isBanned(env: Env, author: string): Promise<boolean> {
-  const res = await fetch(
-    `https://raw.githubusercontent.com/${env.REPO_OWNER}/${env.REPO_NAME}/${env.BRANCH}/bans.json`,
-  );
-  if (!res.ok) return false;
-  try {
-    const list = (await res.json()) as unknown;
-    return Array.isArray(list) && list.includes(author);
-  } catch {
-    return false;
-  }
+  const list = await repoJson<unknown>(env, "bans.json");
+  return Array.isArray(list) && list.includes(author);
 }
 
 async function hmacSign(secret: string, data: string): Promise<Uint8Array> {
@@ -1368,11 +1386,7 @@ async function ghGraphQL<T>(
 ): Promise<T> {
   const res = await fetch("https://api.github.com/graphql", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-      "User-Agent": `${env.REPO_NAME}-worker`,
-      "Content-Type": "application/json",
-    },
+    headers: { ...ghAuth(env), "Content-Type": "application/json" },
     body: JSON.stringify({ query, variables }),
   });
   if (!res.ok) throw new HttpError(502, `GitHub GraphQL ${res.status}`);
@@ -1559,10 +1573,7 @@ async function postComment(
 }
 
 function corsHeaders(env: Env, request: Request): Record<string, string> {
-  const allowed = (env.ALLOWED_ORIGIN ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const allowed = allowedOrigins(env);
   const origin = request.headers.get("Origin") ?? "";
   const allow =
     allowed.length === 0 ? "*" : allowed.includes(origin) ? origin : allowed[0];
