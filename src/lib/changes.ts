@@ -9,6 +9,7 @@ export interface Change {
   additions: number;
   deletions: number;
   slugs: string[];
+  created: string[];
   patrolled: boolean;
   tags: string[];
 }

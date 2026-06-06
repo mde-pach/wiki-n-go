@@ -5,6 +5,7 @@ import { resolve, type Writer } from "../identity";
 import { invalidateContent, kvGetJson, kvPutJson } from "../kv";
 import { autopatrol, runFilters } from "../moderation";
 import { commitPayload, getCurrentFile } from "../repo";
+import { loadSuppressions, makeRedactor } from "../suppression";
 import {
   editorTier,
   enforceFieldPermissions,
@@ -26,23 +27,28 @@ import { updateIndexEntry } from "./index-cache";
 export async function history(env: Env, slug: string) {
   if (!SLUG_RE.test(slug)) return { revisions: [] };
   const path = `${env.CONTENT_DIR}/${slug}.md`;
-  const commits = await gh<CommitItem[]>(
-    env,
-    `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits?path=${path}&sha=${env.BRANCH}&per_page=50`,
-  );
+  const [commits, suppressions] = await Promise.all([
+    gh<CommitItem[]>(
+      env,
+      `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits?path=${path}&sha=${env.BRANCH}&per_page=50`,
+    ),
+    loadSuppressions(env),
+  ]);
+  const redact = makeRedactor(suppressions);
   return {
     revisions: commits.map((c) => ({
       sha: c.sha,
       parent: c.parents[0]?.sha ?? null,
-      author: c.commit.author.name,
+      author: redact.author(c.commit.author.name),
       date: c.commit.author.date,
-      message: c.commit.message.split("\n")[0],
+      message: redact.revisionSummary(c.sha, c.commit.message.split("\n")[0]),
     })),
   };
 }
 
 interface ChangeDetail {
   slugs: string[];
+  created: string[]; // slugs this commit added (drives the New-pages queue)
   additions: number;
   deletions: number;
 }
@@ -61,16 +67,19 @@ interface OutChange extends ChangeDetail {
 async function changeDetail(env: Env, sha: string): Promise<ChangeDetail> {
   const key = `change:${sha}`;
   const cached = await kvGetJson<ChangeDetail>(env, key);
-  if (cached) return cached;
+  if (cached) return { ...cached, created: cached.created ?? [] };
   const d = await gh<{
     stats?: { additions: number; deletions: number };
-    files?: { filename: string }[];
+    files?: { filename: string; status?: string }[];
   }>(env, `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits/${sha}`);
   const prefix = `${env.CONTENT_DIR}/`;
+  const pageFiles = (d.files ?? []).filter(
+    (f) => f.filename.startsWith(prefix) && f.filename.endsWith(".md"),
+  );
+  const toSlug = (f: { filename: string }) => f.filename.slice(prefix.length, -3);
   const detail: ChangeDetail = {
-    slugs: (d.files ?? [])
-      .filter((f) => f.filename.startsWith(prefix) && f.filename.endsWith(".md"))
-      .map((f) => f.filename.slice(prefix.length, -3)),
+    slugs: pageFiles.map(toSlug),
+    created: pageFiles.filter((f) => f.status === "added").map(toSlug),
     additions: d.stats?.additions ?? 0,
     deletions: d.stats?.deletions ?? 0,
   };
@@ -83,10 +92,14 @@ export async function listChanges(
   limitStr: string,
 ): Promise<{ changes: OutChange[] }> {
   const limit = Math.min(Math.max(Number.parseInt(limitStr, 10) || 30, 1), 100);
-  const commits = await gh<CommitItem[]>(
-    env,
-    `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits?path=${env.CONTENT_DIR}&sha=${env.BRANCH}&per_page=${limit}`,
-  );
+  const [commits, suppressions] = await Promise.all([
+    gh<CommitItem[]>(
+      env,
+      `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits?path=${env.CONTENT_DIR}&sha=${env.BRANCH}&per_page=${limit}`,
+    ),
+    loadSuppressions(env),
+  ]);
+  const redact = makeRedactor(suppressions);
   const changes = await Promise.all(
     commits.map(async (c) => {
       const [detail, patrolled, tags] = await Promise.all([
@@ -96,12 +109,13 @@ export async function listChanges(
           t ? (JSON.parse(t) as string[]) : [],
         ) ?? Promise.resolve([] as string[]),
       ]);
+      const author = c.commit.author.name;
       return {
         sha: c.sha,
-        author: c.commit.author.name,
-        isAnon: c.commit.author.name.startsWith("anon-"),
+        author: redact.author(author),
+        isAnon: author.startsWith("anon-"),
         date: c.commit.author.date,
-        message: c.commit.message.split("\n")[0],
+        message: redact.revisionSummary(c.sha, c.commit.message.split("\n")[0]),
         patrolled,
         tags,
         ...detail,

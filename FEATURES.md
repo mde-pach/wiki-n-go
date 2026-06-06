@@ -227,22 +227,22 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 ## N. Governance, roles & the **owner admin dashboard**
 | Wikipedia mechanism | Ours | St | Pri |
 |---|---|---|---|
-| **Sysop** (block/delete/protect/view-deleted) | **owner dashboard = the sysop console**: `/admin` aggregates recent changes + review queue + 1-click rollback + **blocks editor** + **audit log**; protection editing + view-deleted TODO | 🟡 | P0 |
-| **Bureaucrat** (grant rights) / **Steward** | owner manages GitHub team + CODEOWNERS (dashboard "grant reviewer") | 🟡 | P1 |
+| **Sysop** (block/delete/protect/view-deleted) | **owner dashboard = the sysop console**: `/admin` = recent changes · review · new-pages · rollback/restore · blocks · protection · rights · suppression · audit log | ✅ | P0 |
+| **Bureaucrat** (grant rights) / **Steward** | **Rights** tab grants/revokes maintainers via `trusted-editors.json` (`/grant`/`/revoke`); GitHub-team + CODEOWNERS sync still TODO | 🟡 | P1 |
 | **Interface-admin** (site JS/CSS is higher-risk than content) | CODEOWNERS-gate Worker/front-end/`filters.json` to a tiny trusted set — treat as strictly more dangerous than content-merge | ⬜ | P1 |
 | **Bot account** (flagged, scoped, auditable) | the Worker's authenticated token *is* this — every anon edit attributed through it | ✅ | — |
 | **Blocks**: sitewide · **partial** (path/namespace) · IP/range · autoblock | `bans.json` entries via Worker `POST /ban`/`/unban` + `/admin` Blocks tab; site-wide + **path-scoped partial** done; exact-hash only (no range); autoblock implicit (hash = the identity) | ✅ | P1 |
 | **Bans** (community vs ArbCom) as decisions enforced by blocks | record *authority/reason* on `bans.json` entries; lightweight Discussion-consensus to authorize | ⬜ | P2 |
 | **CheckUser** (IP correlation) | **impossible by design** — exact-`ip_hash` match only; document as intentional | ⊘ | — |
-| **Oversight / RevDel / Suppression** (hide revisions even from admins) | render-time **redaction layer** (hide diff/summary/author) + owner-only **hard-purge** (history rewrite + CDN purge + delete source PR/Discussion) — the one place the no-rebuild invariant bends | ⬜ | P1 |
+| **Oversight / RevDel / Suppression** (hide revisions even from admins) | `suppressed.json` (author/revision) → Worker **redacts server-side** in `/changes`+`/history` (`Suppression` tab); owner-only **hard-purge** (history rewrite + CDN purge) stays a manual op | 🟡 | P1 |
 | **Logs** (block/delete/protect/rights/move/abuse) | git history = most of it **for free**; append-only `audit-log.jsonl` records rollback/ban/unban (Audit log tab); private suppression log still TODO | 🟡 | P1 |
 | Dispute resolution: talk → **RfC** → noticeboards (**ANI/AIV/3RR**) → **ArbCom**; **RfA** | Discussions categories (RfC, incidents, vandalism fast-lane); owner = final authority; future EC-gated grant process | ⬜ | P2 |
 
 ## O. Content lifecycle (deletion · move · redirect · merge · drafts)
 | Wikipedia mechanism | Ours | St | Pri |
 |---|---|---|---|
-| Deletion: **CSD** (speedy) · **PROD** (7-day quiet) · **AfD** (discussion) | all = a **delete PR**, differing by *who merges* + *wait*: fast-merge label / 7-day auto-merge-unless-objected / Discussion consensus | ⬜ | P1 |
-| **Undeletion** + deletion log | restore from git (`git checkout <sha>^ -- path`) — **trivial advantage**; log = merged delete PRs | ⬜ | P1 |
+| Deletion: **CSD** (speedy) · **PROD** (7-day quiet) · **AfD** (discussion) | maintainer **delete** (`POST /delete`, audited) from the New-pages queue = speedy; PROD/AfD-by-PR-policy still TODO | 🟡 | P1 |
+| **Undeletion** + deletion log | **restore a pre-deletion revision** from History (git retains content) — no separate endpoint; deletion log = audit log + git | ✅ | P1 |
 | **Move/rename** (leaves redirect; history follows) | `git mv` in a PR — history follows **natively**; write a redirect stub at the old path | 🟡 | P1 |
 | Move-over-redirect / round-robin / **history-merge** | **dissolved by git** (swap = two `git mv`s; `--follow` preserves attribution); lint copy-paste moves | ⬜ | P2 |
 | **Redirects** (`#REDIRECT`); double/broken redirects | redirect frontmatter the Worker honors; reports flag chains>1 & missing targets (auto-fix doubles) | ⬜ | P1 |

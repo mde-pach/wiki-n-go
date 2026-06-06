@@ -12,21 +12,33 @@ import {
   proposeEdit,
 } from "./handlers/content";
 import { latestSha, linkGraph, listPages, searchIndex } from "./handlers/index-cache";
-import { patrol, patrolStatus, restore, review, rollback } from "./handlers/moderation";
+import {
+  deletePage,
+  patrol,
+  patrolStatus,
+  restore,
+  review,
+  rollback,
+} from "./handlers/moderation";
 import { protect } from "./handlers/protect";
+import { grant, listEditors, revoke } from "./handlers/rights";
+import { listSuppressed, suppress, unsuppress } from "./handlers/suppress";
 import { corsHeaders, HttpError, json, message } from "./http";
 import { whoami } from "./identity";
 import type {
   BanBody,
   CommentBody,
+  DeleteBody,
   EditBody,
   Env,
+  GrantBody,
   MoveBody,
   PatrolBody,
   ProtectBody,
   RestoreBody,
   ReviewBody,
   RollbackBody,
+  SuppressBody,
   TopicBody,
   UnbanBody,
 } from "./types";
@@ -62,6 +74,8 @@ export default {
       "GET /bans": () => listBans(env),
       "GET /audit": () => auditLog(env, request, q.get("limit") ?? ""),
       "GET /patrol-status": () => patrolStatus(env, q.get("slug") ?? ""),
+      "GET /editors": () => listEditors(env, request),
+      "GET /suppressed": () => listSuppressed(env, request),
       "GET /auth/status": () => Promise.resolve({ enabled: oauthConfigured(env) }),
       "GET /auth/login": () => authLogin(env, url),
       "GET /auth/callback": () => authCallback(env, url),
@@ -82,6 +96,16 @@ export default {
         restore(env, request, (await request.json()) as RestoreBody),
       "POST /protect": async () =>
         protect(env, request, (await request.json()) as ProtectBody),
+      "POST /delete": async () =>
+        deletePage(env, request, (await request.json()) as DeleteBody),
+      "POST /grant": async () =>
+        grant(env, request, (await request.json()) as GrantBody),
+      "POST /revoke": async () =>
+        revoke(env, request, (await request.json()) as GrantBody),
+      "POST /suppress": async () =>
+        suppress(env, request, (await request.json()) as SuppressBody),
+      "POST /unsuppress": async () =>
+        unsuppress(env, request, (await request.json()) as SuppressBody),
       "POST /topic": async () =>
         createTopic(env, request, (await request.json()) as TopicBody),
       "POST /comment": async () =>

@@ -90,6 +90,20 @@ export interface ProtectBody {
   tier?: unknown;
 }
 
+export interface DeleteBody {
+  slug?: unknown;
+}
+
+export interface GrantBody {
+  key?: unknown;
+}
+
+export interface SuppressBody {
+  type?: unknown; // "author" | "revision"
+  value?: unknown;
+  reason?: unknown;
+}
+
 export const MAX_CONTENT_BYTES = 100_000;
 export const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/;
 export const NODE_ID_RE = /^[A-Za-z0-9_=-]+$/;

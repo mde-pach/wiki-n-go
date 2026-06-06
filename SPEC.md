@@ -290,8 +290,9 @@ Invert the default selectively. Critical path (see `FEATURES.md` §§K–N):
 - [x] ✅ PR-only contributors earn tiers — solved by deriving from git history (above), no webhook needed.
 - [ ] ⬜ Consider `ip_hash` salt/epoch rotation (cap long-term linkability).
 
-### M6 — Owner admin dashboard & governance 🟡
-The sysop console for the autonomous model (see `FEATURES.md` §N):
+### M6 — Owner admin dashboard & governance ✅
+The sysop console for the autonomous model (see `FEATURES.md` §N). Remaining TODOs are
+follow-ups (CODEOWNERS sync, hard-purge, revert-risk/3RR), not core console gaps:
 - [x] ✅ **Unified `/admin` console** — maintainer-gated sysop dashboard (`src/pages/admin.astro` +
       `Admin.tsx`) with tabs aggregating the existing **Recent changes** + **Pending review** surfaces;
       `noindex`, linked from the footer. The home for every governance action below.
@@ -311,11 +312,17 @@ The sysop console for the autonomous model (see `FEATURES.md` §N):
       threading the edit slug through `isBanned`, so a partial block gags only its subtrees and never a comment).
       Append-only `audit-log.jsonl` records rollback/ban/unban. New **Blocks** + **Audit log** tabs in `/admin`
       (`GET /bans`, maintainer-only `GET /audit`). TODO: ban `expires`, path-scoped blocks in the abuse path.
-- [x] 🟡 **Protection management** ✅ — Worker `POST /protect {slug, tier}` (maintainer) rewrites the page's
-      `protection:` frontmatter field via a targeted line edit (clean diff), audited; **Protection** tab in `/admin`
-      (slug + tier picker). TODO: rights management (CODEOWNERS / GitHub team), `expires`, current-protection display.
-- [ ] ⬜ **Oversight/suppression**: render-time redaction + owner-only hard-purge (history rewrite + CDN purge).
-- [ ] ⬜ New-Pages queue + Page-Curation-style reviewer overlay; deletion flow (CSD/PROD/AfD via PR policy).
+- [x] ✅ **Protection + rights management** — Worker `POST /protect {slug, tier}` rewrites the page's `protection:`
+      frontmatter via a targeted line edit (clean diff); `POST /grant`/`/revoke` (+ `GET /editors`) edit
+      `trusted-editors.json` to add/remove maintainers (the owner is always one). **Protection** + **Rights** tabs in
+      `/admin`, all audited. TODO: CODEOWNERS / GitHub-team sync, protection `expires`, current-protection display.
+- [x] 🟡 **Oversight/suppression** — `suppressed.json` entries (author / revision) the Worker **redacts server-side**
+      in `/changes` + `/history` (label → `[suppressed]`), so suppressed data never reaches the page. `POST /suppress`/
+      `/unsuppress` (+ `GET /suppressed`), **Suppression** tab, audited. Full **hard-purge** (git history rewrite +
+      CDN purge) stays a **manual owner op** — the Worker can't rewrite history via the contents API.
+- [x] ✅ **New-Pages queue + deletion** — `/admin` **New pages** tab lists recently created pages (from `git log`
+      file-status `added`) with patrol state + a maintainer **delete** (`POST /delete`, audited). Deleted pages remain
+      in git history → **undelete = restore a pre-deletion revision** from History (no separate endpoint needed).
 
 ### M7 — Special pages & content lifecycle 🟡
 Read-time reports + git-native operations (see `FEATURES.md` §§O–P):
@@ -442,5 +449,8 @@ page identity. URL shape and the linking mechanism are **independent choices**.
 | 2026-06-06 | **restore-to-revision and protection edits are maintainer-only direct commits**, reusing the rollback path | Consistent with rollback (privileged, no Turnstile, lands as a reversible revision); avoids routing a History/console action through the full anon edit+Turnstile flow. Normal-editor undo (gated like a regular edit) can come later |
 | 2026-06-06 | **Page protection set by a targeted frontmatter line edit**, not a YAML reparse-and-redump | Preserves the rest of the frontmatter + body byte-for-byte → clean diffs; the `protection:` field is a simple scalar, so a line replace/insert/remove is safe and unit-tested |
 | 2026-06-06 | **Autopatrol is tier-gated** (`AUTOPATROL_TIER`, default `extended`), set on the commit — not a separate human-granted right | Trusted edits shouldn't clog the patrol queue or get `noindex`'d; deriving from the existing tier scale (no new grant/state) keeps one source of truth. Kept modest by default since auto tiers are IP-gameable — real power still needs a human-granted maintainer slot |
+| 2026-06-06 | **Deletion is an ordinary file-delete commit; undeletion = restore a pre-deletion revision** (no separate undelete endpoint, no tombstone) | Git already retains deleted content + the path's history, so "undelete" is just the existing restore-to-revision from History — one mechanism, no dead-letter store. New-pages queue derives "created" from commit file-status `added`, no extra index |
+| 2026-06-06 | **Rights = editing `trusted-editors.json`** from the console (`/grant`/`/revoke`), not GitHub-team/CODEOWNERS API calls | The maintainer allowlist already drives `editorTier`; editing it is one committed file (git is the record, audited) and needs no extra token scope. GitHub-team/CODEOWNERS sync is a later add-on, not the primitive |
+| 2026-06-06 | **Suppression redacts server-side at read time; hard-purge stays a manual owner op** | The Worker redacts author/revision labels in `/changes`+`/history` before they leave it (stronger than client-side hiding — suppressed text never reaches page source), but it **cannot rewrite git history** via the contents API, so true purge (history rewrite + CDN purge + source PR/Discussion delete) is documented as a manual owner procedure — the one place the no-rebuild model bends |
 | 2026-06-06 | Interlanguage (M8): translations are **independent pages** linked by a **symmetric, uniform frontmatter `translationKey`** (every member carries it; default-language version **optional**); **default language is configured + languageless** (bare slugs, no migration), other languages are URL-prefixed + localized (`/fr/cafe`) | Different slug/content per language ⇒ separate pages; a symmetric key (not a pointer to a canonical page) lets an article exist only in non-default languages; key-link is cheap and on-pattern (like `redirect:`); languageless default avoids migration; URL shape and link mechanism are independent choices |
 | 2026-06-06 | **Mermaid** is the first markdown plugin admitted as a dependency, but **dynamically imported** (own chunk, loaded only on pages with a `` ```mermaid `` block) and run at **strict security level** | Diagrams are high-value for a technical wiki, but the engine is ~135 kB gzip — lazy-loading keeps it off the base bundle (read-path stays light), and diagram source is user-editable content, so strict (sanitizing) mode is mandatory. The fence degrades to a code block without JS |

@@ -1631,6 +1631,42 @@ html[data-textsize="large"] {
   color: var(--color-ink-subtle);
 }
 
+/* ---- New-pages queue --------------------------------------------------- */
+.np-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+}
+.np-row {
+  display: grid;
+  grid-template-columns: 1fr auto 4.5rem auto auto;
+  gap: 0.65rem;
+  align-items: baseline;
+  padding: 0.5rem 0;
+  border-top: var(--border-w) solid var(--color-border);
+}
+.np-page {
+  font-weight: 600;
+}
+.np-author {
+  color: var(--color-ink-muted);
+}
+.np-author.anon {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+}
+.np-time {
+  color: var(--color-ink-subtle);
+  white-space: nowrap;
+}
+.np-delete {
+  font-size: 0.85em;
+  color: var(--color-remove-ink);
+  white-space: nowrap;
+}
+
 /* Hatnote: italic disambiguation note above the lead (Wikipedia convention). */
 .hatnote {
   font-family: var(--font-ui);

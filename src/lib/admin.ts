@@ -52,3 +52,49 @@ export async function listAudit(limit = 50): Promise<AuditEntry[]> {
   });
   return data.entries;
 }
+
+export async function deletePage(slug: string): Promise<void> {
+  await postJson<{ ok: true }>("/delete", { slug });
+}
+
+export async function listEditors(): Promise<{ editors: string[]; owner: string }> {
+  return getJson<{ editors: string[]; owner: string }>("/editors", { auth: true });
+}
+
+export async function grantEditor(key: string): Promise<void> {
+  await postJson<{ ok: true }>("/grant", { key });
+}
+
+export async function revokeEditor(key: string): Promise<void> {
+  await postJson<{ ok: true }>("/revoke", { key });
+}
+
+export interface Suppression {
+  type: "author" | "revision";
+  value: string;
+  reason?: string;
+  by?: string;
+  at?: string;
+}
+
+export async function listSuppressed(): Promise<Suppression[]> {
+  const data = await getJson<{ suppressions: Suppression[] }>("/suppressed", {
+    auth: true,
+  });
+  return data.suppressions;
+}
+
+export async function suppress(
+  type: "author" | "revision",
+  value: string,
+  reason?: string,
+): Promise<void> {
+  await postJson<{ ok: true }>("/suppress", { type, value, reason });
+}
+
+export async function unsuppress(
+  type: "author" | "revision",
+  value: string,
+): Promise<void> {
+  await postJson<{ ok: true }>("/unsuppress", { type, value });
+}

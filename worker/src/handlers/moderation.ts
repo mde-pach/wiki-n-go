@@ -5,7 +5,7 @@ import { requireMaintainer } from "../identity";
 import { invalidateContent } from "../kv";
 import { autopatrol } from "../moderation";
 import { botCommitter, commitPayload, getCurrentFile } from "../repo";
-import type { Env, RestoreBody } from "../types";
+import type { DeleteBody, Env, RestoreBody } from "../types";
 import {
   type PatrolBody,
   type ReviewBody,
@@ -223,4 +223,42 @@ export async function patrolStatus(
   const sha = commits[0]?.sha ?? null;
   if (!sha) return { patrolled: true, sha: null };
   return { patrolled: Boolean(await env.RATE_LIMIT.get(`patrol:${sha}`)), sha };
+}
+
+// Delete a page (maintainer-only). The file is removed but stays in git history,
+// so it's undeletable by restoring a pre-deletion revision from /history.
+export async function deletePage(
+  env: Env,
+  request: Request,
+  body: DeleteBody,
+): Promise<{ ok: true; slug: string }> {
+  const slug = String(body.slug ?? "");
+  if (!SLUG_RE.test(slug) || slug.includes(".."))
+    throw new HttpError(400, "Invalid slug.");
+  const writer = await requireMaintainer(env, request, "Deletion");
+
+  const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
+  const path = `${env.CONTENT_DIR}/${slug}.md`;
+  const current = await getCurrentFile(env, repo, path);
+  if (!current) throw new HttpError(404, "No such page.");
+
+  const res = await gh<{ commit: { sha: string } }>(
+    env,
+    `/repos/${repo}/contents/${path}`,
+    {
+      method: "DELETE",
+      body: JSON.stringify({
+        message: `Delete ${slug}`,
+        sha: current.sha,
+        branch: env.BRANCH,
+        author: { name: writer.name, email: writer.email },
+        committer: botCommitter(env),
+      }),
+    },
+  );
+  await invalidateContent(env, writer.name, { keepIndex: true });
+  await removeIndexEntry(env, slug);
+  await autopatrol(env, "maintainer", res.commit.sha);
+  await appendAudit(env, repo, writer.name, writer.email, "delete", slug);
+  return { ok: true, slug };
 }

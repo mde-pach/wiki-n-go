@@ -3,17 +3,31 @@ import { config } from "../config";
 import { useWhoami } from "../lib/solid";
 import AuditLog from "./AuditLog";
 import Bans from "./Bans";
+import NewPages from "./NewPages";
 import Protection from "./Protection";
 import RecentChanges from "./RecentChanges";
 import ReviewQueue from "./ReviewQueue";
+import Rights from "./Rights";
+import Suppression from "./Suppression";
 import { Status, ViewHead } from "./ui";
 
-type Panel = "changes" | "review" | "bans" | "protection" | "audit";
+type Panel =
+  | "changes"
+  | "review"
+  | "newpages"
+  | "bans"
+  | "protection"
+  | "rights"
+  | "suppression"
+  | "audit";
 const PANELS: { id: Panel; label: string }[] = [
   { id: "changes", label: "Recent changes" },
   { id: "review", label: "Pending review" },
+  { id: "newpages", label: "New pages" },
   { id: "bans", label: "Blocks" },
   { id: "protection", label: "Protection" },
+  { id: "rights", label: "Rights" },
+  { id: "suppression", label: "Suppression" },
   { id: "audit", label: "Audit log" },
 ];
 
@@ -65,11 +79,20 @@ export default function Admin() {
           <Match when={panel() === "review"}>
             <ReviewQueue />
           </Match>
+          <Match when={panel() === "newpages"}>
+            <NewPages />
+          </Match>
           <Match when={panel() === "bans"}>
             <Bans />
           </Match>
           <Match when={panel() === "protection"}>
             <Protection />
+          </Match>
+          <Match when={panel() === "rights"}>
+            <Rights />
+          </Match>
+          <Match when={panel() === "suppression"}>
+            <Suppression />
           </Match>
           <Match when={panel() === "audit"}>
             <AuditLog />
