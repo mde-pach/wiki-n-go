@@ -6,8 +6,8 @@ import { defineConfig } from "astro/config";
 // SITE_URL/BASE_PATH from the repo context; the fallbacks keep local builds and
 // this repo working. Custom domain: set BASE_PATH=/ (or a repo var).
 export default defineConfig({
-  site: process.env.SITE_URL ?? "https://mde-pach.github.io",
-  base: process.env.BASE_PATH ?? "/wiki-n-go",
+  site: process.env.SITE_URL || "https://mde-pach.github.io",
+  base: process.env.BASE_PATH || "/wiki-n-go",
   integrations: [solid()],
   vite: { plugins: [tailwindcss()] },
 });
