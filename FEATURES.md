@@ -146,7 +146,7 @@ only **one** level), reusing the same marker trick as `anon-<hash>`.
 | Wikipedia | Ours | St | Pri |
 |---|---|---|---|
 | Same header/footer/TOC/appearance on Article, Talk, History | one shared layout across all page types | 🟡 | P0 |
-| Namespace tabs adapt (Article↔Talk, Read/Edit/History) | tab bar reflects current view | ⬜ | P0 |
+| Namespace tabs adapt (Article↔Talk, Read/Edit/History) | two-group tab strip: namespace (Article·Discussion) + views (Read·Edit·History·Tools), active state per current view (W2); `8bb15f8` | ✅ | P0 |
 | User links: profile · **talk** · **contributions** | GitHub users: in-site `/user/<login>` profile + contributions panel (`@login` mention links to it); anon: filter-by-`anon-<hash>` on `/changes` (no profile by design) | 🟡 | P2 |
 
 ---
@@ -343,6 +343,6 @@ Owner ref (screenshot): title left + **languages** button top-right; below, a ta
 
 | # | Item | Type | St | Pri | Ref |
 |---|---|---|---|---|---|
-| W1 | **Header is packed to the left** instead of spanning the bar — wordmark / search / personal-tools should distribute across the available width (justify the bar, don't bunch everything at the start). | 🐛 | ⬜ | P1 | §A |
-| W2 | **Split the tab strip like Vector 2022** — namespace tabs (**Article · Discussion**) left-aligned; view/tool actions (**Read · Edit · History · Tools**) + appearance right-aligned, same row. Today everything sits together; mirror the two-group layout. | ✨ | ⬜ | P1 | §B, §J |
+| W1 | **Header is packed to the left** instead of spanning the bar — wordmark / search / personal-tools should distribute across the available width (justify the bar, don't bunch everything at the start). Fixed: search is a fixed-basis flex item with auto inline margins, so it centres between the wordmark cluster (left) and personal tools (right) and the bar spans full width. `8bb15f8` | 🐛 | ✅ | P1 | §A |
+| W2 | **Split the tab strip like Vector 2022** — namespace tabs (**Article · Discussion**) left-aligned; view/tool actions (**Read · Edit · History · Tools**) right-aligned, same row. Shipped: `.tabbar` is two `space-between` groups; **Tools** is a native `<details>` dropdown (SSR, no JS, no blink) of per-page tools (what-links-here · page info · cite · move · source); mirrored in the `Route404` SPA fallback; mobile wraps the two groups to stacked rows (also unclips the dropdown). Appearance stays the Vector-faithful right-rail sidebar panel (where real Vector 2022 puts it), not the row. `8bb15f8` | ✨ | ✅ | P1 | §B, §J |
 | W3 | **Interlanguage switcher** ("N languages", like Wikipedia's *209 langues*) — switch between language **versions of the same article**. Distinct from interwiki links (S5, which leave for Wikipedia): this is the same topic in another language, hosted by us. **Done → SPEC M8.** Translations are **independent pages** linked by a low-cost frontmatter `translationKey`; **default language languageless** (bare slugs), other langs URL-prefixed + localized (`/fr/cafe`). SSR `LangBar` switcher (no blink) + `<html lang>` + hreflang; **language-aware wikilinks**, **per-language home** (`/fr`), **live grouping** via the Worker index, and **"translate this page"** for missing languages. | ✨ | ✅ | P1 | §B, S5 |
