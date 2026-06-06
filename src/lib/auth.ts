@@ -6,6 +6,9 @@ import { config } from "../config";
 // third-party and blocked.) The token is read for display only; the Worker is
 // the sole verifier of its signature.
 const KEY = "wiki_session";
+// Last known `/auth/status` result, so the button's initial render doesn't wait
+// on a Worker round-trip (which made the auth chrome blink in after first paint).
+const ENABLED_KEY = "wiki_auth_enabled";
 
 export interface SessionInfo {
   login: string;
@@ -32,10 +35,21 @@ function decode(token: string): SessionInfo | null {
 export async function authEnabled(): Promise<boolean> {
   try {
     const res = await fetch(`${config.workerUrl}/auth/status`);
-    return res.ok && ((await res.json()) as { enabled?: boolean }).enabled === true;
+    const ok = res.ok && ((await res.json()) as { enabled?: boolean }).enabled === true;
+    if (typeof window !== "undefined")
+      localStorage.setItem(ENABLED_KEY, ok ? "1" : "0");
+    return ok;
   } catch {
-    return false;
+    return false; // a network blip shouldn't poison the cached value
   }
+}
+
+// Synchronous last-known enabled state for first paint; undefined before the
+// first successful `authEnabled()` of the session.
+export function authEnabledCached(): boolean | undefined {
+  if (typeof window === "undefined") return undefined;
+  const v = localStorage.getItem(ENABLED_KEY);
+  return v === null ? undefined : v === "1";
 }
 
 export function getSession(): SessionInfo | null {

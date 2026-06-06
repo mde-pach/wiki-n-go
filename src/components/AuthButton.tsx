@@ -1,15 +1,18 @@
-import { createResource, createSignal, Show } from "solid-js";
-import { isServer } from "solid-js/web";
-import { authEnabled, getSession, login, logout } from "../lib/auth";
+import { createSignal, onMount, Show } from "solid-js";
+import { authEnabled, authEnabledCached, getSession, login, logout } from "../lib/auth";
 
 export default function AuthButton() {
-  // Visibility follows the Worker's runtime state, so turning sign-in on needs
-  // only a Worker deploy — no site rebuild, no build-time flag.
-  const [enabled] = createResource(() => (isServer ? undefined : true), authEnabled);
+  // Resolve from synchronous state at hydration so the chrome doesn't blink in
+  // after a Worker round-trip: a stored session means signed-in immediately, and
+  // the "Sign in" button uses the last-known enabled flag. Visibility still
+  // follows the Worker's runtime state (revalidated in the background below), so
+  // turning sign-in on needs only a Worker deploy — no rebuild, no build flag.
   const [session] = createSignal(getSession());
+  const [enabled, setEnabled] = createSignal(authEnabledCached());
+  onMount(async () => setEnabled(await authEnabled()));
 
   return (
-    <Show when={enabled()}>
+    <Show when={session() || enabled()}>
       <Show
         when={session()}
         fallback={
