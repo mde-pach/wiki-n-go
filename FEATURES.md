@@ -86,7 +86,7 @@ and undo/thank/tag actions; Newer/Older pagination.
 | **Compare any two** (radio select) | per-row older/newer radios + "Compare selected" → `/diff?base&head` (`History`→`DiffView`) | ✅ | P0 |
 | Diff render (add/remove coloring) | split/unified render + add/remove **legend** + word-level highlights (`DiffView`) | ✅ | P0 |
 | Permalink to a revision | jsDelivr `@<sha>` via `?rev=` (old-revision banner) | ✅ | P1 |
-| **Undo / revert** a revision | resubmit prior content as an anon edit→PR (⚒) | ⬜ | P1 |
+| **Undo / revert** a revision | History "undo" → editor seeded with that revision (`?revert=<sha>`), routed through the normal edit flow (trust gate + diff preview); maintainers keep the instant `restore` | ✅ | P1 |
 | Pagination (Newer/Older) | paginate commits (★) | ⬜ | P2 |
 | Per-line blame | GraphQL `blame` (★) | ⬜ | P2 |
 | "Thank" an edit | n/a (maybe a 👍 reaction) | ⬜ | — |

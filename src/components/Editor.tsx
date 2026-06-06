@@ -3,7 +3,7 @@ import { createStore } from "solid-js/store";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
 import { type EditResult, submitEdit } from "../lib/api";
-import { fetchMarkdown, PageNotFoundError } from "../lib/content";
+import { fetchMarkdown, fetchMarkdownAt, PageNotFoundError } from "../lib/content";
 import { diffLines } from "../lib/diff";
 import { clearDraft, loadDraft, persistDraft } from "../lib/draft";
 import { findSection } from "../lib/editor-section";
@@ -42,6 +42,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   const { who } = useWhoami();
   const [ready, setReady] = createSignal(false);
   const [restored, setRestored] = createSignal(false);
+  const [reverting, setReverting] = createSignal<string>();
   const [isNew, setIsNew] = createSignal(false);
   let ta: HTMLTextAreaElement | undefined;
 
@@ -67,9 +68,27 @@ export default function Editor(props: { slug?: string; initialContent?: string }
       } else setError(errMessage(e));
     }
     restoreDraft();
+    await applyRevert();
     setReady(true);
     queueMicrotask(focusSection);
   });
+
+  // History's "undo" links here with `?revert=<sha>`: load that revision's
+  // content as the edit, keeping `original()` as the *current* page so the diff
+  // preview and conflict check compare against what's live. An explicit revert
+  // wins over a restored draft. `baseSha` stays the current blob.
+  async function applyRevert() {
+    if (isServer) return;
+    const sha = new URLSearchParams(window.location.search).get("revert");
+    if (!sha) return;
+    try {
+      applyDocument(await fetchMarkdownAt(slug(), sha));
+      if (!summary().trim()) setSummary(`Revert to revision ${sha.slice(0, 7)}`);
+      setReverting(sha.slice(0, 7));
+    } catch (e) {
+      setError(errMessage(e));
+    }
+  }
 
   // A new page reached with `?template=` (from the create wizard) starts from a
   // scaffold rather than blank; `?translationKey=` (from the language switcher's
@@ -227,6 +246,14 @@ export default function Editor(props: { slug?: string; initialContent?: string }
               {(w) => <span class="tier-badge"> · {w().tier}</span>}
             </Show>
           </div>
+          <Show when={reverting()}>
+            {(rev) => (
+              <p class="editor-hint">
+                Reverting to revision <code>{rev()}</code> — review the diff before you
+                publish.
+              </p>
+            )}
+          </Show>
           <Show when={restored()}>
             <p class="editor-hint">Restored your unsaved draft from this device.</p>
           </Show>
