@@ -65,11 +65,15 @@ wired:
 
 1. Create a **GitHub OAuth App** (Settings → Developer settings → OAuth Apps):
    - **Homepage URL** — your site origin (e.g. `https://mde-pach.github.io`).
-   - **Authorization callback URL** — `<workerUrl>/auth/callback`.
-2. Set `OAUTH_CLIENT_ID` as a `[vars]` entry in `worker/wrangler.toml`, and add
-   the repo secret `OAUTH_CLIENT_SECRET` (the Worker deploy applies it;
-   `SESSION_SECRET` is auto-generated). Set the repo variable `OAUTH_ENABLED=true`
-   so the next site build turns sign-in on.
+   - **Authorization callback URL** — `<workerUrl>/auth/callback` (your Worker's
+     URL + `/auth/callback`).
+2. **Worker side:** set `OAUTH_CLIENT_ID` as a `[vars]` entry in
+   `worker/wrangler.toml`, add the repo **secret** `OAUTH_CLIENT_SECRET`, then
+   **deploy the Worker** (push a `worker/**` change, or run the *Deploy Worker*
+   action) so both take effect. `SESSION_SECRET` is auto-generated on deploy.
+3. **Site side:** set the repo **variable** `OAUTH_ENABLED=true`, then **trigger a
+   Pages rebuild** (re-run *Deploy to GitHub Pages*) so the **Sign in** button
+   appears. Until both sides are done, sign-in stays dark and editing is anonymous.
 
 The Worker only requests `read:user` and never stores a user token or email —
 commits are attributed via GitHub's public no-reply email, so no PII enters the
