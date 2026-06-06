@@ -467,7 +467,7 @@ async function requireMaintainer(
   request: Request,
   action: string,
 ): Promise<void> {
-  const { name, email } = await actorIdentity(env, request);
+  const { name, email } = await resolve(env, request);
   if ((await editorTier(env, name, email)) !== "maintainer")
     throw new HttpError(403, `${action} requires maintainer access.`);
 }
@@ -638,20 +638,23 @@ function githubWriter(s: Session): Writer {
   };
 }
 
-// The shared write gate. A verified GitHub session skips the bot check (OAuth
-// already proved a human); the anonymous path keeps Turnstile. Both branches
-// reject bans and enforce the per-identity rate limit.
-async function resolveWriter(
+// The request's identity: a verified GitHub session, else the anonymous
+// pseudonym. With `gate`, this is a write: a GitHub session skips the bot check
+// (OAuth already proved a human) while the anonymous path keeps Turnstile, and
+// both reject bans and enforce the per-identity rate limit. Without it, it's a
+// read-only actor lookup (whoami, patrol, review) — no gate.
+async function resolve(
   env: Env,
   request: Request,
-  token: unknown,
+  gate?: { token: unknown },
 ): Promise<Writer> {
   const session = await sessionIdentity(env, request);
   const ip = request.headers.get("CF-Connecting-IP") ?? "0.0.0.0";
   const writer = session
     ? githubWriter(session)
     : anonWriter(await ipHash(env.HASH_SECRET, ip));
-  if (!session) await verifyTurnstile(env, ip, token ? String(token) : "");
+  if (!gate) return writer;
+  if (!session) await verifyTurnstile(env, ip, gate.token ? String(gate.token) : "");
   if (await isBanned(env, writer.key))
     throw new HttpError(
       403,
@@ -659,24 +662,6 @@ async function resolveWriter(
     );
   await enforceRateLimit(env, writer.key);
   return writer;
-}
-
-// Read-only actor identity for non-token actions (whoami, patrol, review): the
-// GitHub session if present, else the anonymous pseudonym. No gate.
-async function actorIdentity(
-  env: Env,
-  request: Request,
-): Promise<{ name: string; email: string; avatar: string | null; isAnon: boolean }> {
-  const session = await sessionIdentity(env, request);
-  const w = session
-    ? githubWriter(session)
-    : anonWriter(
-        await ipHash(
-          env.HASH_SECRET,
-          request.headers.get("CF-Connecting-IP") ?? "0.0.0.0",
-        ),
-      );
-  return { name: w.name, email: w.email, avatar: w.avatar, isAnon: w.isAnon };
 }
 
 // Tiers form one ordered scale shared by editors and pages: an editor of rank
@@ -773,7 +758,7 @@ async function whoami(
   env: Env,
   request: Request,
 ): Promise<{ author: string; tier: Tier; avatar: string | null; isAnon: boolean }> {
-  const { name, email, avatar, isAnon } = await actorIdentity(env, request);
+  const { name, email, avatar, isAnon } = await resolve(env, request);
   return { author: name, tier: await editorTier(env, name, email), avatar, isAnon };
 }
 
@@ -883,6 +868,17 @@ async function getCurrentFile(
   return { sha: file.sha, raw: new TextDecoder().decode(bytes) };
 }
 
+interface EditContext {
+  repo: string;
+  path: string;
+  slug: string;
+  content: string;
+  summary: string;
+  writer: Writer;
+  current: { sha: string; raw: string } | null;
+  verdict: Awaited<ReturnType<typeof runFilters>>;
+}
+
 async function proposeEdit(env: Env, request: Request, body: EditBody) {
   const slug = String(body.slug ?? "");
   const content = String(body.content ?? "");
@@ -893,9 +889,7 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
   if (utf8Bytes(content) > MAX_CONTENT_BYTES)
     throw new HttpError(413, "Content too large.");
 
-  const writer = await resolveWriter(env, request, body.token);
-  const author = writer.name;
-
+  const writer = await resolve(env, request, { token: body.token });
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
   const path = `${env.CONTENT_DIR}/${slug}.md`;
 
@@ -911,31 +905,41 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
   if (verdict.action === "disallow")
     throw new HttpError(422, verdict.message ?? "This edit was blocked by a filter.");
 
-  const filePut = (branch: string) =>
-    commitPayload(env, {
-      message: summary || `Edit ${slug}`,
-      content,
-      branch,
-      sha: current?.sha,
-      author: { name: writer.name, email: writer.email },
-    });
+  const ctx: EditContext = { repo, path, slug, content, summary, writer, current, verdict };
+  return TIER_RANK[tier] >= TIER_RANK[required]
+    ? publishDirect(env, ctx)
+    : openEditPr(env, ctx);
+}
 
-  // Trusted enough for this page → publish straight to the live branch.
-  if (TIER_RANK[tier] >= TIER_RANK[required]) {
-    const res = await gh<{ commit: { sha: string; html_url: string } }>(
-      env,
-      `/repos/${repo}/contents/${path}`,
-      { method: "PUT", body: filePut(env.BRANCH) },
-    );
-    await invalidateContent(env, writer.name, { keepIndex: true });
-    await updateIndexEntry(env, slug, content);
-    if (verdict.tags.length)
-      await env.RATE_LIMIT?.put(`tag:${res.commit.sha}`, JSON.stringify(verdict.tags));
-    return { live: true, sha: res.commit.sha, url: res.commit.html_url, author };
-  }
+function editCommit(env: Env, ctx: EditContext, branch: string): string {
+  return commitPayload(env, {
+    message: ctx.summary || `Edit ${ctx.slug}`,
+    content: ctx.content,
+    branch,
+    sha: ctx.current?.sha,
+    author: { name: ctx.writer.name, email: ctx.writer.email },
+  });
+}
 
-  // Otherwise fall back to the reviewed-PR flow. The branch prefix carries the
-  // author so the in-UI review queue can attribute it (see refIdentity).
+async function publishDirect(env: Env, ctx: EditContext) {
+  const { repo, path, slug, content, writer, verdict } = ctx;
+  const res = await gh<{ commit: { sha: string; html_url: string } }>(
+    env,
+    `/repos/${repo}/contents/${path}`,
+    { method: "PUT", body: editCommit(env, ctx, env.BRANCH) },
+  );
+  await invalidateContent(env, writer.name, { keepIndex: true });
+  await updateIndexEntry(env, slug, content);
+  if (verdict.tags.length)
+    await env.RATE_LIMIT?.put(`tag:${res.commit.sha}`, JSON.stringify(verdict.tags));
+  return { live: true, sha: res.commit.sha, url: res.commit.html_url, author: writer.name };
+}
+
+// The branch prefix carries the author so the in-UI review queue can attribute
+// it (see refIdentity).
+async function openEditPr(env: Env, ctx: EditContext) {
+  const { repo, path, slug, summary, writer, verdict } = ctx;
+  const author = writer.name;
   const prefix = writer.isAnon ? writer.name : `gh-${writer.name}`;
   const branch = `${prefix}/${slug.replace(/\//g, "-")}-${crypto.randomUUID().slice(0, 8)}`;
   const base = await gh<{ object: { sha: string } }>(
@@ -948,7 +952,7 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
   });
   await gh(env, `/repos/${repo}/contents/${path}`, {
     method: "PUT",
-    body: filePut(branch),
+    body: editCommit(env, ctx, branch),
   });
   const pr = await gh<{ html_url: string }>(env, `/repos/${repo}/pulls`, {
     method: "POST",
@@ -962,7 +966,6 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
         (verdict.tags.length ? `\n\nFilter tags: ${verdict.tags.join(", ")}` : ""),
     }),
   });
-
   return { live: false, prUrl: pr.html_url, author };
 }
 
@@ -979,7 +982,7 @@ async function movePage(env: Env, request: Request, body: MoveBody) {
     throw new HttpError(400, "Invalid target slug.");
   if (from === to) throw new HttpError(400, "Source and target are the same.");
 
-  const writer = await resolveWriter(env, request, body.token);
+  const writer = await resolve(env, request, { token: body.token });
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
   const fromPath = `${env.CONTENT_DIR}/${from}.md`;
   const toPath = `${env.CONTENT_DIR}/${to}.md`;
@@ -1536,7 +1539,7 @@ async function createTopic(
   if (utf8Bytes(text) > MAX_CONTENT_BYTES)
     throw new HttpError(413, "Message too large.");
 
-  const writer = await resolveWriter(env, request, body.token);
+  const writer = await resolve(env, request, { token: body.token });
   const { repoId, categoryId } = await discussionContext(env);
   const created = await ghGraphQL<{ createDiscussion: { discussion: { id: string } } }>(
     env,
@@ -1566,7 +1569,7 @@ async function postComment(
   if (utf8Bytes(text) > MAX_CONTENT_BYTES)
     throw new HttpError(413, "Comment too large.");
 
-  const writer = await resolveWriter(env, request, body.token);
+  const writer = await resolve(env, request, { token: body.token });
   const marker = `${identityMarker(writer)}${replyTo ? `\n<!-- reply-to:${replyTo} -->` : ""}`;
   await ghGraphQL(env, ADD_COMMENT, { d: topicId, body: `${marker}\n\n${text}` });
   return { ok: true };
