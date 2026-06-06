@@ -1014,7 +1014,7 @@ html[data-textsize="large"] {
   font-size: var(--text-ui);
   line-height: 1.5;
   border: var(--border-w) solid;
-  margin-bottom: 1.4rem;
+  margin-bottom: 1.1rem;
 }
 .notice svg {
   width: 18px;
@@ -1085,4 +1085,521 @@ html[data-textsize="large"] {
     opacity: 1;
     transform: none;
   }
+}
+
+/* ---- Category list ------------------------------------------------------- */
+.category-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  columns: 2;
+  gap: 2rem;
+  font-family: var(--font-ui);
+}
+.category-list li {
+  padding: 0.3rem 0;
+  break-inside: avoid;
+}
+
+/* ---- Page properties form (friendly face over frontmatter) -------------- */
+.props-panel {
+  border: var(--border-w) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  margin-bottom: 1.1rem;
+  font-family: var(--font-ui);
+}
+.props-panel > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 0.7rem 1rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-weight: 600;
+}
+.props-panel > summary::-webkit-details-marker {
+  display: none;
+}
+.props-hint {
+  font-weight: 400;
+  font-size: var(--text-sm);
+  color: var(--color-ink-subtle);
+}
+.props-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem 1rem;
+  padding: 0 1rem 1rem;
+}
+.props-grid .field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.props-grid .props-wide {
+  grid-column: 1 / -1;
+}
+.tier-badge {
+  color: var(--color-ink-muted);
+  text-transform: uppercase;
+  font-size: 0.78em;
+  letter-spacing: 0.04em;
+}
+@media (max-width: 700px) {
+  .props-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- Recent changes feed (post-hoc moderation surface) ------------------ */
+.footer-tools {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  margin-bottom: 0.6rem;
+}
+.rc-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+  margin-bottom: 0.9rem;
+  cursor: pointer;
+}
+.rc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+}
+.rc-row {
+  display: grid;
+  grid-template-columns: 4.5rem auto 3rem 1fr auto;
+  gap: 0.65rem;
+  align-items: baseline;
+  padding: 0.5rem 0;
+  border-top: var(--border-w) solid var(--color-border);
+}
+.rc-row.is-reviewed {
+  opacity: 0.62;
+}
+.rc-time {
+  color: var(--color-ink-subtle);
+  white-space: nowrap;
+}
+.rc-pages {
+  font-weight: 600;
+}
+.rc-delta {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+  text-align: right;
+}
+.rc-delta.pos {
+  color: var(--color-add-ink);
+}
+.rc-delta.neg {
+  color: var(--color-remove-ink);
+}
+.rc-author {
+  color: var(--color-ink-muted);
+}
+.rc-author.anon {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+}
+.rc-summary {
+  color: var(--color-ink-muted);
+  grid-column: 2 / -1;
+}
+.rc-badge {
+  font-size: 0.78em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-warn-ink);
+  white-space: nowrap;
+}
+.rc-badge.reviewed {
+  color: var(--color-ink-subtle);
+}
+.rc-patrol {
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+.rc-tag {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-warn-bg);
+  color: var(--color-warn-ink);
+  font-size: 0.78em;
+  font-weight: 600;
+}
+
+/* ---- Pending-review queue (in-UI PR review) ----------------------------- */
+.footer-tools .sep {
+  margin: 0 0.5rem;
+  color: var(--color-ink-subtle);
+}
+.rv-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-family: var(--font-ui);
+}
+.rv-item {
+  border-top: var(--border-w) solid var(--color-border);
+}
+.rv-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.6rem 0;
+  flex-wrap: wrap;
+}
+.rv-page {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.rv-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: 12rem;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  color: var(--color-ink-muted);
+}
+.rv-caret {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  color: var(--color-ink-subtle);
+  transition: transform var(--transition-fast);
+  align-self: center;
+}
+.rv-title {
+  color: var(--color-ink);
+  flex: 1;
+}
+.rv-delta {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+.rv-delta.pos {
+  color: var(--color-add-ink);
+}
+.rv-delta.neg {
+  color: var(--color-remove-ink);
+}
+.rv-author {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+.rv-time {
+  color: var(--color-ink-subtle);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+.rv-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+.rv-diff {
+  padding: 0 0 1rem;
+}
+@media (max-width: 700px) {
+  .rc-row {
+    grid-template-columns: auto 1fr auto;
+  }
+  .rc-delta,
+  .rc-author {
+    display: none;
+  }
+}
+
+/* Hatnote: italic disambiguation note above the lead (Wikipedia convention). */
+.hatnote {
+  font-family: var(--font-ui);
+  font-style: italic;
+  color: var(--color-ink-muted);
+  padding: 0.1rem 0 0.6rem 1.4rem;
+  border-bottom: var(--border-w) solid var(--color-border);
+  margin-bottom: 1.1rem;
+}
+.redirect-note {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-style: italic;
+  color: var(--color-ink-muted);
+  margin-bottom: 0.9rem;
+}
+
+/* Footnote bodies render inside a <p>; flatten it into the reflist grid cell. */
+.ref-list li p {
+  margin: 0;
+}
+.cite-tip p {
+  margin: 0;
+  display: inline;
+}
+
+/* Reserve space so client:only islands don't collapse-then-expand on load/nav. */
+.page-meta-slot {
+  min-height: 2rem;
+}
+.col-main {
+  min-height: 50vh;
+}
+
+/* ---- Skeleton loaders ---------------------------------------------------- */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-sunken) 25%,
+    color-mix(in oklab, var(--color-border) 70%, transparent) 37%,
+    var(--color-surface-sunken) 63%
+  );
+  background-size: 400% 100%;
+  animation: sk-shimmer 1.4s ease infinite;
+  border-radius: var(--radius-sm);
+}
+@keyframes sk-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+.sk-article {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding-top: 0.4rem;
+}
+.sk-bar {
+  height: 1.05rem;
+}
+.meta-skeleton {
+  display: inline-block;
+  width: 17rem;
+  max-width: 70%;
+  height: 0.95rem;
+  vertical-align: middle;
+}
+
+/* ---- Status + inline editor chrome -------------------------------------- */
+.wiki-status {
+  color: var(--color-ink-muted);
+  font-style: italic;
+  font-family: var(--font-ui);
+}
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-family: var(--font-ui);
+  color: var(--color-accent);
+  cursor: pointer;
+}
+.link-btn:disabled {
+  color: var(--color-ink-subtle);
+  cursor: default;
+}
+.editor-ok {
+  color: var(--color-add-ink);
+  font-family: var(--font-ui);
+}
+.editor-err {
+  color: var(--color-remove-ink);
+  font-family: var(--font-ui);
+}
+.editor-hint {
+  margin-top: 0.6rem;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-ink-subtle);
+}
+.editor-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+}
+
+/* Turnstile (interaction-only) renders inline in the publish panel — empty
+   until a challenge is actually needed, so it only adds space when it appears. */
+.editor-widget:not(:empty) {
+  margin: 0.85rem 0 0;
+}
+
+/* ---- Discussion / Talk thread ------------------------------------------- */
+.discussion {
+  font-family: var(--font-ui);
+}
+.discussion-title {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  margin: 0 0 1rem;
+}
+.comment-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.25rem;
+}
+.comment {
+  padding: 0.75rem 0;
+  border-bottom: var(--border-w) solid var(--color-border);
+}
+.comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.comment-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+.comment-author {
+  font-weight: 600;
+}
+.comment-author.anon {
+  font-weight: 500;
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+.comment-date {
+  color: var(--color-ink-muted);
+  font-size: 0.85em;
+}
+.comment-body :first-child {
+  margin-top: 0;
+}
+.comment-body :last-child {
+  margin-bottom: 0;
+}
+.comment-input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 0.65rem;
+  border: var(--border-w) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+/* Talk: topics + arbitrarily-nested replies. */
+.talk {
+  font-family: var(--font-ui);
+}
+.talk-guidelines {
+  margin-bottom: 1.25rem;
+}
+.thread-meta {
+  font-size: 0.8em;
+  color: var(--color-ink-muted);
+  margin-bottom: 0.6rem;
+}
+.talk-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.talk-head .discussion-title {
+  margin: 0;
+}
+.topic-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.topic {
+  border-top: var(--border-w) solid var(--color-border);
+}
+.topic-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.85rem 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: var(--color-ink);
+}
+.topic-caret {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--color-ink-subtle);
+  transition: transform var(--transition-fast);
+}
+.topic-title {
+  font-weight: 600;
+  font-size: var(--text-md);
+}
+.topic-meta {
+  margin-left: auto;
+  color: var(--color-ink-muted);
+  font-size: 0.8em;
+  white-space: nowrap;
+}
+.thread {
+  padding: 0 0 1rem 1.7rem;
+}
+.comment-root {
+  padding-top: 0;
+  border-bottom: none;
+}
+.comment-date {
+  text-decoration: none;
+}
+.comment-date:hover {
+  text-decoration: underline;
+}
+.comment-actions {
+  margin: 0.1rem 0 0.4rem;
+}
+.comment-actions .link-btn {
+  font-size: 0.85em;
+}
+.reply-list {
+  list-style: none;
+  margin: 0;
+  padding-left: 1.4rem;
+  border-left: var(--border-w) solid var(--color-border);
+}
+.reply .comment {
+  border-bottom: none;
+  padding: 0.5rem 0 0;
+}
+.composer {
+  margin: 0.4rem 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.composer .input {
+  width: 100%;
+  box-sizing: border-box;
 }
