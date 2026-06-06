@@ -11,7 +11,7 @@ import {
   proposeEdit,
 } from "./handlers/content";
 import { latestSha, linkGraph, listPages, searchIndex } from "./handlers/index-cache";
-import { patrol, review } from "./handlers/moderation";
+import { patrol, review, rollback } from "./handlers/moderation";
 import { corsHeaders, HttpError, json, message } from "./http";
 import { whoami } from "./identity";
 import type {
@@ -21,6 +21,7 @@ import type {
   MoveBody,
   PatrolBody,
   ReviewBody,
+  RollbackBody,
   TopicBody,
 } from "./types";
 
@@ -63,6 +64,8 @@ export default {
         patrol(env, request, (await request.json()) as PatrolBody),
       "POST /review": async () =>
         review(env, request, (await request.json()) as ReviewBody),
+      "POST /rollback": async () =>
+        rollback(env, request, (await request.json()) as RollbackBody),
       "POST /topic": async () =>
         createTopic(env, request, (await request.json()) as TopicBody),
       "POST /comment": async () =>

@@ -286,10 +286,16 @@ Invert the default selectively. Critical path (see `FEATURES.md` §§K–N):
 - [x] ✅ PR-only contributors earn tiers — solved by deriving from git history (above), no webhook needed.
 - [ ] ⬜ Consider `ip_hash` salt/epoch rotation (cap long-term linkability).
 
-### M6 — Owner admin dashboard & governance ⬜
+### M6 — Owner admin dashboard & governance 🟡
 The sysop console for the autonomous model (see `FEATURES.md` §N):
-- [ ] ⬜ RecentChanges feed (from `git log`/PRs) + **patrol queue** + `noindex`-until-patrolled.
-- [ ] ⬜ One-click **rollback / undo / restore**; partial (path-scoped) blocks in `bans.json`.
+- [x] ✅ **Unified `/admin` console** — maintainer-gated sysop dashboard (`src/pages/admin.astro` +
+      `Admin.tsx`) with tabs aggregating the existing **Recent changes** + **Pending review** surfaces;
+      `noindex`, linked from the footer. The home for every governance action below.
+- [x] 🟡 RecentChanges feed (from `git log`/PRs) + **patrol queue** done (M5); `noindex`-until-patrolled still TODO.
+- [x] 🟡 One-click **rollback** ✅ — Worker `POST /rollback` (maintainer-only) restores every page a commit
+      touched to its pre-commit state (deletes pages the commit created), busts the content/index cache, lands
+      as a new revision (so it's reversible); surfaced as a per-row "roll back" action + confirm in `/admin`.
+      TODO: trailing-run rollback, undo/restore-to-revision, partial (path-scoped) blocks in `bans.json`.
 - [ ] ⬜ Protection & rights management (CODEOWNERS / GitHub team) from the dashboard; append-only audit log.
 - [ ] ⬜ **Oversight/suppression**: render-time redaction + owner-only hard-purge (history rewrite + CDN purge).
 - [ ] ⬜ New-Pages queue + Page-Curation-style reviewer overlay; deletion flow (CSD/PROD/AfD via PR policy).
@@ -366,3 +372,5 @@ Read-time reports + git-native operations (see `FEATURES.md` §§O–P):
 | 2026-06-05 | Trust tiers **derived from git history**, not a KV ledger or a merge webhook | Direct commits and merged PRs both land as commits by the pseudonym → one source of truth, PR-only contributors earn trust, no webhook/state to drift (KV is just a cache) |
 | 2026-06-05 | One worktree per session; enforced in CLAUDE.md | Parallel Claude sessions share the checkout and collided; isolate each on its own branch |
 | 2026-06-06 | Link graph + search index served **live by the Worker** (KV, patched per edit), not only a build-time file | The build-time `*.json` went stale on live edits; the Worker is the only writer, so it updates the index per commit (no rebuild). Static file kept as a no-Worker fallback |
+| 2026-06-06 | M6 starts with a **unified `/admin` console** aggregating existing moderation surfaces (M5 RecentChanges + Pending review), then grows new actions into it | §N calls the sysop console the P0 keystone; the moderation surfaces already existed but were scattered, so a single maintainer-gated home is the highest-leverage first slice |
+| 2026-06-06 | **Rollback** restores each touched page to its pre-commit state as a *new* commit (no force-push / history rewrite) | Keeps the no-rebuild + immutable-history invariants — a rollback is itself a revision, so it can be rolled forward; overwrites intervening edits (git retains them) and the dashboard confirms first |

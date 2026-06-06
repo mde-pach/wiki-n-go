@@ -1229,6 +1229,16 @@ html[data-textsize="large"] {
   font-size: 0.85em;
   white-space: nowrap;
 }
+.rc-actions {
+  display: flex;
+  gap: 0.7rem;
+  align-items: baseline;
+  white-space: nowrap;
+}
+.rc-rollback {
+  font-size: 0.85em;
+  color: var(--color-remove-ink);
+}
 .rc-tag {
   display: inline-block;
   margin-left: 0.4rem;

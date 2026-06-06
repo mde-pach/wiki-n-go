@@ -9,6 +9,7 @@ import TokenCapture from "../components/TokenCapture.astro";
 import { config } from "../config";
 import { gitRevisions } from "../lib/git";
 import {
+  adminHref,
   BASE,
   categoryHref,
   changesHref,
@@ -117,6 +118,8 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
             <a href={changesHref}>Recent changes</a>
             <span class="sep">·</span>
             <a href={reviewHref}>Pending review</a>
+            <span class="sep">·</span>
+            <a href={adminHref}>Admin</a>
           </div>
           <div class="footer-bottom">
             <p class="fb-license">

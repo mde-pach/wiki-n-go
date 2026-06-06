@@ -1,13 +1,16 @@
 import { createResource, createSignal, For, Show } from "solid-js";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
+import { rollbackCommit } from "../lib/admin";
 import { type Change, listChanges, markPatrolled } from "../lib/changes";
 import { timeAgo } from "../lib/format";
 import { prettify, readHref } from "../lib/paths";
 import { useWhoami } from "../lib/solid";
-import { Status, ViewHead } from "./ui";
+import { errMessage } from "../lib/util";
+import { ConfirmDialog } from "./editor/ConfirmDialog";
+import { ErrorNote, Status, ViewHead } from "./ui";
 
-export default function RecentChanges() {
+export default function RecentChanges(props: { admin?: boolean }) {
   if (!config.workerUrl) return null;
 
   const [changes, { mutate, refetch }] = createResource(
@@ -31,7 +34,29 @@ export default function RecentChanges() {
     }
   }
 
+  const [confirm, setConfirm] = createSignal<Change>();
+  const [busy, setBusy] = createSignal(false);
+  const [error, setError] = createSignal<string>();
+
+  async function doRollback() {
+    const c = confirm();
+    if (!c) return;
+    setBusy(true);
+    setError();
+    try {
+      await rollbackCommit(c.sha);
+      setConfirm(undefined);
+      refetch();
+    } catch (e) {
+      setError(errMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const net = (c: Change) => c.additions - c.deletions;
+  const canRollback = (c: Change) =>
+    props.admin && isMaintainer() && c.slugs.length > 0;
 
   return (
     <main id="main" class="view-wrap">
@@ -48,6 +73,8 @@ export default function RecentChanges() {
         />
         Unreviewed only
       </label>
+
+      <ErrorNote msg={error()} />
 
       <Show when={changes()} fallback={<Status>Loading changes…</Status>}>
         <Show when={rows().length > 0} fallback={<Status>Nothing to show.</Status>}>
@@ -79,28 +106,66 @@ export default function RecentChanges() {
                     {c.message}
                     <For each={c.tags}>{(t) => <span class="rc-tag">{t}</span>}</For>
                   </span>
-                  <Show
-                    when={!c.patrolled}
-                    fallback={<span class="rc-badge reviewed">reviewed</span>}
-                  >
+                  <span class="rc-actions">
                     <Show
-                      when={isMaintainer()}
-                      fallback={<span class="rc-badge">unreviewed</span>}
+                      when={!c.patrolled}
+                      fallback={<span class="rc-badge reviewed">reviewed</span>}
                     >
+                      <Show
+                        when={isMaintainer()}
+                        fallback={<span class="rc-badge">unreviewed</span>}
+                      >
+                        <button
+                          type="button"
+                          class="link-btn rc-patrol"
+                          onClick={() => patrol(c.sha)}
+                        >
+                          mark reviewed
+                        </button>
+                      </Show>
+                    </Show>
+                    <Show when={canRollback(c)}>
                       <button
                         type="button"
-                        class="link-btn rc-patrol"
-                        onClick={() => patrol(c.sha)}
+                        class="link-btn rc-rollback"
+                        onClick={() => setConfirm(c)}
                       >
-                        mark reviewed
+                        roll back
                       </button>
                     </Show>
-                  </Show>
+                  </span>
                 </li>
               )}
             </For>
           </ul>
         </Show>
+      </Show>
+
+      <Show when={confirm()}>
+        {(c) => (
+          <ConfirmDialog
+            title="Roll back revision"
+            subtitle={<>Restores the affected pages to their state before this edit.</>}
+            body={
+              <p>
+                Roll back{" "}
+                <strong>
+                  {c()
+                    .slugs.map((s) => prettify(s))
+                    .join(", ")}
+                </strong>{" "}
+                to before <code>{c().sha.slice(0, 7)}</code>? Any later changes to these
+                pages will be replaced. The rollback is itself a revision, so it can be
+                undone.
+              </p>
+            }
+            confirmLabel={busy() ? "Rolling back…" : "Roll back"}
+            cancelLabel="Cancel"
+            busy={busy()}
+            onConfirm={doRollback}
+            onCancel={() => setConfirm(undefined)}
+          />
+        )}
       </Show>
     </main>
   );

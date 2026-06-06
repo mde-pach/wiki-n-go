@@ -192,7 +192,7 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 | **Edit conflicts** (base-rev compare → diff3 auto-merge; manual only on overlap) | capture **base commit SHA**; 3-way merge onto `main`; conflict view only on overlapping hunks | ⬜ | P1 |
 | Edit summary · minor-edit flag | commit message / PR title; `Minor:` trailer or label | 🟡 | P1 |
 | **Undo** one edit · **restore to revision** | inverse-patch commit · `git checkout <sha> -- path` | ⬜ | P1 |
-| **Rollback** (1-click revert a contributor's trailing run) | privileged Worker endpoint, gated by tier, rate-limited | ⬜ | P1 |
+| **Rollback** (1-click revert a contributor's trailing run) | maintainer-gated Worker `POST /rollback` restores each page a commit touched to its pre-commit state (per-commit; trailing-run TODO) | 🟡 | P1 |
 | CAPTCHA only for risky/untrusted edits (autoconfirmed exempt) | Turnstile on untrusted `ip_hash` / external-link adds; **exempt trusted tiers** | 🟡 | P1 |
 
 ## L. Trust tiers & page protection (earned autonomy)
@@ -225,7 +225,7 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 ## N. Governance, roles & the **owner admin dashboard**
 | Wikipedia mechanism | Ours | St | Pri |
 |---|---|---|---|
-| **Sysop** (block/delete/protect/view-deleted) | **owner dashboard = the sysop console**: edit `bans.json` / `protection.json`, revert, view git history | ⬜ | P0 |
+| **Sysop** (block/delete/protect/view-deleted) | **owner dashboard = the sysop console**: `/admin` aggregates recent changes + review queue + 1-click rollback; bans/protection editing TODO | 🟡 | P0 |
 | **Bureaucrat** (grant rights) / **Steward** | owner manages GitHub team + CODEOWNERS (dashboard "grant reviewer") | 🟡 | P1 |
 | **Interface-admin** (site JS/CSS is higher-risk than content) | CODEOWNERS-gate Worker/front-end/`filters.json` to a tiny trusted set — treat as strictly more dangerous than content-merge | ⬜ | P1 |
 | **Bot account** (flagged, scoped, auditable) | the Worker's authenticated token *is* this — every anon edit attributed through it | ✅ | — |

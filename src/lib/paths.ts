@@ -42,6 +42,7 @@ export function categoryHref(tag: string): string {
 
 export const changesHref = `${BASE}/changes`;
 export const reviewHref = `${BASE}/review`;
+export const adminHref = `${BASE}/admin`;
 
 // Map the current URL to a view + slug. The edit/history/talk/category/changes/
 // review prefixes select a view; everything else is a read.

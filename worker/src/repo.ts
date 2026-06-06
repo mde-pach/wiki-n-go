@@ -3,7 +3,7 @@ import { gh } from "./github";
 import type { Env } from "./types";
 
 const BOT_COMMITTER_EMAIL = "bot@anon.invalid";
-const botCommitter = (env: Env) => ({
+export const botCommitter = (env: Env) => ({
   name: `${env.REPO_NAME} bot`,
   email: BOT_COMMITTER_EMAIL,
 });
@@ -33,10 +33,11 @@ export async function getCurrentFile(
   env: Env,
   repo: string,
   path: string,
+  ref: string = env.BRANCH,
 ): Promise<{ sha: string; raw: string } | null> {
   const file = await gh<{ sha: string; content: string } | undefined>(
     env,
-    `/repos/${repo}/contents/${path}?ref=${env.BRANCH}`,
+    `/repos/${repo}/contents/${path}?ref=${ref}`,
     { allow404: true },
   );
   if (!file) return null;

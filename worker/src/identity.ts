@@ -64,10 +64,11 @@ export async function requireMaintainer(
   env: Env,
   request: Request,
   action: string,
-): Promise<void> {
-  const { name, email } = await resolve(env, request);
-  if ((await editorTier(env, name, email)) !== "maintainer")
+): Promise<Writer> {
+  const writer = await resolve(env, request);
+  if ((await editorTier(env, writer.name, writer.email)) !== "maintainer")
     throw new HttpError(403, `${action} requires maintainer access.`);
+  return writer;
 }
 
 // The caller's pseudonym + trust tier, so the editor can show identity and

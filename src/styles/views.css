@@ -683,6 +683,13 @@
   border-bottom: var(--border-w) solid var(--color-border);
   padding-bottom: 0.7rem;
 }
+/* The admin tab bar lives above the panel's own view-wrap, so it carries the
+   box alignment itself; the panel below supplies the vertical gap. */
+.special-tabs.admin-tabs {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 1.6rem 1.25rem 0.7rem;
+}
 .special-tabs .sp-tab {
   border: var(--border-w) solid var(--color-border);
   background: var(--color-surface);

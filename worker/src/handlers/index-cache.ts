@@ -82,6 +82,15 @@ export async function updateIndexEntry(
   await kvPutJson(env, "meta:index", { v: hit.v, ts: Date.now() });
 }
 
+// Drop a page's entry after a rollback deletes the file (it was created by the
+// reverted commit). Same in-place patch as updateIndexEntry; no refetch.
+export async function removeIndexEntry(env: Env, slug: string): Promise<void> {
+  const hit = await kvGetJson<{ v: IndexMap }>(env, "meta:index");
+  if (!hit) return;
+  delete hit.v[slug];
+  await kvPutJson(env, "meta:index", { v: hit.v, ts: Date.now() });
+}
+
 export function linkGraph(env: Env) {
   return getIndex(env).then((map) => graphFromMap(map, env.HOME_SLUG ?? "index"));
 }
