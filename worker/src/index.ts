@@ -155,6 +155,25 @@ export default {
   },
 };
 
+async function kvGetJson<T>(env: Env, key: string): Promise<T | null> {
+  const raw = await env.RATE_LIMIT?.get(key);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function kvPutJson(
+  env: Env,
+  key: string,
+  value: unknown,
+  opts?: KVNamespacePutOptions,
+): Promise<void> {
+  await env.RATE_LIMIT?.put(key, JSON.stringify(value), opts);
+}
+
 // Read-through KV cache so many readers share one GitHub call. KV is the
 // RATE_LIMIT binding; until it's bound, every call goes straight to `produce`.
 async function cached<T>(
@@ -176,18 +195,11 @@ async function cached<T>(
   return v;
 }
 
-// Latest commit SHA, briefly cached so many readers share one GitHub call.
 async function latestSha(env: Env): Promise<{ sha: string }> {
   const sha = await cached(env, "meta:latest-sha", 20_000, async () => {
     const res = await fetch(
       `https://api.github.com/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits/${env.BRANCH}`,
-      {
-        headers: {
-          Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-          Accept: "application/vnd.github.sha",
-          "User-Agent": `${env.REPO_NAME}-worker`,
-        },
-      },
+      { headers: { ...ghAuth(env), Accept: "application/vnd.github.sha" } },
     );
     if (!res.ok) throw new HttpError(502, `GitHub ${res.status}`);
     return (await res.text()).trim();
@@ -195,7 +207,6 @@ async function latestSha(env: Env): Promise<{ sha: string }> {
   return { sha };
 }
 
-// All page slugs under content/, briefly cached so it's fresh without rebuilds.
 async function listPages(env: Env): Promise<{ pages: string[] }> {
   const pages = await cached(env, "meta:pages", 60_000, async () => {
     const tree = await gh<{ tree: { path: string; type: string }[] }>(
@@ -244,17 +255,25 @@ function nodeFromRaw(slug: string, raw: string) {
 // Patch one page's entry after a direct commit — no refetch, the content is in
 // hand. If the index isn't built yet, skip; the next read builds it fresh.
 async function updateIndexEntry(env: Env, slug: string, raw: string): Promise<void> {
+  const hit = await kvGetJson<{ v: IndexMap }>(env, "meta:index");
+  if (!hit) return;
+  hit.v[slug] = nodeFromRaw(slug, raw);
+  await kvPutJson(env, "meta:index", { v: hit.v, ts: Date.now() });
+}
+
+// Drop the cached content pointers so the next read reflects a write. The direct-edit
+// path keeps `meta:index` (it patches that entry in place via updateIndexEntry).
+async function invalidateContent(
+  env: Env,
+  author?: string,
+  opts: { keepIndex?: boolean } = {},
+): Promise<void> {
   const kv = env.RATE_LIMIT;
   if (!kv) return;
-  const existing = await kv.get("meta:index");
-  if (!existing) return;
-  try {
-    const hit = JSON.parse(existing) as { v: IndexMap };
-    hit.v[slug] = nodeFromRaw(slug, raw);
-    await kv.put("meta:index", JSON.stringify({ v: hit.v, ts: Date.now() }));
-  } catch {
-    await kv.delete("meta:index");
-  }
+  await kv.delete("meta:latest-sha");
+  await kv.delete("meta:pages");
+  if (!opts.keepIndex) await kv.delete("meta:index");
+  if (author) await kv.delete(`trust:${author}`);
 }
 
 function linkGraph(env: Env) {
@@ -355,7 +374,6 @@ async function history(env: Env, slug: string) {
   };
 }
 
-// ── RecentChanges feed + patrol (post-hoc moderation surface) ─────────────
 interface ChangeDetail {
   slugs: string[];
   additions: number;
@@ -377,8 +395,8 @@ const SHA_RE = /^[0-9a-f]{7,40}$/;
 // Per-commit files + byte stats. A commit is immutable, so cache it forever.
 async function changeDetail(env: Env, sha: string): Promise<ChangeDetail> {
   const key = `change:${sha}`;
-  const cached = await env.RATE_LIMIT?.get(key);
-  if (cached) return JSON.parse(cached) as ChangeDetail;
+  const cached = await kvGetJson<ChangeDetail>(env, key);
+  if (cached) return cached;
   const d = await gh<{
     stats?: { additions: number; deletions: number };
     files?: { filename: string }[];
@@ -391,7 +409,7 @@ async function changeDetail(env: Env, sha: string): Promise<ChangeDetail> {
     additions: d.stats?.additions ?? 0,
     deletions: d.stats?.deletions ?? 0,
   };
-  await env.RATE_LIMIT?.put(key, JSON.stringify(detail));
+  await kvPutJson(env, key, detail);
   return detail;
 }
 
@@ -449,12 +467,11 @@ async function requireMaintainer(
   request: Request,
   action: string,
 ): Promise<void> {
-  const { name, email } = await actorIdentity(env, request);
+  const { name, email } = await resolve(env, request);
   if ((await editorTier(env, name, email)) !== "maintainer")
     throw new HttpError(403, `${action} requires maintainer access.`);
 }
 
-// ── In-UI review of pending in-site edits (open PRs) ──────────────────────
 interface OutPending {
   number: number;
   author: string;
@@ -567,10 +584,7 @@ async function review(
       method: "PUT",
       body: JSON.stringify({ merge_method: "squash", commit_title: pr.title }),
     });
-    await env.RATE_LIMIT?.delete("meta:latest-sha");
-    await env.RATE_LIMIT?.delete("meta:pages");
-    await env.RATE_LIMIT?.delete("meta:index");
-    await env.RATE_LIMIT?.delete(`trust:${refIdentity(pr.head.ref).author}`);
+    await invalidateContent(env, refIdentity(pr.head.ref).author);
   } else {
     await gh(env, `/repos/${repo}/pulls/${number}`, {
       method: "PATCH",
@@ -586,7 +600,7 @@ async function review(
 
 async function diff(env: Env, slug: string, base: string, head: string) {
   if (!SLUG_RE.test(slug)) throw new HttpError(400, "Invalid slug.");
-  if (!/^[0-9a-f]{7,40}$/.test(base) || !/^[0-9a-f]{7,40}$/.test(head)) {
+  if (!SHA_RE.test(base) || !SHA_RE.test(head)) {
     throw new HttpError(400, "Invalid revision.");
   }
   const path = `${env.CONTENT_DIR}/${slug}.md`;
@@ -624,20 +638,23 @@ function githubWriter(s: Session): Writer {
   };
 }
 
-// The shared write gate. A verified GitHub session skips the bot check (OAuth
-// already proved a human); the anonymous path keeps Turnstile. Both branches
-// reject bans and enforce the per-identity rate limit.
-async function resolveWriter(
+// The request's identity: a verified GitHub session, else the anonymous
+// pseudonym. With `gate`, this is a write: a GitHub session skips the bot check
+// (OAuth already proved a human) while the anonymous path keeps Turnstile, and
+// both reject bans and enforce the per-identity rate limit. Without it, it's a
+// read-only actor lookup (whoami, patrol, review) — no gate.
+async function resolve(
   env: Env,
   request: Request,
-  token: unknown,
+  gate?: { token: unknown },
 ): Promise<Writer> {
   const session = await sessionIdentity(env, request);
   const ip = request.headers.get("CF-Connecting-IP") ?? "0.0.0.0";
   const writer = session
     ? githubWriter(session)
     : anonWriter(await ipHash(env.HASH_SECRET, ip));
-  if (!session) await verifyTurnstile(env, ip, token ? String(token) : "");
+  if (!gate) return writer;
+  if (!session) await verifyTurnstile(env, ip, gate.token ? String(gate.token) : "");
   if (await isBanned(env, writer.key))
     throw new HttpError(
       403,
@@ -647,28 +664,8 @@ async function resolveWriter(
   return writer;
 }
 
-// Read-only actor identity for non-token actions (whoami, patrol, review): the
-// GitHub session if present, else the anonymous pseudonym. No gate.
-async function actorIdentity(
-  env: Env,
-  request: Request,
-): Promise<{ name: string; email: string; avatar: string | null; isAnon: boolean }> {
-  const session = await sessionIdentity(env, request);
-  const w = session
-    ? githubWriter(session)
-    : anonWriter(
-        await ipHash(
-          env.HASH_SECRET,
-          request.headers.get("CF-Connecting-IP") ?? "0.0.0.0",
-        ),
-      );
-  return { name: w.name, email: w.email, avatar: w.avatar, isAnon: w.isAnon };
-}
-
-// ── Trust tiers & page protection (autonomous editing) ────────────────────
 // Tiers form one ordered scale shared by editors and pages: an editor of rank
-// ≥ a page's required rank may publish directly. A page's required rank is its
-// `protection` frontmatter field (a privileged property — see below).
+// ≥ a page's required rank may publish directly.
 type Tier = "open" | "auto" | "extended" | "maintainer";
 const TIER_RANK: Record<Tier, number> = {
   open: 0,
@@ -687,13 +684,6 @@ interface TrustStats {
   firstMs: number; // epoch ms of their earliest such commit
 }
 
-// Privileged page properties: changing one needs at least this tier. (Most
-// frontmatter — tags, hatnote, banner… — is open to any editor.)
-const PRIVILEGED_FIELDS: Record<string, Tier> = {
-  // `protection` is special-cased below (gated by its own value); listed for docs.
-};
-
-// Parse just the YAML frontmatter block of a page's markdown.
 export function frontmatter(raw: string): Record<string, unknown> {
   const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!m) return {};
@@ -728,26 +718,12 @@ function enforceFieldPermissions(
     if (TIER_RANK[tier] < Math.max(TIER_RANK[oldP], TIER_RANK[newP]))
       throw new HttpError(403, "You can't change this page's protection level.");
   }
-  for (const [field, min] of Object.entries(PRIVILEGED_FIELDS)) {
-    const changed =
-      JSON.stringify(oldMeta[field] ?? null) !== JSON.stringify(newMeta[field] ?? null);
-    if (changed && TIER_RANK[tier] < TIER_RANK[min])
-      throw new HttpError(403, `You can't change the "${field}" property.`);
-  }
 }
 
 // Maintainer allowlist lives at the repo root, same store as bans.json.
 async function trustedEditors(env: Env): Promise<string[]> {
-  const res = await fetch(
-    `https://raw.githubusercontent.com/${env.REPO_OWNER}/${env.REPO_NAME}/${env.BRANCH}/trusted-editors.json`,
-  );
-  if (!res.ok) return [];
-  try {
-    const list = (await res.json()) as unknown;
-    return Array.isArray(list) ? (list as string[]) : [];
-  } catch {
-    return [];
-  }
+  const list = await repoJson<unknown>(env, "trusted-editors.json");
+  return Array.isArray(list) ? (list as string[]) : [];
 }
 
 // A JSON config file from the repo root (same store as bans/trusted-editors).
@@ -782,7 +758,7 @@ async function whoami(
   env: Env,
   request: Request,
 ): Promise<{ author: string; tier: Tier; avatar: string | null; isAnon: boolean }> {
-  const { name, email, avatar, isAnon } = await actorIdentity(env, request);
+  const { name, email, avatar, isAnon } = await resolve(env, request);
   return { author: name, tier: await editorTier(env, name, email), avatar, isAnon };
 }
 
@@ -811,14 +787,11 @@ async function editorTier(env: Env, name: string, email: string): Promise<Tier> 
 // GitHub API on every edit.
 async function trustStats(env: Env, name: string, email: string): Promise<TrustStats> {
   const key = `trust:${name}`;
-  const cached = await env.RATE_LIMIT?.get(key);
-  if (cached) {
-    const s = JSON.parse(cached) as Partial<TrustStats>;
-    if (typeof s.n === "number" && typeof s.firstMs === "number")
-      return s as TrustStats;
-  }
+  const s = await kvGetJson<Partial<TrustStats>>(env, key);
+  if (s && typeof s.n === "number" && typeof s.firstMs === "number")
+    return s as TrustStats;
   const stats = await countAuthored(env, email);
-  await env.RATE_LIMIT?.put(key, JSON.stringify(stats), { expirationTtl: TRUST_TTL_S });
+  await kvPutJson(env, key, stats, { expirationTtl: TRUST_TTL_S });
   return stats;
 }
 
@@ -853,6 +826,31 @@ async function countAuthored(env: Env, email: string): Promise<TrustStats> {
 
 // Current file on the live branch: blob sha (for the next commit) + raw text
 // (for protection / field checks). Null when the page is new.
+const BOT_COMMITTER_EMAIL = "bot@anon.invalid";
+const botCommitter = (env: Env) => ({
+  name: `${env.REPO_NAME} bot`,
+  email: BOT_COMMITTER_EMAIL,
+});
+
+interface CommitArgs {
+  message: string;
+  content: string;
+  branch: string;
+  author: { name: string; email: string };
+  sha?: string;
+}
+
+function commitPayload(env: Env, args: CommitArgs): string {
+  return JSON.stringify({
+    message: args.message,
+    content: toBase64(args.content),
+    branch: args.branch,
+    sha: args.sha,
+    author: args.author,
+    committer: botCommitter(env),
+  });
+}
+
 async function getCurrentFile(
   env: Env,
   repo: string,
@@ -870,6 +868,17 @@ async function getCurrentFile(
   return { sha: file.sha, raw: new TextDecoder().decode(bytes) };
 }
 
+interface EditContext {
+  repo: string;
+  path: string;
+  slug: string;
+  content: string;
+  summary: string;
+  writer: Writer;
+  current: { sha: string; raw: string } | null;
+  verdict: Awaited<ReturnType<typeof runFilters>>;
+}
+
 async function proposeEdit(env: Env, request: Request, body: EditBody) {
   const slug = String(body.slug ?? "");
   const content = String(body.content ?? "");
@@ -880,9 +889,7 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
   if (utf8Bytes(content) > MAX_CONTENT_BYTES)
     throw new HttpError(413, "Content too large.");
 
-  const writer = await resolveWriter(env, request, body.token);
-  const author = writer.name;
-
+  const writer = await resolve(env, request, { token: body.token });
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
   const path = `${env.CONTENT_DIR}/${slug}.md`;
 
@@ -898,36 +905,41 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
   if (verdict.action === "disallow")
     throw new HttpError(422, verdict.message ?? "This edit was blocked by a filter.");
 
-  const filePut = (branch: string) =>
-    JSON.stringify({
-      message: summary || `Edit ${slug}`,
-      content: toBase64(content),
-      branch,
-      sha: current?.sha,
-      author: { name: writer.name, email: writer.email },
-      committer: { name: `${env.REPO_NAME} bot`, email: "bot@anon.invalid" },
-    });
+  const ctx: EditContext = { repo, path, slug, content, summary, writer, current, verdict };
+  return TIER_RANK[tier] >= TIER_RANK[required]
+    ? publishDirect(env, ctx)
+    : openEditPr(env, ctx);
+}
 
-  // Trusted enough for this page → publish straight to the live branch.
-  if (TIER_RANK[tier] >= TIER_RANK[required]) {
-    const res = await gh<{ commit: { sha: string; html_url: string } }>(
-      env,
-      `/repos/${repo}/contents/${path}`,
-      { method: "PUT", body: filePut(env.BRANCH) },
-    );
-    // Invalidate cached pointers so the edit is live on the next read, and the
-    // author's trust stats so this new commit counts immediately.
-    await env.RATE_LIMIT?.delete("meta:latest-sha");
-    await env.RATE_LIMIT?.delete("meta:pages");
-    await env.RATE_LIMIT?.delete(`trust:${writer.name}`);
-    await updateIndexEntry(env, slug, content);
-    if (verdict.tags.length)
-      await env.RATE_LIMIT?.put(`tag:${res.commit.sha}`, JSON.stringify(verdict.tags));
-    return { live: true, sha: res.commit.sha, url: res.commit.html_url, author };
-  }
+function editCommit(env: Env, ctx: EditContext, branch: string): string {
+  return commitPayload(env, {
+    message: ctx.summary || `Edit ${ctx.slug}`,
+    content: ctx.content,
+    branch,
+    sha: ctx.current?.sha,
+    author: { name: ctx.writer.name, email: ctx.writer.email },
+  });
+}
 
-  // Otherwise fall back to the reviewed-PR flow. The branch prefix carries the
-  // author so the in-UI review queue can attribute it (see refIdentity).
+async function publishDirect(env: Env, ctx: EditContext) {
+  const { repo, path, slug, content, writer, verdict } = ctx;
+  const res = await gh<{ commit: { sha: string; html_url: string } }>(
+    env,
+    `/repos/${repo}/contents/${path}`,
+    { method: "PUT", body: editCommit(env, ctx, env.BRANCH) },
+  );
+  await invalidateContent(env, writer.name, { keepIndex: true });
+  await updateIndexEntry(env, slug, content);
+  if (verdict.tags.length)
+    await env.RATE_LIMIT?.put(`tag:${res.commit.sha}`, JSON.stringify(verdict.tags));
+  return { live: true, sha: res.commit.sha, url: res.commit.html_url, author: writer.name };
+}
+
+// The branch prefix carries the author so the in-UI review queue can attribute
+// it (see refIdentity).
+async function openEditPr(env: Env, ctx: EditContext) {
+  const { repo, path, slug, summary, writer, verdict } = ctx;
+  const author = writer.name;
   const prefix = writer.isAnon ? writer.name : `gh-${writer.name}`;
   const branch = `${prefix}/${slug.replace(/\//g, "-")}-${crypto.randomUUID().slice(0, 8)}`;
   const base = await gh<{ object: { sha: string } }>(
@@ -940,7 +952,7 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
   });
   await gh(env, `/repos/${repo}/contents/${path}`, {
     method: "PUT",
-    body: filePut(branch),
+    body: editCommit(env, ctx, branch),
   });
   const pr = await gh<{ html_url: string }>(env, `/repos/${repo}/pulls`, {
     method: "POST",
@@ -954,7 +966,6 @@ async function proposeEdit(env: Env, request: Request, body: EditBody) {
         (verdict.tags.length ? `\n\nFilter tags: ${verdict.tags.join(", ")}` : ""),
     }),
   });
-
   return { live: false, prUrl: pr.html_url, author };
 }
 
@@ -971,7 +982,7 @@ async function movePage(env: Env, request: Request, body: MoveBody) {
     throw new HttpError(400, "Invalid target slug.");
   if (from === to) throw new HttpError(400, "Source and target are the same.");
 
-  const writer = await resolveWriter(env, request, body.token);
+  const writer = await resolve(env, request, { token: body.token });
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
   const fromPath = `${env.CONTENT_DIR}/${from}.md`;
   const toPath = `${env.CONTENT_DIR}/${to}.md`;
@@ -988,43 +999,42 @@ async function movePage(env: Env, request: Request, body: MoveBody) {
     throw new HttpError(403, `Moving this page requires ${required} access.`);
 
   const author = { name: writer.name, email: writer.email };
-  const committer = { name: `${env.REPO_NAME} bot`, email: "bot@anon.invalid" };
-
   await gh(env, `/repos/${repo}/contents/${toPath}`, {
     method: "PUT",
-    body: JSON.stringify({
+    body: commitPayload(env, {
       message: summary || `Move ${from} → ${to}`,
-      content: toBase64(current.raw),
+      content: current.raw,
       branch: env.BRANCH,
       author,
-      committer,
     }),
   });
   const stub = `---\nredirect: ${to}\n---\n\n#REDIRECT [[${to}]]\n`;
   await gh(env, `/repos/${repo}/contents/${fromPath}`, {
     method: "PUT",
-    body: JSON.stringify({
+    body: commitPayload(env, {
       message: `Redirect ${from} → ${to}`,
-      content: toBase64(stub),
+      content: stub,
       branch: env.BRANCH,
       sha: current.sha,
       author,
-      committer,
     }),
   });
 
-  await env.RATE_LIMIT?.delete("meta:latest-sha");
-  await env.RATE_LIMIT?.delete("meta:pages");
-  await env.RATE_LIMIT?.delete("meta:index");
-  await env.RATE_LIMIT?.delete(`trust:${writer.name}`);
+  await invalidateContent(env, writer.name);
   return { ok: true, from, to };
+}
+
+function ghAuth(env: Env): Record<string, string> {
+  return {
+    Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+    "User-Agent": `${env.REPO_NAME}-worker`,
+  };
 }
 
 function ghHeaders(env: Env): Record<string, string> {
   return {
-    Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+    ...ghAuth(env),
     Accept: "application/vnd.github+json",
-    "User-Agent": `${env.REPO_NAME}-worker`,
     "X-GitHub-Api-Version": "2022-11-28",
   };
 }
@@ -1072,16 +1082,8 @@ async function enforceRateLimit(env: Env, author: string): Promise<void> {
 
 // Ban list lives at the repo root, outside the anon-writable content/ dir.
 async function isBanned(env: Env, author: string): Promise<boolean> {
-  const res = await fetch(
-    `https://raw.githubusercontent.com/${env.REPO_OWNER}/${env.REPO_NAME}/${env.BRANCH}/bans.json`,
-  );
-  if (!res.ok) return false;
-  try {
-    const list = (await res.json()) as unknown;
-    return Array.isArray(list) && list.includes(author);
-  } catch {
-    return false;
-  }
+  const list = await repoJson<unknown>(env, "bans.json");
+  return Array.isArray(list) && list.includes(author);
 }
 
 async function hmacSign(secret: string, data: string): Promise<Uint8Array> {
@@ -1125,7 +1127,6 @@ function timingSafeEq(a: string, b: string): boolean {
   return diff === 0;
 }
 
-// ── GitHub sign-in: stateless session + CSRF state, both HMAC-signed ──────
 // No DB, no stored user token: a session is a compact HS256 JWT carrying only
 // the verified GitHub identity. We never request email scope — the commit
 // author uses GitHub's public no-reply email, so no raw PII is stored.
@@ -1284,7 +1285,6 @@ async function authCallback(env: Env, url: URL): Promise<Response> {
   return Response.redirect(dest.toString(), 302);
 }
 
-// The verified GitHub session on this request, if any.
 async function sessionIdentity(env: Env, request: Request): Promise<Session | null> {
   if (!env.SESSION_SECRET) return null;
   const m = (request.headers.get("Authorization") ?? "").match(/^Bearer\s+(.+)$/);
@@ -1389,11 +1389,7 @@ async function ghGraphQL<T>(
 ): Promise<T> {
   const res = await fetch("https://api.github.com/graphql", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-      "User-Agent": `${env.REPO_NAME}-worker`,
-      "Content-Type": "application/json",
-    },
+    headers: { ...ghAuth(env), "Content-Type": "application/json" },
     body: JSON.stringify({ query, variables }),
   });
   if (!res.ok) throw new HttpError(502, `GitHub GraphQL ${res.status}`);
@@ -1543,7 +1539,7 @@ async function createTopic(
   if (utf8Bytes(text) > MAX_CONTENT_BYTES)
     throw new HttpError(413, "Message too large.");
 
-  const writer = await resolveWriter(env, request, body.token);
+  const writer = await resolve(env, request, { token: body.token });
   const { repoId, categoryId } = await discussionContext(env);
   const created = await ghGraphQL<{ createDiscussion: { discussion: { id: string } } }>(
     env,
@@ -1573,17 +1569,14 @@ async function postComment(
   if (utf8Bytes(text) > MAX_CONTENT_BYTES)
     throw new HttpError(413, "Comment too large.");
 
-  const writer = await resolveWriter(env, request, body.token);
+  const writer = await resolve(env, request, { token: body.token });
   const marker = `${identityMarker(writer)}${replyTo ? `\n<!-- reply-to:${replyTo} -->` : ""}`;
   await ghGraphQL(env, ADD_COMMENT, { d: topicId, body: `${marker}\n\n${text}` });
   return { ok: true };
 }
 
 function corsHeaders(env: Env, request: Request): Record<string, string> {
-  const allowed = (env.ALLOWED_ORIGIN ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const allowed = allowedOrigins(env);
   const origin = request.headers.get("Origin") ?? "";
   const allow =
     allowed.length === 0 ? "*" : allowed.includes(origin) ? origin : allowed[0];
