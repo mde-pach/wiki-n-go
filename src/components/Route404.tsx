@@ -8,9 +8,11 @@ import {
   prettify,
   readHref,
   reviewHref,
+  userLogin,
 } from "../lib/paths";
 import Appearance from "./Appearance";
 import CategoryList from "./CategoryList";
+import Contributions from "./Contributions";
 import Discussion from "./Discussion";
 import Editor from "./Editor";
 import History from "./History";
@@ -49,6 +51,17 @@ export default function Route404() {
                 <TocMobile />
                 <Infobox slug={slug} />
                 <WikiPage slug={slug} />
+              </div>
+              <div class="col-info">
+                <Appearance />
+              </div>
+            </main>
+          </Show>
+          <Show when={view === "user"}>
+            <main id="main" class="read-grid">
+              <div class="col-toc" />
+              <div class="col-main">
+                <ProfileBody slug={slug} />
               </div>
               <div class="col-info">
                 <Appearance />
@@ -94,10 +107,14 @@ function PageHead(props: { slug: string; view: string }) {
     history: `${BASE}/history/${props.slug}`,
     talk: `${BASE}/talk/${props.slug}`,
   };
+  // A profile is the read view of its `user/<login>` page, so the Read tab is active.
+  const active = props.view === "user" ? "read" : props.view;
+  const login = userLogin(props.slug);
+  const title = login ? `User: ${login}` : prettify(props.slug);
   return (
     <div class="page-head">
       <div class="page-head-inner">
-        <h1 class="page-title">{prettify(props.slug)}</h1>
+        <h1 class="page-title">{title}</h1>
         <div class="page-meta-slot">
           <PageMeta slug={props.slug} base={BASE} />
         </div>
@@ -105,9 +122,9 @@ function PageHead(props: { slug: string; view: string }) {
           <For each={TABS}>
             {([id, label]) => (
               <a
-                class={`tab${props.view === id ? " is-active" : ""}`}
+                class={`tab${active === id ? " is-active" : ""}`}
                 href={href[id]}
-                aria-current={props.view === id ? "page" : undefined}
+                aria-current={active === id ? "page" : undefined}
               >
                 <span class="tab-label">{label}</span>
               </a>
@@ -115,6 +132,39 @@ function PageHead(props: { slug: string; view: string }) {
           </For>
         </nav>
       </div>
+    </div>
+  );
+}
+
+// A profile page body: the editable user page plus the auto-rendered contributions
+// panel. Anonymous ids own no page (an `ip_hash` can't prove ownership), so they
+// get a soft "no profile" note that points at their contributions filter instead.
+function ProfileBody(props: { slug: string }) {
+  const login = () => userLogin(props.slug);
+  return (
+    <Show when={login()} fallback={<NoProfile />}>
+      {(l) => (
+        <Show when={!l().startsWith("anon-")} fallback={<NoProfile anon={l()} />}>
+          <WikiPage slug={props.slug} />
+          <Contributions login={l()} />
+        </Show>
+      )}
+    </Show>
+  );
+}
+
+function NoProfile(props: { anon?: string }) {
+  return (
+    <div class="wiki-status">
+      <Show when={props.anon} fallback={<>No user specified.</>}>
+        {(name) => (
+          <>
+            <span class="mono">{name()}</span> is an anonymous contributor and has no
+            profile page.{" "}
+            <a href={`${changesHref}?author=${name()}`}>See their contributions →</a>
+          </>
+        )}
+      </Show>
     </div>
   );
 }

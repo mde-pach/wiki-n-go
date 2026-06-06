@@ -12,6 +12,7 @@ import {
   prepareEdit,
   runPublish,
 } from "./handlers/content";
+import { contributions } from "./handlers/contributions";
 import { latestSha, linkGraph, listPages, searchIndex } from "./handlers/index-cache";
 import {
   deletePage,
@@ -70,6 +71,7 @@ export default {
       "GET /topic": () => getThread(env, q.get("id") ?? ""),
       "GET /whoami": () => whoami(env, request),
       "GET /changes": () => listChanges(env, q.get("limit") ?? ""),
+      "GET /contributions": () => contributions(env, q.get("author") ?? ""),
       "GET /pending": () => listPending(env),
       "GET /pending-diff": () => pendingDiff(env, q.get("number") ?? ""),
       "GET /bans": () => listBans(env),

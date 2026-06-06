@@ -1,5 +1,6 @@
 ---
 import Appearance from "../components/Appearance.tsx";
+import Contributions from "../components/Contributions.tsx";
 import Infobox from "../components/Infobox.tsx";
 import Toc from "../components/Toc.tsx";
 import TocMobile from "../components/TocMobile.tsx";
@@ -16,6 +17,7 @@ import {
   prettify,
   readHref,
   slugifyPath,
+  userLogin,
 } from "../lib/paths";
 import { markRedLinksHtml } from "../lib/wikilink";
 
@@ -48,6 +50,11 @@ const redirectUrl =
   redirectTo && redirectTo !== pageSlug
     ? `${readHref(redirectTo)}?redirectedfrom=${encodeURIComponent(pageSlug)}`
     : null;
+
+// A built `user/<login>` page also gets the auto-rendered contributions panel.
+const profileLogin = userLogin(pageSlug);
+const contributor =
+  profileLogin && !profileLogin.startsWith("anon-") ? profileLogin : null;
 ---
 
 <PageShell slug={pageSlug} view="read" title={parsed?.title || prettify(pageSlug)} categories={parsed?.meta?.tags} description={parsed?.meta?.description}>
@@ -67,6 +74,7 @@ const redirectUrl =
       <TocMobile initialItems={parsed?.headings ?? []} client:load />
       <Infobox slug={pageSlug} meta={parsed?.meta} client:load />
       <WikiPage slug={pageSlug} initialHtml={html} initialRaw={raw} meta={parsed?.meta} client:load />
+      {contributor && <Contributions login={contributor} client:load />}
     </div>
     <div class="col-info">
       <Appearance client:load />

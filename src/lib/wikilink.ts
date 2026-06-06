@@ -1,5 +1,5 @@
 import type MarkdownIt from "markdown-it";
-import { BASE, resolveWikiSlug, slugifyPath } from "./paths";
+import { BASE, resolveWikiSlug, slugifyPath, userHref } from "./paths";
 
 // `[[Target]]` / `[[Target|Label]]` → internal link carrying a data-slug, which
 // the reader uses to flag red links (pages that don't exist yet).
@@ -55,8 +55,8 @@ const ANON_RE = /^anon-[a-z\d]+$/i;
 const MENTION_BLOCK = /[\w@./-]/;
 
 // `@anon-<hash>` and `@<github-login>` in content become links: an anon
-// pseudonym to its contributions filter on `/changes`, a login to its GitHub
-// profile. Runs as an inline rule so code spans and emails are left untouched.
+// pseudonym to its contributions filter on `/changes`, a login to its in-site
+// profile page. Runs as an inline rule so code spans and emails are left untouched.
 export function mention(md: MarkdownIt): void {
   md.inline.ruler.before("link", "mention", (state, silent) => {
     const { src, pos } = state;
@@ -73,10 +73,8 @@ export function mention(md: MarkdownIt): void {
         open.attrSet("href", `${BASE}/changes?author=${name}`);
         open.attrSet("class", "mention mention-anon");
       } else {
-        open.attrSet("href", `https://github.com/${name}`);
+        open.attrSet("href", userHref(name));
         open.attrSet("class", "mention mention-user");
-        open.attrSet("target", "_blank");
-        open.attrSet("rel", "noreferrer");
       }
       state.push("text", "", 0).content = `@${name}`;
       state.push("link_close", "a", -1);
