@@ -97,7 +97,7 @@ and undo/thank/tag actions; Newer/Older pagination.
 | Section editing | `?section=` deep-link selects + scrolls to that section | ✅ | P1 |
 | Create-new-page (red link → create) | red link → create; `/new` wizard (title → slug + template) | ✅ | P0 |
 | Show diff before submit | confirm dialog shows size delta (full diff preview ⬜) | 🟡 | P1 |
-| Edit-conflict detection | base-SHA check in Worker (⚒) | ⬜ | P1 |
+| Edit-conflict detection | editor sends loaded blob SHA → Worker 409 on mismatch; non-destructive notice | ✅ | P1 |
 | Anti-bot (already have) | Turnstile | ✅ | — |
 
 ## H. Theming / appearance (our "Appearance" menu)
