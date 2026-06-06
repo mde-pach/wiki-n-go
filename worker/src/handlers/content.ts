@@ -263,6 +263,17 @@ export async function proposeEdit(env: Env, request: Request, body: EditBody) {
     editorTier(env, writer.name, writer.email),
     getCurrentFile(env, repo, path),
   ]);
+
+  // Edit-conflict guard: the editor sends the blob SHA it loaded the page at.
+  // If the page has changed since (or was deleted), reject rather than silently
+  // overwrite. Absent base = no check (back-compatible).
+  const base = typeof body.baseSha === "string" ? body.baseSha : "";
+  if (base && current?.sha !== base)
+    throw new HttpError(
+      409,
+      "This page changed while you were editing. Reload to see the latest version, then reapply your edit.",
+    );
+
   const oldMeta = current ? frontmatter(current.raw) : {};
   enforceFieldPermissions(env, tier, oldMeta, frontmatter(content));
   const required = pageTier(env, oldMeta);
