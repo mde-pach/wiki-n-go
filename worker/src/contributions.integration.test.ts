@@ -1,8 +1,59 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { userPageOwner } from "./handlers/content";
-import worker from "./index";
+import worker, { signSession } from "./index";
 
 type Env = Parameters<typeof worker.fetch>[1];
+
+const SESSION_SECRET = "session-secret";
+
+// A signed-in identity = a valid HS256 session JWT replayed as a bearer token
+// (cross-origin, so not a cookie). Mirrors the real OAuth-minted session.
+async function bearer(login: string): Promise<string> {
+  const jwt = await signSession(SESSION_SECRET, { login, id: 1, avatar: "" });
+  return `Bearer ${jwt}`;
+}
+
+// The full GitHub publish flow (branch/commit/PR/merge) for an owner edit that
+// goes live, plus the trust + bans + page-fetch reads. Modelled on the publish
+// integration stub. `pageMissing` → the profile page doesn't exist yet.
+function stubPublish(pageMissing = true) {
+  vi.stubGlobal("fetch", async (input: string | URL, init: RequestInit = {}) => {
+    const url = String(input);
+    const method = init.method ?? "GET";
+    if (url.includes("/pulls/") && url.endsWith("/merge"))
+      return Response.json({ sha: "mergesha", merged: true });
+    if (url.includes("/pulls?") && method === "GET") return Response.json([]);
+    if (url.endsWith("/pulls") && method === "POST")
+      return Response.json({ number: 7, html_url: "https://pr.example/7" });
+    if (url.endsWith("/git/refs") && method === "POST") return Response.json({});
+    if (url.includes("/git/refs/heads/") && method === "DELETE")
+      return new Response(null, { status: 204 });
+    if (url.includes("/git/ref/heads/")) {
+      if (url.endsWith("/heads/main"))
+        return Response.json({ object: { sha: "basesha" } });
+      return new Response("", { status: 404 }); // author branch absent
+    }
+    if (url.includes("/contents/") && method === "PUT")
+      return Response.json({ commit: { sha: "branchsha" } });
+    if (url.includes("/contents/"))
+      return pageMissing
+        ? new Response("", { status: 404 })
+        : Response.json({ sha: "filesha", content: btoa("# old") });
+    if (url.includes("raw.githubusercontent.com"))
+      return new Response("", { status: 404 }); // bans / trusted-editors / filters
+    if (url.includes("/commits")) return new Response("[]"); // trust → open
+    throw new Error(`unexpected fetch: ${method} ${url}`);
+  });
+}
+
+async function drain(res: Response): Promise<{ live?: boolean; prUrl?: string }> {
+  const lines = (await res.text())
+    .trim()
+    .split("\n")
+    .filter(Boolean)
+    .map((l) => JSON.parse(l) as { type: string; result?: { live: boolean } });
+  return lines.find((l) => l.type === "done")?.result ?? {};
+}
 
 function fakeKV() {
   const m = new Map<string, string>();
@@ -22,9 +73,22 @@ function makeEnv(): Env {
     BRANCH: "main",
     CONTENT_DIR: "content",
     DEFAULT_EDIT_TIER: "open",
+    SESSION_SECRET,
     ALLOWED_ORIGIN: "https://example.test",
     RATE_LIMIT: fakeKV(),
   } as unknown as Env;
+}
+
+function editReq(body: unknown, auth?: string): Request {
+  return new Request("https://w.dev/edit", {
+    method: "POST",
+    headers: {
+      Origin: "https://example.test",
+      "Content-Type": "application/json",
+      ...(auth ? { Authorization: auth } : {}),
+    },
+    body: JSON.stringify(body),
+  });
 }
 
 afterEach(() => vi.unstubAllGlobals());
@@ -103,26 +167,46 @@ describe("GET /contributions", () => {
 });
 
 describe("POST /edit — user page ownership gate", () => {
+  const page = { slug: "user/alice", content: "# Alice\n\nhi" };
+
   it("refuses an anonymous edit to someone's profile page", async () => {
-    vi.stubGlobal("fetch", async (input: string | URL) => {
-      const url = String(input);
-      if (url.includes("raw.githubusercontent.com"))
-        return new Response("", { status: 404 });
-      if (url.includes("/commits")) return new Response("[]"); // trust → open
-      if (url.includes("/contents/")) return new Response("", { status: 404 }); // page absent
-      throw new Error(`unexpected fetch: ${url}`);
-    });
-    const res = await worker.fetch(
-      new Request("https://w.dev/edit", {
-        method: "POST",
-        headers: { Origin: "https://example.test", "Content-Type": "application/json" },
-        body: JSON.stringify({ slug: "user/alice", content: "# Alice\n\nhi" }),
-      }),
-      makeEnv(),
-    );
+    stubPublish();
+    const res = await worker.fetch(editReq(page), makeEnv());
     expect(res.status).toBe(403);
     expect(((await res.json()) as { error: string }).error).toMatch(
       /owner or a maintainer/,
     );
+  });
+
+  it("refuses a signed-in user editing someone *else's* profile page", async () => {
+    stubPublish();
+    const res = await worker.fetch(editReq(page, await bearer("bob")), makeEnv());
+    expect(res.status).toBe(403);
+    expect(((await res.json()) as { error: string }).error).toMatch(
+      /owner or a maintainer/,
+    );
+  });
+
+  it("lets the owner edit their own page, and it publishes live", async () => {
+    stubPublish();
+    const res = await worker.fetch(editReq(page, await bearer("alice")), makeEnv());
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toContain("ndjson"); // not a 4xx rejection
+    expect((await drain(res)).live).toBe(true);
+  });
+
+  it("matches the owner case-insensitively (GitHub logins fold case)", async () => {
+    stubPublish();
+    const res = await worker.fetch(editReq(page, await bearer("Alice")), makeEnv());
+    expect(res.status).toBe(200);
+    expect((await drain(res)).live).toBe(true);
+  });
+
+  it("lets a maintainer edit anyone's profile page", async () => {
+    stubPublish();
+    // REPO_OWNER signs in → maintainer tier by identity, no allowlist entry needed.
+    const res = await worker.fetch(editReq(page, await bearer("o")), makeEnv());
+    expect(res.status).toBe(200);
+    expect((await drain(res)).live).toBe(true);
   });
 });
