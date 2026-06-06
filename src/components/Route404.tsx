@@ -14,6 +14,7 @@ import CategoryList from "./CategoryList";
 import Discussion from "./Discussion";
 import Editor from "./Editor";
 import History from "./History";
+import { Icons } from "./Icons";
 import Infobox from "./Infobox";
 import PageMeta from "./PageMeta";
 import RecentChanges from "./RecentChanges";
@@ -22,11 +23,10 @@ import Toc from "./Toc";
 import TocMobile from "./TocMobile";
 import WikiPage from "./WikiPage";
 
-const TABS = [
+const VIEW_TABS = [
   ["read", "Read"],
   ["edit", "Edit"],
   ["history", "History"],
-  ["talk", "Talk"],
 ] as const;
 
 // The SPA fallback for pages not in the last build (e.g. just-created ones).
@@ -94,6 +94,20 @@ function PageHead(props: { slug: string; view: string }) {
     history: `${BASE}/history/${props.slug}`,
     talk: `${BASE}/talk/${props.slug}`,
   };
+  const namespace = props.view === "talk" ? "talk" : "article";
+  const ref = encodeURIComponent(props.slug);
+  const source = `${config.contentDir}/${props.slug}.md`;
+  const toolLinks: { label: string; href: string; external?: boolean }[] = [
+    { label: "What links here", href: `${BASE}/special?tab=backlinks&page=${ref}` },
+    { label: "Page information", href: `${BASE}/special?tab=pageinfo&page=${ref}` },
+    { label: "Cite this page", href: `${BASE}/cite` },
+    { label: "Move or rename", href: `${BASE}/move?page=${ref}` },
+    {
+      label: "View page source",
+      href: `https://github.com/${config.repoOwner}/${config.repoName}/blob/${config.branch}/${source}`,
+      external: true,
+    },
+  ];
   return (
     <div class="page-head">
       <div class="page-head-inner">
@@ -101,18 +115,57 @@ function PageHead(props: { slug: string; view: string }) {
         <div class="page-meta-slot">
           <PageMeta slug={props.slug} base={BASE} />
         </div>
-        <nav class="tabbar" aria-label="Page views">
-          <For each={TABS}>
-            {([id, label]) => (
-              <a
-                class={`tab${props.view === id ? " is-active" : ""}`}
-                href={href[id]}
-                aria-current={props.view === id ? "page" : undefined}
-              >
-                <span class="tab-label">{label}</span>
-              </a>
-            )}
-          </For>
+        <nav class="tabbar" aria-label="Page navigation">
+          <div class="tab-group tab-ns">
+            <a
+              class={`tab${namespace === "article" ? " is-active" : ""}`}
+              href={href.read}
+            >
+              <span class="tab-label">Article</span>
+            </a>
+            <a
+              class={`tab${namespace === "talk" ? " is-active" : ""}`}
+              href={href.talk}
+              aria-current={props.view === "talk" ? "page" : undefined}
+            >
+              <span class="tab-label">Discussion</span>
+            </a>
+          </div>
+          <div class="tab-group tab-views">
+            <For each={VIEW_TABS}>
+              {([id, label]) => (
+                <a
+                  class={`tab${props.view === id ? " is-active" : ""}`}
+                  href={href[id]}
+                  aria-current={props.view === id ? "page" : undefined}
+                >
+                  <span class="tab-label">{label}</span>
+                </a>
+              )}
+            </For>
+            <details class="page-tools tab-tools">
+              <summary class="tab">
+                <span class="tab-label">Tools</span>
+                <Icons.Chevron class="chev" />
+              </summary>
+              <div class="menu" role="menu">
+                <span class="menu-label">Page tools</span>
+                <For each={toolLinks}>
+                  {(t) => (
+                    <a
+                      class="menu-item"
+                      role="menuitem"
+                      href={t.href}
+                      target={t.external ? "_blank" : undefined}
+                      rel={t.external ? "noreferrer" : undefined}
+                    >
+                      {t.label}
+                    </a>
+                  )}
+                </For>
+              </div>
+            </details>
+          </div>
         </nav>
       </div>
     </div>

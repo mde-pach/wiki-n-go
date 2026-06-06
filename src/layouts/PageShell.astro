@@ -41,16 +41,25 @@ const href = {
   history: `${BASE}/history/${slug}`,
   talk: `${BASE}/talk/${slug}`,
 };
-const tabs = [
+const viewTabs = [
   ["read", "Read"],
   ["edit", "Edit"],
   ["history", "History"],
-  ["talk", "Talk"],
 ] as const;
+const namespace = view === "talk" ? "talk" : "article";
 
 const display = title ?? prettify(slug);
 const source = `${config.contentDir}/${slug}.md`;
 const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blob/${config.branch}/${source}`;
+
+const pageRef = encodeURIComponent(slug);
+const toolLinks: { label: string; href: string; external?: boolean }[] = [
+  { label: "What links here", href: `${BASE}/special?tab=backlinks&page=${pageRef}` },
+  { label: "Page information", href: `${BASE}/special?tab=pageinfo&page=${pageRef}` },
+  { label: "Cite this page", href: `${BASE}/cite` },
+  { label: "Move or rename", href: `${BASE}/move?page=${pageRef}` },
+  { label: "View page source", href: sourceUrl, external: true },
+];
 
 const pageLang = langOf(slug);
 const group = translationGroup(slug);
@@ -110,18 +119,64 @@ const alternates = translations(slug).filter((l) => !l.current);
             <PageMeta slug={slug} base={BASE} initial={revisions} client:load />
           </div>
           {view === "read" && <PatrolMeta slug={slug} client:idle />}
-          <nav class="tabbar" aria-label="Page views">
-            {
-              tabs.map(([id, label]) => (
-                <a
-                  class={`tab${view === id ? " is-active" : ""}`}
-                  href={href[id]}
-                  aria-current={view === id ? "page" : undefined}
-                >
-                  <span class="tab-label">{label}</span>
-                </a>
-              ))
-            }
+          <nav class="tabbar" aria-label="Page navigation">
+            <div class="tab-group tab-ns">
+              <a class={`tab${namespace === "article" ? " is-active" : ""}`} href={read}>
+                <span class="tab-label">Article</span>
+              </a>
+              <a
+                class={`tab${namespace === "talk" ? " is-active" : ""}`}
+                href={href.talk}
+                aria-current={view === "talk" ? "page" : undefined}
+              >
+                <span class="tab-label">Discussion</span>
+              </a>
+            </div>
+            <div class="tab-group tab-views">
+              {
+                viewTabs.map(([id, label]) => (
+                  <a
+                    class={`tab${view === id ? " is-active" : ""}`}
+                    href={href[id]}
+                    aria-current={view === id ? "page" : undefined}
+                  >
+                    <span class="tab-label">{label}</span>
+                  </a>
+                ))
+              }
+              <details class="page-tools tab-tools">
+                <summary class="tab">
+                  <span class="tab-label">Tools</span>
+                  <svg
+                    class="chev"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M6 9l6 6 6-6"></path>
+                  </svg>
+                </summary>
+                <div class="menu" role="menu">
+                  <span class="menu-label">Page tools</span>
+                  {
+                    toolLinks.map((t) => (
+                      <a
+                        class="menu-item"
+                        role="menuitem"
+                        href={t.href}
+                        {...(t.external ? { target: "_blank", rel: "noreferrer" } : {})}
+                      >
+                        {t.label}
+                      </a>
+                    ))
+                  }
+                </div>
+              </details>
+            </div>
           </nav>
         </div>
       </div>

@@ -154,8 +154,12 @@
 /* ---- Search -------------------------------------------------------------- */
 .search {
   position: relative;
-  flex: 1 1 auto;
+  /* Fixed basis + auto inline margins centre the search between the wordmark
+     cluster (left) and personal tools (right) so the bar spans its full width
+     instead of bunching at the start (W1). */
+  flex: 0 1 540px;
   max-width: 540px;
+  margin-inline: auto;
 }
 .search-field {
   display: flex;
@@ -557,9 +561,17 @@
 .tabbar {
   display: flex;
   align-items: flex-end;
-  gap: 0.25rem;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
   margin-top: 1.1rem;
   position: relative;
+}
+/* Vector-2022 split: namespace tabs (Article · Discussion) anchor left, the
+   view/tool actions (Read · Edit · History · Tools) anchor right (W2). */
+.tab-group {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.25rem;
 }
 .tabbar::after {
   content: "";
@@ -615,10 +627,23 @@
   color: var(--color-ink-subtle);
 }
 
-/* Page tools menu */
+/* Page tools menu — a native <details> in the tab strip's right group, so it is
+   server-rendered and works with no JS (no blink). */
 .page-tools {
-  margin-left: auto;
   position: relative;
+}
+.tab-tools > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.tab-tools > summary::-webkit-details-marker {
+  display: none;
+}
+.tab-tools .chev {
+  transition: transform var(--transition-fast);
+}
+.tab-tools[open] > summary .chev {
+  transform: rotate(180deg);
 }
 .menu {
   position: absolute;

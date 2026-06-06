@@ -1071,17 +1071,12 @@ a.dh-rev:hover {
     flex-basis: 100%;
     max-width: none;
   }
+  /* Two tab groups can't fit one narrow row; wrap them (namespace tabs above,
+     views below) instead of horizontal-scrolling — scrolling also clips the
+     Tools <details> dropdown (overflow-x:auto forces overflow-y to auto). */
   .tabbar {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .tabbar::-webkit-scrollbar {
-    display: none;
-  }
-  .page-tools {
-    position: static;
-    margin-left: 0;
+    flex-wrap: wrap;
+    row-gap: 0.25rem;
   }
   .tab span.tab-label {
     display: inline;
