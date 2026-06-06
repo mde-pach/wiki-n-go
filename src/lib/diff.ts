@@ -170,6 +170,110 @@ export function wordDiff(a: string, b: string): { left: Seg[]; right: Seg[] } {
   return { left, right };
 }
 
+// Line-level diff of two whole documents (LCS), shaped exactly like parseDiff's
+// output so DiffView can render an edit that isn't a commit yet (e.g. the submit
+// preview). Unchanged runs longer than 2*context collapse to a single hunk
+// separator, keeping `context` lines of surroundings. Returns [] when equal.
+export function diffLines(a: string, b: string, context = 3): DLine[] {
+  const A = a.length ? a.split("\n") : [];
+  const B = b.length ? b.split("\n") : [];
+  const n = A.length;
+  const m = B.length;
+  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--)
+    for (let j = m - 1; j >= 0; j--)
+      dp[i][j] =
+        A[i] === B[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+
+  const ops: DLine[] = [];
+  let i = 0;
+  let j = 0;
+  let oldLn = 1;
+  let newLn = 1;
+  const del = () => {
+    ops.push({
+      num: String(oldLn),
+      sign: "-",
+      text: A[i],
+      cls: "del",
+      onum: String(oldLn),
+      nnum: "",
+    });
+    i++;
+    oldLn++;
+  };
+  const add = () => {
+    ops.push({
+      num: String(newLn),
+      sign: "+",
+      text: B[j],
+      cls: "add",
+      onum: "",
+      nnum: String(newLn),
+    });
+    j++;
+    newLn++;
+  };
+  while (i < n && j < m) {
+    if (A[i] === B[j]) {
+      ops.push({
+        num: String(newLn),
+        sign: " ",
+        text: A[i],
+        cls: "",
+        onum: String(oldLn),
+        nnum: String(newLn),
+      });
+      i++;
+      j++;
+      oldLn++;
+      newLn++;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) del();
+    else add();
+  }
+  while (i < n) del();
+  while (j < m) add();
+
+  return collapseContext(ops, context);
+}
+
+function collapseContext(ops: DLine[], context: number): DLine[] {
+  const keep = new Array(ops.length).fill(false);
+  let changed = false;
+  for (let k = 0; k < ops.length; k++) {
+    if (ops[k].cls === "add" || ops[k].cls === "del") {
+      changed = true;
+      for (let d = -context; d <= context; d++) {
+        const idx = k + d;
+        if (idx >= 0 && idx < ops.length) keep[idx] = true;
+      }
+    }
+  }
+  if (!changed) return [];
+
+  const out: DLine[] = [];
+  let skipped = 0;
+  for (let k = 0; k < ops.length; k++) {
+    if (!keep[k]) {
+      skipped++;
+      continue;
+    }
+    if (skipped > 0) {
+      out.push({
+        num: "",
+        sign: "",
+        text: `⋯ ${skipped} unchanged line${skipped === 1 ? "" : "s"} ⋯`,
+        cls: "hunk",
+        onum: "",
+        nnum: "",
+      });
+      skipped = 0;
+    }
+    out.push(ops[k]);
+  }
+  return out;
+}
+
 function tokenize(s: string): string[] {
   return s.match(/\s+|[^\s]+/g) ?? [];
 }
