@@ -17,27 +17,48 @@ export interface WhoAmI {
   isAnon: boolean;
 }
 
-export async function getWhoami(): Promise<WhoAmI> {
-  const res = await fetch(`${config.workerUrl}/whoami`, {
-    cache: "no-store",
-    headers: authHeaders(),
-  });
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  return (await res.json()) as WhoAmI;
+interface RequestOptions {
+  auth?: boolean;
+  cache?: RequestCache;
 }
 
-export async function submitEdit(
+async function readJson<T>(res: Response): Promise<T> {
+  const data = (await res.json()) as T & { error?: string };
+  if (!res.ok) throw new Error(data.error ?? `Request failed (${res.status})`);
+  return data;
+}
+
+export async function getJson<T>(path: string, opts: RequestOptions = {}): Promise<T> {
+  const res = await fetch(`${config.workerUrl}${path}`, {
+    cache: opts.cache ?? "no-store",
+    headers: opts.auth ? authHeaders() : undefined,
+  });
+  return readJson<T>(res);
+}
+
+export async function postJson<T>(
+  path: string,
+  body: unknown,
+  opts: RequestOptions = {},
+): Promise<T> {
+  const auth = opts.auth ?? true;
+  const res = await fetch(`${config.workerUrl}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(auth ? authHeaders() : {}) },
+    body: JSON.stringify(body),
+  });
+  return readJson<T>(res);
+}
+
+export function getWhoami(): Promise<WhoAmI> {
+  return getJson<WhoAmI>("/whoami", { auth: true });
+}
+
+export function submitEdit(
   slug: string,
   content: string,
   token?: string,
   summary?: string,
 ): Promise<EditResult> {
-  const res = await fetch(`${config.workerUrl}/edit`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ slug, content, token, summary }),
-  });
-  const data = (await res.json()) as Partial<EditResult> & { error?: string };
-  if (!res.ok) throw new Error(data.error ?? `Request failed (${res.status})`);
-  return data as EditResult;
+  return postJson<EditResult>("/edit", { slug, content, token, summary });
 }

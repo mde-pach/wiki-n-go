@@ -1,5 +1,4 @@
-import { config } from "../config";
-import { authHeaders } from "./auth";
+import { getJson, postJson } from "./api";
 
 export interface Pending {
   number: number;
@@ -13,28 +12,20 @@ export interface Pending {
 }
 
 export async function listPending(): Promise<Pending[]> {
-  const res = await fetch(`${config.workerUrl}/pending`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Failed to load pending edits (HTTP ${res.status}).`);
-  return ((await res.json()) as { pending: Pending[] }).pending;
+  const data = await getJson<{ pending: Pending[] }>("/pending");
+  return data.pending;
 }
 
 export async function getPendingDiff(number: number): Promise<string | null> {
-  const res = await fetch(`${config.workerUrl}/pending-diff?number=${number}`, {
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`Failed to load diff (HTTP ${res.status}).`);
-  return ((await res.json()) as { patch: string | null }).patch;
+  const data = await getJson<{ patch: string | null }>(
+    `/pending-diff?number=${number}`,
+  );
+  return data.patch;
 }
 
 export async function reviewPr(
   number: number,
   action: "merge" | "close",
 ): Promise<void> {
-  const res = await fetch(`${config.workerUrl}/review`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ number, action }),
-  });
-  const data = (await res.json()) as { error?: string };
-  if (!res.ok) throw new Error(data.error ?? `Request failed (${res.status})`);
+  await postJson<{ ok: true }>("/review", { number, action });
 }

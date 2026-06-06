@@ -11,16 +11,6 @@ export interface Fields {
   image: string;
 }
 
-export const EMPTY_FIELDS: Fields = {
-  protection: "",
-  tags: "",
-  hatnote: "",
-  bannerKind: "",
-  bannerText: "",
-  kicker: "",
-  image: "",
-};
-
 // Frontmatter keys this form owns; everything else (e.g. infobox) is preserved
 // verbatim on round-trip.
 const MANAGED_KEYS = ["protection", "tags", "hatnote", "banner", "kicker", "image"];

@@ -3,7 +3,7 @@ import { config } from "../config";
 import { computeGraph, type PageNode } from "../lib/linkgraph";
 import { splitTitle } from "../lib/markdown";
 import { contentSlugs, rawPage } from "../lib/pages";
-import { prettify, slugifyTarget } from "../lib/paths";
+import { prettify, slugifyPath } from "../lib/paths";
 
 // Outgoing internal-link targets in a page. Interwiki links (w:/wikipedia:) are
 // external, so they're excluded; slugify matches the wikilink renderer.
@@ -14,7 +14,7 @@ function extractLinks(raw: string): string[] {
   while (m) {
     const target = m[1].split("|")[0].trim();
     if (!/^(?:w|wikipedia):/i.test(target)) {
-      const s = slugifyTarget(target);
+      const s = slugifyPath(target);
       if (s) slugs.add(s);
     }
     m = re.exec(raw);
@@ -32,7 +32,7 @@ export const GET: APIRoute = () => {
       slug,
       title: title || prettify(slug),
       out: extractLinks(raw),
-      redirect: meta.redirect ? slugifyTarget(meta.redirect) : undefined,
+      redirect: meta.redirect ? slugifyPath(meta.redirect) : undefined,
     };
   });
   return new Response(JSON.stringify(computeGraph(nodes, config.homeSlug)), {

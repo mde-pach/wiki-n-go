@@ -1,16 +1,10 @@
 import { createSignal, onMount, Show } from "solid-js";
-import {
-  fetchMarkdown,
-  fetchMarkdownAt,
-  PageNotFoundError,
-  renderMarkdown,
-} from "../lib/content";
+import { fetchMarkdown, fetchMarkdownAt, PageNotFoundError } from "../lib/content";
 import type { PageMeta } from "../lib/frontmatter";
 import { pageSet } from "../lib/manifest";
-import { emphasizeLeadHtml, splitTitle } from "../lib/markdown";
-import { BASE, prettify, readHref } from "../lib/paths";
+import { emphasizeLeadHtml, renderMarkdown, splitTitle } from "../lib/markdown";
+import { BASE, prettify, readHref, slugFromLocation } from "../lib/paths";
 import { attachPagePreviews } from "../lib/previews";
-import { slugFromLocation } from "../lib/slug";
 import { errMessage } from "../lib/util";
 import { Icons } from "./Icons";
 

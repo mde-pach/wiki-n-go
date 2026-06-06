@@ -1,55 +1,37 @@
 import { createMemo, createSignal, Show } from "solid-js";
 import { isServer } from "solid-js/web";
-import { config } from "../config";
 import { movePage } from "../lib/move";
-import { prettify, readHref, slugifyTarget } from "../lib/paths";
-import { createTurnstile } from "../lib/turnstile";
-import { errMessage } from "../lib/util";
+import { prettify, readHref, slugifyPath } from "../lib/paths";
+import { useSubmit } from "../lib/solid";
+import { ErrorNote, Status, ViewHead } from "./ui";
 
 export default function MovePage() {
   const from = isServer ? "" : (new URLSearchParams(location.search).get("page") ?? "");
   const [target, setTarget] = createSignal(prettify(from));
   const [summary, setSummary] = createSignal("");
-  const [busy, setBusy] = createSignal(false);
-  const [err, setErr] = createSignal<string>();
   const [done, setDone] = createSignal<string>();
-  const turnstile = config.turnstileSiteKey
-    ? createTurnstile(config.turnstileSiteKey)
-    : null;
-  const toSlug = createMemo(() => slugifyTarget(target()));
+  const { busy, error, setError, run } = useSubmit();
+  const toSlug = createMemo(() => slugifyPath(target()));
 
-  async function submit() {
-    setErr();
-    if (!toSlug()) return setErr("Enter a new name.");
-    if (toSlug() === from) return setErr("That's the current name.");
-    setBusy(true);
-    try {
-      const tok = turnstile ? await turnstile.getToken() : undefined;
-      const r = await movePage(from, toSlug(), summary(), tok);
-      setDone(r.to);
-    } catch (e) {
-      setErr(errMessage(e));
-      turnstile?.reset();
-    } finally {
-      setBusy(false);
-    }
+  function submit() {
+    if (!toSlug()) return setError("Enter a new name.");
+    if (toSlug() === from) return setError("That's the current name.");
+    run(async (tok) => setDone((await movePage(from, toSlug(), summary(), tok)).to));
   }
 
   return (
     <div class="move-page">
-      <div class="view-head">
-        <h2>Move or rename a page</h2>
-        <p>
-          Renaming leaves a redirect at the old name, so existing links keep working.
-        </p>
-      </div>
+      <ViewHead
+        title="Move or rename a page"
+        sub="Renaming leaves a redirect at the old name, so existing links keep working."
+      />
 
       <Show
         when={from}
         fallback={
-          <p class="wiki-status">
+          <Status>
             No page specified — open this from a page's “Move/rename” link.
-          </p>
+          </Status>
         }
       >
         <Show
@@ -93,9 +75,7 @@ export default function MovePage() {
                   Cancel
                 </a>
               </div>
-              <Show when={err()}>
-                <p class="editor-err">{err()}</p>
-              </Show>
+              <ErrorNote msg={error()} />
             </div>
           }
         >

@@ -1,5 +1,4 @@
-import { config } from "../config";
-import { authHeaders } from "./auth";
+import { getJson, postJson } from "./api";
 
 export interface Comment {
   id: string;
@@ -30,39 +29,24 @@ export interface Thread {
   comments: Comment[];
 }
 
-async function readJson<T>(res: Response): Promise<T> {
-  const data = (await res.json()) as T & { error?: string };
-  if (!res.ok) throw new Error(data.error ?? `Request failed (${res.status})`);
-  return data;
-}
-
 export async function listTopics(slug: string): Promise<Topic[]> {
-  const res = await fetch(
-    `${config.workerUrl}/topics?slug=${encodeURIComponent(slug)}`,
-    { cache: "no-store" },
+  const data = await getJson<{ topics: Topic[] }>(
+    `/topics?slug=${encodeURIComponent(slug)}`,
   );
-  return (await readJson<{ topics: Topic[] }>(res)).topics;
+  return data.topics;
 }
 
-export async function getThread(id: string): Promise<Thread> {
-  const res = await fetch(`${config.workerUrl}/topic?id=${encodeURIComponent(id)}`, {
-    cache: "no-store",
-  });
-  return readJson<Thread>(res);
+export function getThread(id: string): Promise<Thread> {
+  return getJson<Thread>(`/topic?id=${encodeURIComponent(id)}`);
 }
 
-export async function createTopic(
+export function createTopic(
   slug: string,
   title: string,
   body: string,
   token?: string,
 ): Promise<{ id: string }> {
-  const res = await fetch(`${config.workerUrl}/topic`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ slug, title, body, token }),
-  });
-  return readJson<{ id: string }>(res);
+  return postJson<{ id: string }>("/topic", { slug, title, body, token });
 }
 
 export async function postReply(
@@ -71,10 +55,5 @@ export async function postReply(
   replyTo?: string,
   token?: string,
 ): Promise<void> {
-  const res = await fetch(`${config.workerUrl}/comment`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ topicId, body, replyTo, token }),
-  });
-  await readJson<{ ok: true }>(res);
+  await postJson<{ ok: true }>("/comment", { topicId, body, replyTo, token });
 }

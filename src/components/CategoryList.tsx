@@ -1,9 +1,10 @@
-import { createResource, For, Show } from "solid-js";
-import { isServer } from "solid-js/web";
+import { For, Show } from "solid-js";
 import { fetchMarkdown } from "../lib/content";
 import { pageSet } from "../lib/manifest";
 import { splitTitle } from "../lib/markdown";
-import { prettify, readHref, slugifyTag } from "../lib/paths";
+import { prettify, readHref, slugifyLabel } from "../lib/paths";
+import { clientResource } from "../lib/solid";
+import { Status, ViewHead } from "./ui";
 
 const SCAN_CAP = 300;
 
@@ -20,7 +21,7 @@ async function membersOf(cat: string): Promise<Member[]> {
         const raw = await fetchMarkdown(slug);
         const { title, meta } = splitTitle(raw);
         const tags = meta.tags ?? [];
-        return tags.some((t) => slugifyTag(t) === cat)
+        return tags.some((t) => slugifyLabel(t) === cat)
           ? { slug, title: title || prettify(slug) }
           : null;
       } catch {
@@ -35,19 +36,19 @@ async function membersOf(cat: string): Promise<Member[]> {
 
 export default function CategoryList(props: { cat?: string }) {
   const cat = () => props.cat ?? "";
-  const [members] = createResource(() => (isServer ? undefined : cat()), membersOf);
+  const members = clientResource(cat, membersOf);
   const label = () => prettify(cat());
 
   return (
     <main id="main" class="view-wrap">
-      <div class="view-head">
-        <h2>Category: {label()}</h2>
-        <p>Pages tagged “{label()}”. Membership is read live.</p>
-      </div>
-      <Show when={members()} fallback={<p class="wiki-status">Scanning pages…</p>}>
+      <ViewHead
+        title={<>Category: {label()}</>}
+        sub={<>Pages tagged “{label()}”. Membership is read live.</>}
+      />
+      <Show when={members()} fallback={<Status>Scanning pages…</Status>}>
         <Show
           when={(members()?.length ?? 0) > 0}
-          fallback={<p class="wiki-status">No pages in this category yet.</p>}
+          fallback={<Status>No pages in this category yet.</Status>}
         >
           <ul class="category-list">
             <For each={members()}>

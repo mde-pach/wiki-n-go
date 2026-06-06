@@ -1,15 +1,18 @@
+import DOMPurify from "dompurify";
 import MarkdownIt from "markdown-it";
 import anchor from "markdown-it-anchor";
 import footnote from "markdown-it-footnote";
 import { figures } from "./figures";
 import { type PageMeta, parseFrontmatter } from "./frontmatter";
+import { slugifyLabel } from "./paths";
+import { escapeRegExp } from "./util";
 import { wikilink } from "./wikilink";
 
 // Shared markdown-it instance (no DOMPurify, so it runs at build/SSR too).
 export const md = new MarkdownIt({ html: false, linkify: true, typographer: true })
   .use(anchor, {
     level: [2, 3, 4],
-    slugify: slugifyHeading,
+    slugify: slugifyLabel,
     permalink: anchor.permalink.ariaHidden({
       symbol: "#",
       placement: "after",
@@ -38,14 +41,6 @@ md.renderer.rules.footnote_anchor = (tokens, idx) => {
   const n = tokens[idx].meta.id + 1;
   return ` <a href="#${citeMark(n, tokens[idx].meta.subId)}" class="ref-backlink" aria-label="Back to text">↑</a>`;
 };
-
-export function slugifyHeading(s: string): string {
-  return s
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "-");
-}
 
 export interface Heading {
   id: string;
@@ -107,8 +102,11 @@ export function emphasizeLeadHtml(html: string, title: string): string {
   if (!p) return html;
   const inner = p[1];
   if (/^\s*<(?:strong|b)\b/i.test(inner)) return html; // already emphasized
-  const esc = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp(`^(\\s*)(${esc})`, "i");
+  const re = new RegExp(`^(\\s*)(${escapeRegExp(title)})`, "i");
   if (!re.test(inner)) return html;
   return html.replace(p[0], `<p>${inner.replace(re, "$1<strong>$2</strong>")}</p>`);
+}
+
+export function renderMarkdown(src: string): string {
+  return DOMPurify.sanitize(md.render(src));
 }

@@ -11,10 +11,11 @@ import {
   type Thread,
   type Topic,
 } from "../lib/comments";
-import { slugFromLocation } from "../lib/slug";
-import { createTurnstile } from "../lib/turnstile";
-import { errMessage } from "../lib/util";
+import { timeAgo } from "../lib/format";
+import { slugFromLocation } from "../lib/paths";
+import { useSubmit } from "../lib/solid";
 import { Icons } from "./Icons";
+import { ErrorNote, Status } from "./ui";
 
 type ComposerState =
   | { mode: "topic" }
@@ -141,7 +142,7 @@ export default function Discussion(props: { slug?: string }) {
       <Show when={topics() !== undefined} fallback={<TopicSkeleton />}>
         <Show
           when={list.length > 0}
-          fallback={<p class="wiki-status">No topics yet — start the discussion.</p>}
+          fallback={<Status>No topics yet — start the discussion.</Status>}
         >
           <ul class="topic-list">
             <For each={list}>
@@ -328,30 +329,16 @@ function Composer(props: {
 }) {
   const [title, setTitle] = createSignal("");
   const [draft, setDraft] = createSignal("");
-  const [busy, setBusy] = createSignal(false);
-  const [error, setError] = createSignal<string>();
-  const turnstile = config.turnstileSiteKey
-    ? createTurnstile(config.turnstileSiteKey)
-    : null;
+  const { busy, error, setError, run } = useSubmit();
 
-  async function submit() {
+  function submit() {
     if (props.withTitle && !title().trim()) {
       setError("Give the topic a title.");
       return;
     }
     if (!draft().trim()) return;
-    setBusy(true);
-    setError();
-    try {
-      // Verify under the hood — no visible bot-check widget.
-      const tok = turnstile ? await turnstile.getToken() : undefined;
-      await props.onSubmit(draft(), tok, title().trim());
-    } catch (e) {
-      setError(errMessage(e));
-      turnstile?.reset();
-    } finally {
-      setBusy(false);
-    }
+    // Verify under the hood — no visible bot-check widget.
+    run((tok) => props.onSubmit(draft(), tok, title().trim()));
   }
 
   return (
@@ -384,9 +371,7 @@ function Composer(props: {
           Cancel
         </button>
       </div>
-      <Show when={error()}>
-        <p class="editor-err">{error()}</p>
-      </Show>
+      <ErrorNote msg={error()} />
     </div>
   );
 }
@@ -421,19 +406,4 @@ function CommentSkeleton() {
 
 function participantsOf(thread: Thread): number {
   return new Set([thread.root.author, ...thread.comments.map((c) => c.author)]).size;
-}
-
-function timeAgo(iso: string): string {
-  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  const units: [number, string][] = [
-    [31536000, "y"],
-    [2592000, "mo"],
-    [604800, "w"],
-    [86400, "d"],
-    [3600, "h"],
-    [60, "m"],
-  ];
-  for (const [sec, label] of units)
-    if (s >= sec) return `${Math.floor(s / sec)}${label} ago`;
-  return "just now";
 }

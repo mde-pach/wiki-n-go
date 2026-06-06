@@ -1,5 +1,8 @@
 import { config } from "../config";
+import { fetchFirstOk } from "./net";
 import { BASE } from "./paths";
+import { stripMarkdownInline } from "./previews";
+import { escapeRegExp } from "./util";
 
 export interface SearchDoc {
   slug: string;
@@ -9,19 +12,11 @@ export interface SearchDoc {
 
 // Prefer the Worker's live index; fall back to the static build file.
 export async function getSearchDocs(): Promise<SearchDoc[]> {
-  for (const url of [
+  const data = await fetchFirstOk<{ docs: SearchDoc[] }>([
     config.workerUrl ? `${config.workerUrl}/search-index` : null,
     `${BASE}/search-index.json`,
-  ]) {
-    if (!url) continue;
-    try {
-      const res = await fetch(url, { cache: "no-store" });
-      if (res.ok) return ((await res.json()) as { docs: SearchDoc[] }).docs;
-    } catch {
-      // try the next source
-    }
-  }
-  return [];
+  ]);
+  return data?.docs ?? [];
 }
 
 export interface SearchHit {
@@ -32,14 +27,12 @@ export interface SearchHit {
 
 // Markdown → searchable plain text. Build-time only (feeds the static index).
 export function toPlainText(md: string): string {
-  return md
-    .replace(/```[\s\S]*?```/g, " ")
-    .replace(/`[^`]*`/g, " ")
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
-    .replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_m, t, l) => l ?? t)
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
-    .replace(/\[\^[^\]]+\]:?/g, " ")
-    .replace(/^\s{0,3}[>#\-*+]\s+/gm, " ")
+  return stripMarkdownInline(
+    md
+      .replace(/```[\s\S]*?```/g, " ")
+      .replace(/`[^`]*`/g, " ")
+      .replace(/^\s{0,3}[>#\-*+]\s+/gm, " "),
+  )
     .replace(/[*_~>#|]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -102,17 +95,4 @@ export function splitHighlight(
     .split(re)
     .filter((p) => p !== "")
     .map((p) => ({ t: p, hit: terms.includes(p.toLowerCase()) }));
-}
-
-function escapeRegExp(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-export function slugifyQuery(q: string): string {
-  return q
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9/-]/g, "")
-    .replace(/^-+|-+$/g, "");
 }

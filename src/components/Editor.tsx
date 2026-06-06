@@ -2,14 +2,13 @@ import { createEffect, createSignal, onMount, Show } from "solid-js";
 import { createStore } from "solid-js/store";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
-import { type EditResult, getWhoami, submitEdit, type Tier } from "../lib/api";
-import { fetchMarkdown, PageNotFoundError, renderMarkdown } from "../lib/content";
+import { type EditResult, submitEdit } from "../lib/api";
+import { fetchMarkdown, PageNotFoundError } from "../lib/content";
 import { splitFrontmatter, withFrontmatter } from "../lib/frontmatter";
-import { slugifyHeading } from "../lib/markdown";
-import { prettify, readHref } from "../lib/paths";
-import { slugFromLocation } from "../lib/slug";
+import { renderMarkdown } from "../lib/markdown";
+import { prettify, readHref, slugFromLocation, slugifyLabel } from "../lib/paths";
+import { useSubmit, useWhoami } from "../lib/solid";
 import { templateById } from "../lib/templates";
-import { createTurnstile } from "../lib/turnstile";
 import { errMessage } from "../lib/util";
 import { Icons } from "./Icons";
 import PageProperties, {
@@ -18,6 +17,7 @@ import PageProperties, {
   type Fields,
   fieldsFrom,
 } from "./PageProperties";
+import { ErrorNote, ViewHead } from "./ui";
 
 export default function Editor(props: { slug?: string; initialContent?: string }) {
   if (!config.workerUrl) return null;
@@ -32,26 +32,19 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   const [extra, setExtra] = createSignal<Record<string, unknown>>(extraFrom(init.data));
   const [original, setOriginal] = createSignal(props.initialContent ?? "");
   const [summary, setSummary] = createSignal("");
-  const [busy, setBusy] = createSignal(false);
-  const [error, setError] = createSignal<string>();
   const [result, setResult] = createSignal<EditResult>();
   const [modal, setModal] = createSignal(false);
-  const [who, setWho] = createSignal<{ author: string; tier: Tier }>();
+  const { who } = useWhoami();
   const [ready, setReady] = createSignal(false);
   const [restored, setRestored] = createSignal(false);
   const [isNew, setIsNew] = createSignal(false);
   let ta: HTMLTextAreaElement | undefined;
 
-  const turnstile = config.turnstileSiteKey
-    ? createTurnstile(config.turnstileSiteKey)
-    : null;
+  const { busy, error, setError, run, mount } = useSubmit();
   const content = () => withFrontmatter(assemble(extra(), fields), body());
   const draftKey = () => `wng-draft:${slug()}`;
 
   onMount(async () => {
-    getWhoami()
-      .then(setWho)
-      .catch(() => {});
     try {
       const raw = await fetchMarkdown(slug());
       setOriginal(raw);
@@ -124,7 +117,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     for (const line of lines) {
       const m = line.match(/^#{2,3}\s+(.+?)\s*$/);
       if (m) {
-        if (start === -1 && slugifyHeading(m[1]) === section) {
+        if (start === -1 && slugifyLabel(m[1]) === section) {
           start = offset;
           heading = m[1];
         } else if (start !== -1) {
@@ -167,38 +160,29 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   }
 
   function openConfirm() {
-    setError();
+    setError(undefined);
     setModal(true);
   }
-  async function confirmSubmit() {
-    setBusy(true);
-    setError();
+  function confirmSubmit() {
     // Close the confirm dialog first so an in-panel bot-check (if Cloudflare
     // asks for one) is reachable rather than behind the modal backdrop.
     setModal(false);
-    try {
-      const tok = turnstile ? await turnstile.getToken() : undefined;
+    run(async (tok) => {
       setResult(await submitEdit(slug(), content(), tok, summary()));
       localStorage.removeItem(draftKey());
-    } catch (e) {
-      setError(errMessage(e));
-      turnstile?.reset();
-    } finally {
-      setBusy(false);
-    }
+    });
   }
 
   return (
     <div>
-      <div class="view-head">
-        <h2>
-          {isNew() ? "Creating" : "Editing"} “{prettify(slug())}”
-        </h2>
-        <p>
-          Anyone can edit — no account needed. Trusted edits publish immediately; others
-          are submitted for review and go live once a maintainer approves.
-        </p>
-      </div>
+      <ViewHead
+        title={
+          <>
+            {isNew() ? "Creating" : "Editing"} “{prettify(slug())}”
+          </>
+        }
+        sub="Anyone can edit — no account needed. Trusted edits publish immediately; others are submitted for review and go live once a maintainer approves."
+      />
 
       <PageProperties
         fields={fields}
@@ -322,7 +306,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
             <p class="editor-hint">Restored your unsaved draft from this device.</p>
           </Show>
           <Show when={config.turnstileSiteKey}>
-            <div class="editor-widget" ref={(el) => turnstile?.mount(el)} />
+            <div class="editor-widget" ref={(el) => mount?.(el)} />
           </Show>
           <div class="editor-actions" style={{ "margin-top": "0.9rem" }}>
             <button
@@ -337,9 +321,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
               Cancel
             </a>
           </div>
-          <Show when={error()}>
-            <p class="editor-err">{error()}</p>
-          </Show>
+          <ErrorNote msg={error()} />
           <Show when={result()}>
             {(r) => (
               <p class="editor-ok">
