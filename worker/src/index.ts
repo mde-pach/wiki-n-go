@@ -9,7 +9,8 @@ import {
   listPending,
   movePage,
   pendingDiff,
-  proposeEdit,
+  prepareEdit,
+  runPublish,
 } from "./handlers/content";
 import { latestSha, linkGraph, listPages, searchIndex } from "./handlers/index-cache";
 import {
@@ -23,7 +24,7 @@ import {
 import { protect } from "./handlers/protect";
 import { grant, listEditors, revoke } from "./handlers/rights";
 import { listSuppressed, suppress, unsuppress } from "./handlers/suppress";
-import { corsHeaders, HttpError, json, message } from "./http";
+import { corsHeaders, HttpError, json, message, ndjsonStream } from "./http";
 import { whoami } from "./identity";
 import type {
   BanBody,
@@ -79,8 +80,19 @@ export default {
       "GET /auth/status": () => Promise.resolve({ enabled: oauthConfigured(env) }),
       "GET /auth/login": () => authLogin(env, url),
       "GET /auth/callback": () => authCallback(env, url),
-      "POST /edit": async () =>
-        proposeEdit(env, request, (await request.json()) as EditBody),
+      // Reject up front with a clean HTTP status; stream only the publish phase.
+      "POST /edit": async () => {
+        const prepared = await prepareEdit(
+          env,
+          request,
+          (await request.json()) as EditBody,
+        );
+        return "done" in prepared
+          ? prepared.done
+          : ndjsonStream(env, request, (emit) =>
+              runPublish(env, prepared.ctx, prepared.trusted, emit),
+            );
+      },
       "POST /move": async () =>
         movePage(env, request, (await request.json()) as MoveBody),
       "POST /patrol": async () =>

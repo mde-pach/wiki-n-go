@@ -92,19 +92,39 @@ const branchDeleted = () =>
 const prCreated = () =>
   calls.some((c) => c.method === "POST" && c.url.endsWith("/pulls"));
 
+// The publish phase streams NDJSON; collapse it to the terminal result plus the
+// progress milestones emitted along the way.
+async function drain(res: Response) {
+  const lines = (await res.text())
+    .trim()
+    .split("\n")
+    .filter(Boolean)
+    .map((l) => JSON.parse(l) as { type: string; result?: EditResult; label?: string });
+  return {
+    progress: lines.filter((l) => l.type === "progress"),
+    result: lines.find((l) => l.type === "done")?.result,
+    error: lines.find((l) => l.type === "error"),
+  };
+}
+
+type EditResult = { live: boolean; sha?: string; prUrl?: string };
+
 afterEach(() => vi.unstubAllGlobals());
 
 describe("POST /edit — PR-always with auto-merge", () => {
-  it("trusted edit opens a PR and squash-merges it live", async () => {
+  it("streams progress, then squash-merges a trusted edit live", async () => {
     stubGitHub({ files: { "content/foo.md": "# Foo" } });
     const res = await worker.fetch(
       edit({ slug: "foo", content: "# Foo edited" }),
       makeEnv(),
     );
     expect(res.status).toBe(200);
-    const out = (await res.json()) as { live: boolean; sha: string };
-    expect(out.live).toBe(true);
-    expect(out.sha).toBe("mergesha");
+    expect(res.headers.get("Content-Type")).toContain("ndjson");
+    const { result, progress } = await drain(res);
+    expect(progress.length).toBeGreaterThan(0); // milestones were emitted
+    expect(progress.every((p) => typeof p.label === "string")).toBe(true);
+    expect(result?.live).toBe(true);
+    expect(result?.sha).toBe("mergesha");
     expect(merged()).toBe(true);
     expect(branchDeleted()).toBe(true); // tidy up after a clean merge
   });
@@ -115,10 +135,9 @@ describe("POST /edit — PR-always with auto-merge", () => {
       edit({ slug: "foo", content: "# Foo edited" }),
       makeEnv(),
     );
-    expect(res.status).toBe(200);
-    const out = (await res.json()) as { live: boolean; prUrl: string };
-    expect(out.live).toBe(false); // degrades into the review queue
-    expect(out.prUrl).toBe("https://pr.example/7");
+    const { result } = await drain(res);
+    expect(result?.live).toBe(false); // degrades into the review queue
+    expect(result?.prUrl).toBe("https://pr.example/7");
     expect(merged()).toBe(true); // merge was attempted…
     expect(branchDeleted()).toBe(false); // …but the branch survives for the human
   });
@@ -129,20 +148,20 @@ describe("POST /edit — PR-always with auto-merge", () => {
       edit({ slug: "foo", content: "# Foo edited" }),
       makeEnv("maintainer"), // page now needs maintainer; anon stays below it
     );
-    expect(res.status).toBe(200);
-    const out = (await res.json()) as { live: boolean; prUrl: string };
-    expect(out.live).toBe(false);
-    expect(out.prUrl).toBe("https://pr.example/7");
+    const { result } = await drain(res);
+    expect(result?.live).toBe(false);
+    expect(result?.prUrl).toBe("https://pr.example/7");
     expect(merged()).toBe(false);
   });
 
-  it("is an idempotent no-op when the live page already has this content", async () => {
+  it("is an idempotent no-op (plain JSON, no stream) when content is unchanged", async () => {
     stubGitHub({ files: { "content/foo.md": "# Foo" } });
     const res = await worker.fetch(
       edit({ slug: "foo", content: "# Foo" }), // identical to live
       makeEnv(),
     );
     expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toContain("json");
     expect(((await res.json()) as { live: boolean }).live).toBe(true);
     expect(prCreated()).toBe(false); // no empty PR
     expect(merged()).toBe(false);
@@ -158,9 +177,8 @@ describe("POST /edit — PR-always with auto-merge", () => {
       edit({ slug: "foo", content: "# Foo edited again" }),
       makeEnv(),
     );
-    expect(res.status).toBe(200);
-    const out = (await res.json()) as { live: boolean };
-    expect(out.live).toBe(true);
+    const { result } = await drain(res);
+    expect(result?.live).toBe(true);
     expect(prCreated()).toBe(false); // reused, not duplicated
     expect(merged()).toBe(true);
   });

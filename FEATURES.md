@@ -101,6 +101,7 @@ and undo/thank/tag actions; Newer/Older pagination.
 | Create-new-page (red link → create) | red link → create; `/new` wizard (title → slug + template) | ✅ | P0 |
 | Show diff before submit | confirm dialog shows size delta **+ a full side-by-side/unified diff** of the pending edit (`diffLines` → `DiffView`, computed client-side; long unchanged runs collapsed) | ✅ | P1 |
 | Edit-conflict detection | git 3-way merge on the auto-merged PR; overlapping conflict → PR stays in the review queue (see §K) | ✅ | P1 |
+| Submit progress feedback | publish phase streams NDJSON milestones (open PR → publish → go live) → live progress bar in the editor | ✅ | P1 |
 | Anti-bot (already have) | Turnstile | ✅ | — |
 
 ## H. Theming / appearance (our "Appearance" menu)
