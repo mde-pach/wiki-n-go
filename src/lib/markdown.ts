@@ -6,6 +6,7 @@ import { citeTemplate } from "./citetemplate";
 import { figures } from "./figures";
 import { type PageMeta, parseFrontmatter } from "./frontmatter";
 import { BASE, slugifyLabel } from "./paths";
+import { transclusion } from "./transclude";
 import { escapeRegExp } from "./util";
 import { mention, wikilink } from "./wikilink";
 
@@ -24,7 +25,8 @@ export const md = new MarkdownIt({ html: false, linkify: true, typographer: true
   .use(figures)
   .use(wikilink)
   .use(mention)
-  .use(citeTemplate);
+  .use(citeTemplate)
+  .use(transclusion);
 
 // markdown-it-footnote emits one backlink per reference. When a note is reused
 // (a named ref cited more than once) Wikipedia labels its backlinks a, b, c; flag

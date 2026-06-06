@@ -63,7 +63,7 @@ The core, in render order observed on the page.
 | **Internal links `[[Page]]`** + **red links** | rewrite via manifest; red = missing, resolved before paint | ✅ | P0 |
 | **Hover page previews** | popup card on internal link (`lib/previews`); `db1cff8` | ✅ | P2 |
 | **See also / External links** sections | markdown convention | ✅ | P1 |
-| **Navboxes** (bottom template grids) | transclusion/includes (⚒) | ⬜ | P2 |
+| **Navboxes / transclusion** (template grids, shared blocks) | `{{slug}}` on its own line transcludes another page's body, filled from the CDN at read time; recursion-bounded + cycle-safe (`lib/transclude` + `decorate`) | ✅ | P2 |
 | **Categories** footer | frontmatter `tags` → `/category/<x>` (footer chips) | ✅ | P1 |
 | Authority/Wikidata strip | n/a → **"view source on GitHub"** provenance | ⬜ | P2 |
 
@@ -257,8 +257,8 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 | Wikipedia mechanism | Ours | St | Pri |
 |---|---|---|---|
 | **Namespaces** (Article/Talk/User/Project/Template/Category/File/Help/Draft/Module) | **directory prefixes** (`meta/`, `templates/`, `help/`, `drafts/`, `media/`); Talk = Discussions; decide prefix-vs-frontmatter early | 🟡 | P1 |
-| **Templates / transclusion** (params, `{{subst:}}`) | Markdown **partials/includes** resolved by the Worker; infobox/banners already are templates | 🟡 | P2 |
-| **Navboxes** | bottom link-grid partial driven by a shared data file | ⬜ | P2 |
+| **Templates / transclusion** (params, `{{subst:}}`) | `{{slug}}` transcludes a page body, filled from the CDN at read time (no rebuild); recursion-bounded + cycle-safe (`lib/transclude`). Params / `{{subst:}}` still TODO | ✅ | P2 |
+| **Navboxes** | author a page as a link grid, transclude it with `{{slug}}` at the bottom of articles | ✅ | P2 |
 | **Lua/Scribunto modules**, full parser functions | **out of scope** (conflicts with single-Worker invariant); minimal magic-words only (`noindex`, `notoc`) | ⊘ | — |
 | **The link graph** (invert `[[links]]`+includes+tags) | **keystone** — one inverted index unlocks ~10 special pages | ⬜ | P0 |
 | **Special pages**: WhatLinksHere · RecentChanges · Random · Stats · Orphaned · Wanted (=red links) · Dead-end · Double/Broken redirects · Long/Short · MostLinked · AllPages · PageInfo | Worker-computed from tree + git log + link graph (cache in KV; recompute on push) | ⬜ | P1 |
