@@ -176,7 +176,6 @@ async function cached<T>(
   return v;
 }
 
-// Latest commit SHA, briefly cached so many readers share one GitHub call.
 async function latestSha(env: Env): Promise<{ sha: string }> {
   const sha = await cached(env, "meta:latest-sha", 20_000, async () => {
     const res = await fetch(
@@ -195,7 +194,6 @@ async function latestSha(env: Env): Promise<{ sha: string }> {
   return { sha };
 }
 
-// All page slugs under content/, briefly cached so it's fresh without rebuilds.
 async function listPages(env: Env): Promise<{ pages: string[] }> {
   const pages = await cached(env, "meta:pages", 60_000, async () => {
     const tree = await gh<{ tree: { path: string; type: string }[] }>(
@@ -355,7 +353,6 @@ async function history(env: Env, slug: string) {
   };
 }
 
-// ── RecentChanges feed + patrol (post-hoc moderation surface) ─────────────
 interface ChangeDetail {
   slugs: string[];
   additions: number;
@@ -454,7 +451,6 @@ async function requireMaintainer(
     throw new HttpError(403, `${action} requires maintainer access.`);
 }
 
-// ── In-UI review of pending in-site edits (open PRs) ──────────────────────
 interface OutPending {
   number: number;
   author: string;
@@ -665,10 +661,8 @@ async function actorIdentity(
   return { name: w.name, email: w.email, avatar: w.avatar, isAnon: w.isAnon };
 }
 
-// ── Trust tiers & page protection (autonomous editing) ────────────────────
 // Tiers form one ordered scale shared by editors and pages: an editor of rank
-// ≥ a page's required rank may publish directly. A page's required rank is its
-// `protection` frontmatter field (a privileged property — see below).
+// ≥ a page's required rank may publish directly.
 type Tier = "open" | "auto" | "extended" | "maintainer";
 const TIER_RANK: Record<Tier, number> = {
   open: 0,
@@ -687,13 +681,6 @@ interface TrustStats {
   firstMs: number; // epoch ms of their earliest such commit
 }
 
-// Privileged page properties: changing one needs at least this tier. (Most
-// frontmatter — tags, hatnote, banner… — is open to any editor.)
-const PRIVILEGED_FIELDS: Record<string, Tier> = {
-  // `protection` is special-cased below (gated by its own value); listed for docs.
-};
-
-// Parse just the YAML frontmatter block of a page's markdown.
 export function frontmatter(raw: string): Record<string, unknown> {
   const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!m) return {};
@@ -727,12 +714,6 @@ function enforceFieldPermissions(
   if (TIER_RANK[oldP] !== TIER_RANK[newP]) {
     if (TIER_RANK[tier] < Math.max(TIER_RANK[oldP], TIER_RANK[newP]))
       throw new HttpError(403, "You can't change this page's protection level.");
-  }
-  for (const [field, min] of Object.entries(PRIVILEGED_FIELDS)) {
-    const changed =
-      JSON.stringify(oldMeta[field] ?? null) !== JSON.stringify(newMeta[field] ?? null);
-    if (changed && TIER_RANK[tier] < TIER_RANK[min])
-      throw new HttpError(403, `You can't change the "${field}" property.`);
   }
 }
 
@@ -1125,7 +1106,6 @@ function timingSafeEq(a: string, b: string): boolean {
   return diff === 0;
 }
 
-// ── GitHub sign-in: stateless session + CSRF state, both HMAC-signed ──────
 // No DB, no stored user token: a session is a compact HS256 JWT carrying only
 // the verified GitHub identity. We never request email scope — the commit
 // author uses GitHub's public no-reply email, so no raw PII is stored.
@@ -1284,7 +1264,6 @@ async function authCallback(env: Env, url: URL): Promise<Response> {
   return Response.redirect(dest.toString(), 302);
 }
 
-// The verified GitHub session on this request, if any.
 async function sessionIdentity(env: Env, request: Request): Promise<Session | null> {
   if (!env.SESSION_SECRET) return null;
   const m = (request.headers.get("Authorization") ?? "").match(/^Bearer\s+(.+)$/);
