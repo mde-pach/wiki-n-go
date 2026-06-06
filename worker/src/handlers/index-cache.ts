@@ -16,7 +16,7 @@ export async function latestSha(env: Env): Promise<{ sha: string }> {
   const sha = await cached(env, "meta:latest-sha", 20_000, async () => {
     const res = await fetch(
       `https://api.github.com/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits/${env.BRANCH}`,
-      { headers: { ...ghAuth(env), Accept: "application/vnd.github.sha" } },
+      { headers: { ...(await ghAuth(env)), Accept: "application/vnd.github.sha" } },
     );
     if (!res.ok) throw new HttpError(502, `GitHub ${res.status}`);
     return (await res.text()).trim();

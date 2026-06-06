@@ -46,6 +46,46 @@ export function wikilink(md: MarkdownIt): void {
   });
 }
 
+// GitHub login / `anon-<hash>` shape: alphanumerics with internal single hyphens,
+// ≤39 chars (GitHub's own rule). `anon-<hash>` pseudonyms satisfy it too.
+const MENTION_RE = /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}/i;
+const ANON_RE = /^anon-[a-z\d]+$/i;
+// A `@` only starts a mention at a boundary — never glued to a word, an email
+// local part (`me@host`), a path, or a preceding handle.
+const MENTION_BLOCK = /[\w@./-]/;
+
+// `@anon-<hash>` and `@<github-login>` in content become links: an anon
+// pseudonym to its contributions filter on `/changes`, a login to its GitHub
+// profile. Runs as an inline rule so code spans and emails are left untouched.
+export function mention(md: MarkdownIt): void {
+  md.inline.ruler.before("link", "mention", (state, silent) => {
+    const { src, pos } = state;
+    if (src.charCodeAt(pos) !== 0x40 /* @ */) return false;
+    if (pos > 0 && MENTION_BLOCK.test(src[pos - 1])) return false;
+    const m = MENTION_RE.exec(src.slice(pos + 1));
+    if (!m) return false;
+    const name = m[0];
+
+    if (!silent) {
+      const anon = ANON_RE.test(name);
+      const open = state.push("link_open", "a", 1);
+      if (anon) {
+        open.attrSet("href", `${BASE}/changes?author=${name}`);
+        open.attrSet("class", "mention mention-anon");
+      } else {
+        open.attrSet("href", `https://github.com/${name}`);
+        open.attrSet("class", "mention mention-user");
+        open.attrSet("target", "_blank");
+        open.attrSet("rel", "noreferrer");
+      }
+      state.push("text", "", 0).content = `@${name}`;
+      state.push("link_close", "a", -1);
+    }
+    state.pos = pos + 1 + name.length;
+    return true;
+  });
+}
+
 // `[[w:Title]]` / `[[wikipedia:Title]]` → an interwiki link out to Wikipedia,
 // for topics already covered there that we don't keep a local page for.
 function interwiki(target: string): { href: string; title: string } | null {

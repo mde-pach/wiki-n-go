@@ -2,11 +2,13 @@ import DOMPurify from "dompurify";
 import MarkdownIt from "markdown-it";
 import anchor from "markdown-it-anchor";
 import footnote from "markdown-it-footnote";
+import { citeTemplate } from "./citetemplate";
 import { figures } from "./figures";
 import { type PageMeta, parseFrontmatter } from "./frontmatter";
 import { BASE, slugifyLabel } from "./paths";
+import { transclusion } from "./transclude";
 import { escapeRegExp } from "./util";
-import { wikilink } from "./wikilink";
+import { mention, wikilink } from "./wikilink";
 
 // Shared markdown-it instance (no DOMPurify, so it runs at build/SSR too).
 export const md = new MarkdownIt({ html: false, linkify: true, typographer: true })
@@ -21,7 +23,24 @@ export const md = new MarkdownIt({ html: false, linkify: true, typographer: true
   })
   .use(footnote)
   .use(figures)
-  .use(wikilink);
+  .use(wikilink)
+  .use(mention)
+  .use(citeTemplate)
+  .use(transclusion);
+
+// markdown-it-footnote emits one backlink per reference. When a note is reused
+// (a named ref cited more than once) Wikipedia labels its backlinks a, b, c; flag
+// each anchor whose note has siblings so the renderer can letter them.
+md.core.ruler.after("footnote_tail", "footnote_backref_labels", (state) => {
+  const counts = new Map<number, number>();
+  for (const t of state.tokens) {
+    if (t.type === "footnote_anchor")
+      counts.set(t.meta.id, (counts.get(t.meta.id) ?? 0) + 1);
+  }
+  for (const t of state.tokens) {
+    if (t.type === "footnote_anchor") t.meta.many = (counts.get(t.meta.id) ?? 0) > 1;
+  }
+});
 
 // Render footnotes with the design's citation markup so the existing
 // `.cite-ref` / `.ref-list` styles apply (Wikipedia-style `[1]` + reflist).
@@ -38,8 +57,10 @@ md.renderer.rules.footnote_open = (tokens, idx) =>
   `<li id="ref-${tokens[idx].meta.id + 1}" class="ref-target">`;
 md.renderer.rules.footnote_close = () => "</li>\n";
 md.renderer.rules.footnote_anchor = (tokens, idx) => {
-  const n = tokens[idx].meta.id + 1;
-  return ` <a href="#${citeMark(n, tokens[idx].meta.subId)}" class="ref-backlink" aria-label="Back to text">↑</a>`;
+  const { id, subId, many } = tokens[idx].meta;
+  const n = id + 1;
+  const label = many ? `↑<sup>${String.fromCharCode(97 + (subId % 26))}</sup>` : "↑";
+  return ` <a href="#${citeMark(n, subId)}" class="ref-backlink" aria-label="Back to text">${label}</a>`;
 };
 
 // A ```mermaid fence becomes a placeholder holding the diagram source; the

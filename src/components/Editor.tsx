@@ -1,9 +1,10 @@
-import { createEffect, createSignal, onMount, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, onMount, Show } from "solid-js";
 import { createStore } from "solid-js/store";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
-import { type EditResult, submitEdit } from "../lib/api";
-import { fetchMarkdown, PageNotFoundError } from "../lib/content";
+import { type EditResult, type Progress, submitEdit } from "../lib/api";
+import { fetchMarkdown, fetchMarkdownAt, PageNotFoundError } from "../lib/content";
+import { diffLines } from "../lib/diff";
 import { clearDraft, loadDraft, persistDraft } from "../lib/draft";
 import { findSection } from "../lib/editor-section";
 import { splitFrontmatter, withFrontmatter } from "../lib/frontmatter";
@@ -12,6 +13,7 @@ import { prettify, readHref, slugFromLocation } from "../lib/paths";
 import { useSubmit, useWhoami } from "../lib/solid";
 import { templateById } from "../lib/templates";
 import { errMessage } from "../lib/util";
+import DiffView from "./DiffView";
 import { ConfirmDialog } from "./editor/ConfirmDialog";
 import { MarkdownToolbar } from "./editor/MarkdownToolbar";
 import PageProperties, {
@@ -36,10 +38,12 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   const [original, setOriginal] = createSignal(props.initialContent ?? "");
   const [summary, setSummary] = createSignal("");
   const [result, setResult] = createSignal<EditResult>();
+  const [progress, setProgress] = createSignal<Progress>();
   const [modal, setModal] = createSignal(false);
   const { who } = useWhoami();
   const [ready, setReady] = createSignal(false);
   const [restored, setRestored] = createSignal(false);
+  const [reverting, setReverting] = createSignal<string>();
   const [isNew, setIsNew] = createSignal(false);
   let ta: HTMLTextAreaElement | undefined;
 
@@ -65,9 +69,27 @@ export default function Editor(props: { slug?: string; initialContent?: string }
       } else setError(errMessage(e));
     }
     restoreDraft();
+    await applyRevert();
     setReady(true);
     queueMicrotask(focusSection);
   });
+
+  // History's "undo" links here with `?revert=<sha>`: load that revision's
+  // content as the edit, keeping `original()` as the *current* page so the diff
+  // preview and conflict check compare against what's live. An explicit revert
+  // wins over a restored draft. `baseSha` stays the current blob.
+  async function applyRevert() {
+    if (isServer) return;
+    const sha = new URLSearchParams(window.location.search).get("revert");
+    if (!sha) return;
+    try {
+      applyDocument(await fetchMarkdownAt(slug(), sha));
+      if (!summary().trim()) setSummary(`Revert to revision ${sha.slice(0, 7)}`);
+      setReverting(sha.slice(0, 7));
+    } catch (e) {
+      setError(errMessage(e));
+    }
+  }
 
   // A new page reached with `?template=` (from the create wizard) starts from a
   // scaffold rather than blank; `?translationKey=` (from the language switcher's
@@ -120,6 +142,15 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   const cancelHref = () => readHref(slug());
   const delta = () => content().length - original().length;
 
+  // Computed only while the confirm dialog is open, so it never costs anything
+  // per keystroke. Empty (no net change) → null, so DiffView shows its
+  // no-change fallback.
+  const previewDiff = createMemo(() => {
+    if (!modal()) return null;
+    const lines = diffLines(original(), content());
+    return lines.length ? lines : null;
+  });
+
   function wrap(before: string, after = before) {
     if (!ta) return;
     const s = ta.selectionStart;
@@ -148,8 +179,9 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     // Close the confirm dialog first so an in-panel bot-check (if Cloudflare
     // asks for one) is reachable rather than behind the modal backdrop.
     setModal(false);
+    setProgress({ progress: 0, label: "Starting" });
     run(async (tok) => {
-      setResult(await submitEdit(slug(), content(), tok, summary()));
+      setResult(await submitEdit(slug(), content(), tok, summary(), setProgress));
       clearDraft(slug());
     });
   }
@@ -216,6 +248,14 @@ export default function Editor(props: { slug?: string; initialContent?: string }
               {(w) => <span class="tier-badge"> · {w().tier}</span>}
             </Show>
           </div>
+          <Show when={reverting()}>
+            {(rev) => (
+              <p class="editor-hint">
+                Reverting to revision <code>{rev()}</code> — review the diff before you
+                publish.
+              </p>
+            )}
+          </Show>
           <Show when={restored()}>
             <p class="editor-hint">Restored your unsaved draft from this device.</p>
           </Show>
@@ -235,6 +275,22 @@ export default function Editor(props: { slug?: string; initialContent?: string }
               Cancel
             </a>
           </div>
+          <Show when={busy() && progress()}>
+            {(p) => (
+              <div class="publish-progress" role="status" aria-live="polite">
+                <div class="publish-progress-head">
+                  <span>{p().label}…</span>
+                  <span class="mono">{Math.round(p().progress * 100)}%</span>
+                </div>
+                <div class="publish-progress-track">
+                  <div
+                    class="publish-progress-fill"
+                    style={{ width: `${Math.max(4, p().progress * 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </Show>
           <ErrorNote msg={error()} />
           <Show when={result()}>
             {(r) => (
@@ -251,10 +307,14 @@ export default function Editor(props: { slug?: string; initialContent?: string }
                     </>
                   }
                 >
-                  Published live — <a href={cancelHref()}>view the page</a> ·{" "}
-                  <a href={r().url} target="_blank" rel="noreferrer">
-                    see the change
-                  </a>
+                  Published live — <a href={cancelHref()}>view the page</a>
+                  <Show when={r().url}>
+                    {" "}
+                    ·{" "}
+                    <a href={r().url} target="_blank" rel="noreferrer">
+                      see the change
+                    </a>
+                  </Show>
                   .
                 </Show>
               </p>
@@ -267,6 +327,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
         <ConfirmDialog
           title="Submit this change"
           subtitle="Depending on your trust level and the page, this either publishes immediately or is submitted for review."
+          wide
           body={
             <>
               <p>
@@ -280,6 +341,15 @@ export default function Editor(props: { slug?: string; initialContent?: string }
                   {delta()})
                 </span>
               </p>
+              <p class="field-label" style={{ "margin-bottom": "0.4rem" }}>
+                Changes
+              </p>
+              <DiffView
+                lines={previewDiff()}
+                a={isNew() ? "(new page)" : "current"}
+                b="your edit"
+                initialMode="unified"
+              />
             </>
           }
           confirmLabel={busy() ? "Submitting…" : "Submit change"}

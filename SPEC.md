@@ -147,6 +147,19 @@ Rejected zero-infra alternatives (all fail the friction bar):
 - "Edit on GitHub" link-out → leaves the site; breaks the in-site premise.
 - OAuth-only → requires a GitHub account + authorize click.
 
+**The Worker is irreducible — but it need not be infra the *adopter* sets up.**
+"Something we run" ≠ "the forker provisions it." Two moves collapse setup to a few
+clicks (M9):
+- **Credential = a GitHub App, not a bot PAT.** The Worker mints short-lived,
+  repo-scoped *installation tokens* from the App (`worker/src/githubApp.ts`);
+  nothing long-lived to store or rotate. PAT stays as a fallback.
+- **The App is created by a client-side wizard.** GitHub's app-manifest
+  conversions endpoint sends `access-control-allow-origin: *`, so `/setup` creates
+  the App *and* retrieves its private key in the browser — no setup-time backend.
+  A Deploy-to-Cloudflare click then provisions the Worker + KV. (A future shared
+  multi-tenant instance — the giscus model — would remove even the self-host
+  click; the App's per-repo token scoping already supports it.)
+
 ---
 
 ## 6. Identity Model
@@ -236,10 +249,10 @@ costs; consider salt/epoch rotation to limit long-term linkability (M5).
 - [x] ✅ Cloudflare Worker: bot token, `ip_hash`, PR as `anon-<hash>` — `worker/`; typechecks clean.
 - [x] ✅ Editor → Worker → PR loop verified end to end (PR authored as `anon-<hash>`).
 - [x] ✅ Worker live: `https://wiki-n-go.maxime-depachtere-80f.workers.dev` (secrets + RATE_LIMIT KV bound).
-      Deploy + secret provisioning fully in CI (`deploy-worker.yml`): random
-      secrets auto-generated (never rotated), the rest from repo secrets. Repo +
-      discussion-category IDs derived at runtime; site config injected from repo
-      context at build. Fork-and-go needs only repo secrets/variables, no edits.
+      Setup + deploy is the `/setup` wizard → Deploy-to-Cloudflare button →
+      Workers Builds (M9); credentials live on the Worker, KV is Cloudflare-owned.
+      Repo + discussion-category IDs derived at runtime; site config injected from
+      repo context at build. Fork-and-go needs no file edits.
 
 ### M2 — Optional GitHub-login attribution ✅
 - [x] ✅ "Sign in with GitHub" → Worker OAuth exchange (`read:user` only). Worker
@@ -269,7 +282,7 @@ costs; consider salt/epoch rotation to limit long-term linkability (M5).
 - [x] ✅ Multi-host deploy buttons (Netlify / Vercel / Cloudflare) in README.
 - [ ] ⬜ (Optional) edge-SSR variant for SEO.
 
-### M4.5 — Wikipedia page features ✅ (mostly)
+### M4.5 — Wikipedia page features ✅
 - [x] ✅ References/footnotes + citation hover tooltips; captioned figures.
 - [x] ✅ Frontmatter layer → infobox, categories (chips + `/category/<tag>`), hatnotes, maintenance banners.
 - [x] ✅ Per-section `[edit]` links; TOC (desktop + mobile); icons; self-hosted fonts.
@@ -277,14 +290,29 @@ costs; consider salt/epoch rotation to limit long-term linkability (M5).
       sections; wikilink **hover page previews**; interwiki `[[w:…]]` links; lead-term emphasis; full-text search.
 - [x] ✅ Editing/chrome: draft persistence across reloads; in-site help namespace (`/help`); main-menu nav drawer;
       lazy-loaded **Mermaid** diagrams (`` ```mermaid ``, own chunk, strict security level).
-- [ ] ⬜ P2 polish (remaining): @mention linkify, named-ref reuse, citation templates.
+- [x] ✅ P2 polish: **@mention** linkify (`@anon-<hash>` → contributions filter, `@login` → GitHub profile);
+      **named-ref reuse** (`[^name]` cited many times → one reflist entry + lettered backlinks a/b/c);
+      **citation templates** (`{{cite|url=…|title=…}}` → formatted footnote, `ref=` reuses one entry).
 
 ### M5 — Autonomous editing mode (immediate publish + post-hoc moderation) ✅
 Invert the default selectively. Critical path (see `FEATURES.md` §§K–N):
-- [x] ✅ Worker **direct-commit** path → live branch; busts `meta:latest-sha`/`meta:pages` cache (live, no rebuild).
+- [x] ✅ **Every edit is a PR; trust decides only *when* it merges.** The Worker commits to a **deterministic
+      branch per author+slug** (so all of one editor's pending changes to a page share one PR) and opens/reuses that
+      PR, then for a qualifying tier **squash-merges it immediately** (the same path a maintainer's manual merge
+      takes); below-tier edits wait for review. A PR that won't merge cleanly (a concurrent change touched the same
+      lines) is **left open and falls into the review queue** — so git's 3-way merge is the single edit-conflict
+      detector for both paths. **Publish is atomic-or-error**: if the merge or its bookkeeping can't complete the
+      Worker throws (no half-done "success"), and because the branch is deterministic a **resubmit reconciles** the
+      leftover branch/PR instead of stacking a duplicate; a resubmit whose content already matches the live page is
+      an **idempotent no-op** that just finishes the bookkeeping. On a clean auto-merge: busts
+      `meta:latest-sha`/`meta:pages` cache, patches the index, autopatrols, deletes the branch (live, no rebuild).
+      The publish phase **streams progress** to the editor as NDJSON milestones (open PR → publish → go live) for a
+      live progress bar; up-front rejections still return a clean HTTP status (the split keeps the contract).
+      *(Replaced the earlier direct-commit-to-`main` path — see Decision Log 2026-06-06.)*
 - [x] ✅ **Trust tiers** on `ip_hash`, **derived from git history** (not a ledger): count + first-seen of commits the pseudonym authored on the branch → open/auto/extended; `trusted-editors.json` = maintainer. Covers direct commits **and merged PRs** (both are commits by the pseudonym), so PR-only contributors earn trust too — no webhook, single source of truth. KV caches stats (1 h TTL, busted on the author's own commit).
 - [x] ✅ Page protection = a `protection:` **frontmatter field** (env default when unset); a privileged page-property, gated per-field on save (can't raise above / lower from above your tier). Replaced `protection.json`+globs. TODO: `expires`, CODEOWNERS.
-- [x] ✅ Verified end-to-end: anon edit to an `open` page **published live** (no PR); flipping its `protection` rejected 403; protected pages still PR.
+- [x] ✅ Verified end-to-end: anon edit to an `open` page **auto-merges live** (PR opened then squash-merged); a
+      conflicting edit stays an open PR for review; flipping its `protection` rejected 403; protected pages wait for review.
 - [x] ✅ AbuseFilter-style pre-publish rule pass (`filters.json`): built-in checks (blanking, added-bytes, added-link count, blocked domains) + maintainer regex rules; actions `disallow` (422) / `tag` (KV `tag:<sha>` → RecentChanges badge + PR body). Trusted tiers exempt. Pure `evaluateFilters` unit-tested.
 - [x] ✅ **Revert-risk heuristic** (`worker/src/risk.ts`): a 0–100 score per change from byte deltas + anon +
       page-creation + tags (no extra fetch), surfaced in `/changes` → a **"high risk" badge** + **High-risk-only
@@ -394,6 +422,37 @@ page identity. URL shape and the linking mechanism are **independent choices**.
 - [ ] ⬜ Future polish (P2): localized create-slug picker (v2 seeds `<lang>/<key>`,
   rename via move); `@mention`-style language badges; existence-checked interwiki (S5).
 
+### M9 — Low-click setup (no PAT, no token juggling) 🟡
+**One** setup path, collapsing adoption from "wire ~5 secrets in CI" to a few
+clicks: the `/setup` wizard → **Deploy to Cloudflare** button. The GitHub-Actions
+worker-deploy path (`deploy-worker.yml`, CF API token + PAT) is **retired** — a
+single way, not two. See §5.
+- [x] ✅ **GitHub App credential** (`worker/src/githubApp.ts`): `ghToken()` mints
+  short-lived, repo-scoped installation tokens (RS256 App JWT → installation-id
+  derived from the repo → `/access_tokens`, cached to ~1 min before expiry).
+  Prefers the App when `GITHUB_APP_ID`+`GITHUB_APP_PRIVATE_KEY` are set, falls back
+  to the `GITHUB_TOKEN` PAT — backward-compatible. Accepts GitHub's PKCS#1 key by
+  wrapping it to PKCS#8 in-worker (no `openssl` for the user). Unit-tested.
+- [x] ✅ **Client-side `/setup` wizard** (`src/pages/setup.astro` + `Setup.tsx`,
+  `src/lib/setup.ts`): GitHub App **manifest flow** end to end in the browser —
+  create app (pre-filled, write-only scopes, no webhooks) → exchange the one-time
+  code for id+key client-side (conversions endpoint is CORS-`*`) → show id, key,
+  and a generated `HASH_SECRET` → **Deploy to Cloudflare** → install + `WORKER_URL`.
+  Verified: config, loading, error, and credentials states render.
+- [x] ✅ **Deploy = Cloudflare Workers Builds** (set up by the button): provisions
+  the Worker + KV from the `worker/` subdir and **auto-redeploys on every push to
+  the production branch**. Secrets (App key, `HASH_SECRET`) and the KV binding live
+  in Cloudflare, not the repo. **Upstream worker fix → user merges it into `main` →
+  Cloudflare redeploys automatically**, reusing the same secrets + KV — no per-fix
+  step, no secret re-entry, same KV instance across updates. KV id dropped from
+  `wrangler.toml` (Cloudflare owns/persists it; KV is cache-only anyway).
+- [ ] ⬜ **Shared hosted instance (multi-tenant)** — one operator-run Worker + App
+  serving any repo that installs it (giscus model), so adopters skip even the
+  self-host click. Needs repo-from-request + per-repo KV/bans namespacing; the
+  App's per-repo token scoping already supports it. Privacy note: the operator
+  transiently sees IPs before hashing (repo invariant — only `ip_hash` committed —
+  still holds).
+
 ---
 
 ## 10. Open Decisions
@@ -457,4 +516,16 @@ page identity. URL shape and the linking mechanism are **independent choices**.
 | 2026-06-06 | **Suppression redacts server-side at read time; hard-purge stays a manual owner op** | The Worker redacts author/revision labels in `/changes`+`/history` before they leave it (stronger than client-side hiding — suppressed text never reaches page source), but it **cannot rewrite git history** via the contents API, so true purge (history rewrite + CDN purge + source PR/Discussion delete) is documented as a manual owner procedure — the one place the no-rebuild model bends |
 | 2026-06-06 | **Revert-risk is a read-time heuristic from data already on each change**, not a score stored per commit; **3RR is a tag, not a block** | Computing risk at read time (byte deltas + anon + tags) covers direct *and* PR-merged commits without the keying problem of storing `risk:<sha>` at edit time, and needs no extra fetch. 3RR flags `edit-war` rather than throttling because legit rapid edits happen — the risk score + patrol queue triage it. Both leave room for an ML model / link-churn upgrade later |
 | 2026-06-06 | Interlanguage (M8): translations are **independent pages** linked by a **symmetric, uniform frontmatter `translationKey`** (every member carries it; default-language version **optional**); **default language is configured + languageless** (bare slugs, no migration), other languages are URL-prefixed + localized (`/fr/cafe`) | Different slug/content per language ⇒ separate pages; a symmetric key (not a pointer to a canonical page) lets an article exist only in non-default languages; key-link is cheap and on-pattern (like `redirect:`); languageless default avoids migration; URL shape and link mechanism are independent choices |
+| 2026-06-06 | M4.5 P2 syntax: **@mention** = `@anon-<hash>` / `@<github-login>` (bare `@`, no brackets); **citations** = `{{cite\|key=value\|…}}` (MediaWiki-style double-brace); both are **markdown-it inline rules**, citations reuse the footnote plugin's machinery | A bare `@handle` matches the universal social convention and GitHub's own login grammar (so anon-hashes and logins share one rule, classified by an `anon-` prefix); `{{cite\|…}}` mirrors Wikipedia's template syntax editors expect. Inline rules (not regex over rendered HTML) means code spans / emails / fenced blocks are skipped for free, and routing `{{cite}}` through `markdown-it-footnote`'s env gives shared `[n]` numbering, reuse, backlinks, and hover tooltips with no parallel reference system |
+| 2026-06-06 | **Transclusion** = `{{slug}}` on its own line (block-level); the body is fetched from the CDN and inlined **client-side at read time**, not at build or via the Worker | Keeps the no-rebuild invariant — a transcluded page changing doesn't rebuild its includers (same jsDelivr@SHA model as the page itself) — and needs no Worker round-trip. Block-only avoids ambiguity with the inline `{{cite\|…}}` template (a `\|` or leading `cite` opts out). Bounded recursion + DOM-ancestry cycle detection stop a bad include from looping. Params / `{{subst:}}` deferred |
 | 2026-06-06 | **Mermaid** is the first markdown plugin admitted as a dependency, but **dynamically imported** (own chunk, loaded only on pages with a `` ```mermaid `` block) and run at **strict security level** | Diagrams are high-value for a technical wiki, but the engine is ~135 kB gzip — lazy-loading keeps it off the base bundle (read-path stays light), and diagram source is user-editable content, so strict (sanitizing) mode is mandatory. The fence degrades to a code block without JS |
+| 2026-06-06 | **Unify the write path: every edit is a PR; "trusted" just auto-merges it now instead of waiting for review.** Reverses the M5 direct-commit-to-`main` path (and retires the short-lived base-SHA conflict check that briefly preceded it) | One code path for trusted and untrusted edits, and **git's 3-way merge becomes the single edit-conflict detector** — strictly better than a base-SHA compare (it auto-resolves *non-overlapping* concurrent edits and only conflicts on overlapping hunks) and it covers the new-page add/add race for free. Conflicts **degrade gracefully**: an un-auto-mergeable PR is left open and lands in the existing review queue rather than bouncing the contributor. Cost accepted: ~4–5 GitHub calls per publish vs. one, and GitHub's async mergeability can occasionally defer a clean edit to review (safe degradation; pre-release). Aligns with the FEATURES §K "direct-commit / **auto-merge**" north star |
+| 2026-06-06 | **Publish is atomic-or-error + idempotent, keyed on a deterministic `<author>/<slug>` branch** (one PR per author per page; slug slashes kept so branches can't collide) | GitHub's branch/commit/PR/merge calls aren't transactional, so "atomic" means: present a binary success/error and make a **resubmit converge** rather than report a half-done publish as success. A failed step throws; the next submit finds the same branch/PR and reconciles it (no duplicate PRs), and a submit whose content already equals the live page is an idempotent no-op that just finishes any unfinished bookkeeping. Grouping an author's edits to a page into one PR is also the natural unit — a new edit supersedes their still-pending proposal instead of forking a parallel one |
+| 2026-06-06 | **`/edit` streams the publish phase as NDJSON progress events; rejections stay up front as clean HTTP statuses.** `proposeEdit` split into `prepareEdit` (validation/ban/filter/no-op — normal JSON + status) and a streamed `runPublish` (open PR → merge → finish, emitting milestones) | A single opaque request can't show a client real progress, so the publish steps stream and the editor renders a live bar. Streaming forces success/failure *in-band* (HTTP is 200 once the stream starts), so we split: anything that can fail up front (`400/403/413/422`, and the fast no-op) is decided **before** streaming and keeps its HTTP status — only a rare mid-publish GitHub failure lands in-band as `{type:"error",status}`. The client falls back to `readJson` whenever the response isn't `ndjson` (rejections + no-op), so one `submitEdit` covers both shapes |
+| 2026-06-06 | Revision page (V1): **compare-any-two via per-row older/newer radios + a "Compare selected" button**, kept alongside the per-row cur/prev quick links; the diff gains an add/remove **legend** and a **permalink footer** behind new *optional* `DiffView` props | The side-by-side `DiffView` already existed; V1 finishes the half-wired UI (the `.rev-radios`/`.diff-legend`/`.diff-foot` CSS was present but unused). Radios are Wikipedia-faithful and reuse the existing `/diff?base&head` endpoint with no Worker change; new props default to off so `ReviewQueue`'s `DiffView` usage is unchanged. Diff is computed client-side from the unified patch (`src/lib/diff.ts`, now unit-tested), so no rebuild and no extra Worker work |
+| 2026-06-06 | **Pre-submit diff preview is computed client-side** from the two full texts (`diffLines`, an LCS line-diff), not by asking the Worker for a patch | The edit isn't a commit yet, so there's no SHA range for `/diff` — and the editor already holds both the loaded original and the assembled new doc, so an in-browser LCS reuses the same `DLine[]`/`DiffView` pipeline with zero Worker calls. Long unchanged runs collapse to a `⋯ N unchanged lines ⋯` separator so the dialog stays readable; the diff is memoised behind `modal()` so it costs nothing per keystroke |
+| 2026-06-06 | **Undo for non-maintainers = open the editor seeded with that revision (`?revert=<sha>`) and submit through the normal edit flow**, not a privileged instant write | Reuses the whole edit pipeline (trust gate, Turnstile, conflict check, the new diff preview) with **no Worker change** — `original()` stays the *current* page so the preview shows exactly what the revert removes/adds, while the reverted content fills the editor. Goes through review/trust like any anon edit (an anon revert of vandalism may queue rather than land instantly — accepted; maintainers keep the instant `restore`). Semantics match the spec's "resubmit prior content": reverting to the prior row undoes the latest edit |
+| 2026-06-06 | Diff polish: **collapse markers carry their elided lines** (`DLine.hidden`) so DiffView can expand them in place; collapsing is a view concern, not a re-fetch | The full text is already in hand for `diffLines` (editor preview), so stashing the skipped lines on the marker lets either diff mode reveal them with one click and no Worker round-trip — git's own `@@` hunks simply carry no `hidden`, so History diffs are unaffected. The field is optional/additive, so `parseDiff` and existing `DiffView` callers are untouched. Copy-permalink and ↑/↓/Enter row nav are local view state with graceful fallbacks (clipboard denial is swallowed; key nav defers to focused child controls) |
+| 2026-06-06 | **Write credential = a GitHub App installation token, not a bot PAT** (PAT kept as fallback) | The App mints short-lived, repo-scoped tokens on demand (`githubApp.ts`) — nothing long-lived in env to leak or rotate, scoped to exactly contents+PRs+discussions, and the per-repo scoping is what a future shared multi-tenant instance needs. `ghToken()` prefers the App, falls back to `GITHUB_TOKEN`, so existing deploys keep working. GitHub's PKCS#1 key is wrapped to PKCS#8 in-worker so the user pastes it as-is (no `openssl`) |
+| 2026-06-06 | **Setup is a 100% client-side `/setup` wizard** (GitHub App *manifest flow*), not a backend onboarding service | The manifest conversions endpoint is CORS-`*`, so the browser can create the App and retrieve its private key with no setup-time backend — dissolving the chicken-and-egg (no Worker exists yet at setup). Wizard then hands off to a **Deploy-to-Cloudflare** click (auto-provisions Worker + KV) + app install. Drops setup from ~5 CI secrets to a few clicks, no PAT, no Cloudflare API token. KV id removed from `wrangler.toml` (auto-provision; cache-only) to stay fork-portable |
+| 2026-06-06 | **One setup path only: the wizard → Deploy-to-Cloudflare button → Workers Builds. Retired the GitHub-Actions worker deploy (`deploy-worker.yml`, CF API token + PAT).** | A single creation way, not two parallel ones to document and keep in sync. The button-wired **Workers Builds** auto-redeploys on every push to the production branch, so when upstream ships a worker fix (feature or security) the fork just **merges it into `main` and Cloudflare redeploys automatically** — reusing the same secrets + KV, which live in Cloudflare, not the repo (a merge never touches them). The old CI path couldn't do this cleanly: secrets sat in GitHub, and its auto-provisioned KV id wasn't committed back, so the bound KV instance could drift across deploys. Cost: the canonical worker now redeploys via Workers Builds / manual `wrangler deploy` instead of Actions |

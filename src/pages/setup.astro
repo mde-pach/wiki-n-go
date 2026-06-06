@@ -1,0 +1,30 @@
+---
+import "../styles/app.css";
+import Setup from "../components/Setup.tsx";
+import SiteHeader from "../components/SiteHeader.astro";
+import ThemeBoot from "../components/ThemeBoot.astro";
+import { BASE } from "../lib/paths";
+
+const home = `${BASE}/`;
+---
+
+<!doctype html>
+<html lang="en" data-skin="wikigit" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Set up your wiki · Wikigit</title>
+    <ThemeBoot />
+  </head>
+  <body>
+    <div class="app">
+      <a class="skip-link" href="#main">Skip to content</a>
+      <SiteHeader home={home} />
+
+      <main id="main" class="view-wrap">
+        <Setup client:only="solid-js" />
+      </main>
+    </div>
+  </body>
+</html>

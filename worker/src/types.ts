@@ -1,5 +1,10 @@
 export interface Env {
-  GITHUB_TOKEN: string;
+  // The write credential. Set GITHUB_TOKEN (bot PAT) OR the GITHUB_APP_* trio;
+  // when the App is configured it's preferred and the PAT is unused (see githubApp.ts).
+  GITHUB_TOKEN?: string;
+  GITHUB_APP_ID?: string;
+  GITHUB_APP_PRIVATE_KEY?: string; // PKCS#8 PEM
+  GITHUB_APP_INSTALLATION_ID?: string; // optional; derived from the repo install when unset
   HASH_SECRET: string;
   REPO_OWNER: string;
   REPO_NAME: string;

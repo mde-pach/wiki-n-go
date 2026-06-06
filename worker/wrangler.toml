@@ -2,8 +2,14 @@ name = "wiki-n-go"
 main = "src/index.ts"
 compatibility_date = "2026-06-01"
 
-# Secrets (set with `wrangler secret put`): GITHUB_TOKEN, HASH_SECRET, and — to
-# enable optional GitHub sign-in — OAUTH_CLIENT_SECRET + SESSION_SECRET.
+# Write credential (one of):
+#   • GitHub App (recommended, fork-and-go): GITHUB_APP_ID + GITHUB_APP_PRIVATE_KEY
+#     — short-lived, repo-scoped installation tokens; nothing to rotate. The
+#     /setup wizard creates the app and hands you both values.
+#   • Bot PAT (legacy): GITHUB_TOKEN — a long-lived contents+PRs write token.
+# Always required: HASH_SECRET (the /setup wizard generates one). Optional GitHub
+# sign-in adds OAUTH_CLIENT_SECRET + SESSION_SECRET. Set secrets with
+# `wrangler secret put`, or in the Deploy-to-Cloudflare dashboard.
 [vars]
 REPO_OWNER = "mde-pach"
 REPO_NAME = "wiki-n-go"
@@ -26,6 +32,10 @@ AUTOCONFIRM_DAYS = "4"
 EXTENDED_EDITS = "500"
 EXTENDED_DAYS = "30"
 
+# No id → Wrangler auto-provisions a namespace on first deploy (and the
+# Deploy-to-Cloudflare button creates one per install). KV here is cache-only
+# (rate-limit windows, trust/index caches — all rebuildable; bans/trust derive
+# from git), so a fresh namespace loses nothing durable. This keeps the config
+# fork-portable: a hardcoded id belongs to one account and can't be shared.
 [[kv_namespaces]]
 binding = "RATE_LIMIT"
-id = "ba108356468b483286ff7fecf452cbf5"

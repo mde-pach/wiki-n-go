@@ -4,7 +4,7 @@ import { config } from "../config";
 import { rollbackCommit } from "../lib/admin";
 import { type Change, listChanges, markPatrolled, RISK_HIGH } from "../lib/changes";
 import { timeAgo } from "../lib/format";
-import { prettify, readHref } from "../lib/paths";
+import { changesHref, prettify, readHref } from "../lib/paths";
 import { useWhoami } from "../lib/solid";
 import { errMessage } from "../lib/util";
 import { ConfirmDialog } from "./editor/ConfirmDialog";
@@ -21,8 +21,16 @@ export default function RecentChanges(props: { admin?: boolean }) {
   const [unreviewedOnly, setUnreviewedOnly] = createSignal(false);
   const [highRiskOnly, setHighRiskOnly] = createSignal(false);
 
+  // `?author=` scopes the feed to one contributor — the target of an @mention
+  // link. Filters the recent window client-side (same 30-row scope as the other
+  // filters), not a full Special:Contributions history.
+  const author = isServer
+    ? null
+    : new URLSearchParams(window.location.search).get("author");
+
   const rows = () => {
     let all = changes() ?? [];
+    if (author) all = all.filter((c) => c.author === author);
     if (unreviewedOnly()) all = all.filter((c) => !c.patrolled);
     if (highRiskOnly()) all = all.filter((c) => c.risk >= RISK_HIGH);
     return all;
@@ -67,6 +75,20 @@ export default function RecentChanges(props: { admin?: boolean }) {
         title="Recent changes"
         sub="Every edit to the wiki, newest first — the post-hoc moderation feed."
       />
+
+      <Show when={author}>
+        {(a) => (
+          <div class="rc-contrib">
+            Showing contributions by{" "}
+            <span class="rc-author" classList={{ anon: a().startsWith("anon-") }}>
+              {a()}
+            </span>
+            <a class="rc-clear" href={changesHref}>
+              show all changes
+            </a>
+          </div>
+        )}
+      </Show>
 
       <div class="rc-filters">
         <label class="rc-filter">

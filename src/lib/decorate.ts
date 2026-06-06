@@ -1,10 +1,15 @@
+import { fetchMarkdown, PageNotFoundError } from "./content";
 import { pageSet } from "./manifest";
-import { BASE, langOf, resolveWikiSlug } from "./paths";
+import { renderMarkdown, splitTitle } from "./markdown";
+import { BASE, langOf, prettify, resolveWikiSlug } from "./paths";
 import { attachPagePreviews } from "./previews";
 
 export type DecorateContext = { slug: string };
 
 export async function decorate(root: HTMLElement, ctx: DecorateContext): Promise<void> {
+  // Pull in `{{slug}}` transclusions first so the passes below (red links, cite
+  // tooltips, previews, mermaid) cover the included content too.
+  await expandTransclusions(root, ctx.slug);
   addSectionEditLinks(root, ctx.slug);
   makeSectionsCollapsible(root);
   attachCiteTooltips(root);
@@ -12,6 +17,81 @@ export async function decorate(root: HTMLElement, ctx: DecorateContext): Promise
   await markRedLinks(root, langOf(ctx.slug));
   void renderMermaid(root);
   document.dispatchEvent(new CustomEvent("wiki:rendered"));
+}
+
+// `{{slug}}` placeholders (see `lib/transclude`) are filled at read time from the
+// CDN — no rebuild. Runs in passes so nested transclusions resolve, bounded by
+// depth, skipping cycles (a page that transcludes one of its own ancestors).
+const TRANSCLUDE_MAX_DEPTH = 4;
+
+export async function expandTransclusions(
+  root: HTMLElement,
+  pageSlug: string,
+): Promise<void> {
+  for (let pass = 0; pass < TRANSCLUDE_MAX_DEPTH; pass++) {
+    const pending = Array.from(
+      root.querySelectorAll<HTMLElement>(".transclude[data-src]"),
+    ).filter((n) => !n.dataset.done);
+    if (pending.length === 0) return;
+    await Promise.all(pending.map((n) => fillTransclude(n, pageSlug)));
+  }
+  for (const n of root.querySelectorAll<HTMLElement>(
+    ".transclude[data-src]:not([data-done])",
+  )) {
+    n.dataset.done = "1";
+    n.innerHTML = transcludeNote("Transclusion nesting is too deep to expand fully.");
+  }
+}
+
+async function fillTransclude(node: HTMLElement, pageSlug: string): Promise<void> {
+  node.dataset.done = "1";
+  const slug = node.dataset.src;
+  if (!slug) return;
+  if (transcludeAncestors(node, pageSlug).includes(slug)) {
+    node.innerHTML = transcludeNote(
+      `Skipped a circular transclusion of “${prettify(slug)}”.`,
+    );
+    return;
+  }
+  try {
+    const { body } = splitTitle(await loadTransclude(slug));
+    node.innerHTML = renderMarkdown(body);
+  } catch (e) {
+    node.innerHTML =
+      e instanceof PageNotFoundError
+        ? `<div class="notice notice-warn">No page “${prettify(slug)}” to transclude. <a href="${BASE}/edit/${slug}">Create it →</a></div>`
+        : transcludeNote(`Couldn't load “${prettify(slug)}”.`);
+  }
+}
+
+// The slug chain from this placeholder up through any enclosing transclusions and
+// the host page — used to break cycles.
+function transcludeAncestors(node: HTMLElement, pageSlug: string): string[] {
+  const slugs = [pageSlug];
+  let p = node.parentElement?.closest<HTMLElement>(".transclude[data-src]") ?? null;
+  while (p) {
+    if (p.dataset.src) slugs.push(p.dataset.src);
+    p = p.parentElement?.closest<HTMLElement>(".transclude[data-src]") ?? null;
+  }
+  return slugs;
+}
+
+function transcludeNote(text: string): string {
+  return `<div class="notice notice-info">${text}</div>`;
+}
+
+// Dedupe fetches across nested/repeated transclusions in one view (and the
+// per-page SHA resolve they each trigger); a transient failure drops out so it
+// can retry. Same module-cache tradeoff as the hover previews.
+const transcludeCache = new Map<string, Promise<string>>();
+function loadTransclude(slug: string): Promise<string> {
+  let p = transcludeCache.get(slug);
+  if (!p) {
+    p = fetchMarkdown(slug);
+    transcludeCache.set(slug, p);
+    p.catch(() => transcludeCache.delete(slug));
+  }
+  return p;
 }
 
 // Lazy-render ```mermaid blocks. Mermaid is heavy and only some pages use it, so
@@ -38,6 +118,7 @@ export function addSectionEditLinks(root: HTMLElement, slug: string): void {
   const heads = root.querySelectorAll<HTMLElement>(":is(h2, h3)[id]");
   for (const h of heads) {
     if (h.querySelector(".section-edit")) continue;
+    if (h.closest(".transclude")) continue; // transcluded headings edit their own page
     const a = document.createElement("a");
     a.className = "section-edit";
     a.textContent = "edit";
@@ -70,6 +151,7 @@ export function makeSectionsCollapsible(root: HTMLElement): void {
   };
 
   for (const h of heads) {
+    if (h.closest(".transclude")) continue; // transcluded sections aren't top-level here
     // The toggle is usually baked into the SSR HTML (no first-paint pop-in); we
     // just wire its click handler. Fall back to creating it if it's absent.
     let btn = h.querySelector<HTMLButtonElement>(".section-toggle");

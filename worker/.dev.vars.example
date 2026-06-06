@@ -1,7 +1,15 @@
 # Local `wrangler dev` only. In production these are managed by the
 # deploy-worker.yml Action (HASH_SECRET/SESSION_SECRET are auto-generated there);
 # locally any random string is fine.
-GITHUB_TOKEN=fine_grained_pat_with_contents_and_pull_requests_write
+
+# Write credential — use ONE of:
+# (A) GitHub App (what the /setup wizard hands you). Preferred. The key may be
+#     GitHub's PKCS#1 PEM as-is; the Worker wraps it. Multi-line: keep the quotes.
+GITHUB_APP_ID=123456
+GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
+# (B) Bot PAT (legacy):
+# GITHUB_TOKEN=fine_grained_pat_with_contents_and_pull_requests_write
+
 HASH_SECRET=a_long_random_string_set_once_never_rotated
 
 # Optional — only needed to enable GitHub sign-in (see README). Without these,

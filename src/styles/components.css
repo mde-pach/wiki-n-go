@@ -973,6 +973,21 @@ html[data-textsize="large"] {
   vertical-align: super;
 }
 
+/* @mentions: anon pseudonyms (mono, like history) vs. GitHub logins. */
+.mention {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+.mention:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.mention-anon {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
 .preview-card {
   position: fixed;
   z-index: var(--z-pop);
@@ -1116,6 +1131,12 @@ html[data-textsize="large"] {
   color: var(--color-accent);
   font-weight: 700;
   text-decoration: none;
+}
+/* Reused notes get lettered backlinks (a, b, c) — one per citation. */
+.ref-backlink sup {
+  font-style: italic;
+  font-weight: 600;
+  margin-left: 1px;
 }
 .ref-target:target {
   background: var(--color-accent-subtle);
@@ -1340,6 +1361,19 @@ html[data-textsize="large"] {
   font-family: var(--font-ui);
   font-size: var(--text-sm);
   margin-bottom: 0.6rem;
+}
+.rc-contrib {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.9rem;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+.rc-clear {
+  color: var(--color-accent);
 }
 .rc-filters {
   display: flex;
@@ -1784,6 +1818,31 @@ html[data-textsize="large"] {
   display: flex;
   gap: 0.5rem;
   margin-top: 0.7rem;
+}
+
+.publish-progress {
+  margin-top: 0.9rem;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+}
+.publish-progress-head {
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-ink-subtle);
+  margin-bottom: 0.35rem;
+}
+.publish-progress-track {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border);
+  overflow: hidden;
+}
+.publish-progress-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  /* Server milestones land in jumps; ease between them so it reads as motion. */
+  transition: width 0.4s ease;
 }
 
 /* Turnstile (interaction-only) renders inline in the publish panel — empty

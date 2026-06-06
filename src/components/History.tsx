@@ -3,7 +3,7 @@ import { config } from "../config";
 import { restoreRevision } from "../lib/admin";
 import { type DLine, parseDiff } from "../lib/diff";
 import { getDiff, getHistory, type Revision } from "../lib/history";
-import { readHref, slugFromLocation } from "../lib/paths";
+import { BASE, readHref, slugFromLocation } from "../lib/paths";
 import { clientResource, useWhoami } from "../lib/solid";
 import { errMessage } from "../lib/util";
 import DiffView from "./DiffView";
@@ -19,9 +19,24 @@ export default function History(props: { slug?: string }) {
     a: string;
     b: string;
     lines: DLine[] | null;
+    aHref?: string;
+    bHref?: string;
+    permalink?: string;
   }>();
   const [err, setErr] = createSignal<string>();
   const latest = () => revs()?.[0]?.sha;
+
+  // Revisions are listed newest-first, so the "newer" pick is always the lower
+  // index. Defaults compare the two most recent (current vs previous).
+  const [cmpNew, setCmpNew] = createSignal(0);
+  const [cmpOld, setCmpOld] = createSignal(1);
+
+  function compareSelected() {
+    const list = revs();
+    const older = list?.[cmpOld()];
+    const newer = list?.[cmpNew()];
+    if (older && newer) show(older.sha, newer.sha);
+  }
 
   const { isMaintainer } = useWhoami();
   const [restoring, setRestoring] = createSignal<Revision>();
@@ -43,8 +58,15 @@ export default function History(props: { slug?: string }) {
 
   async function show(base: string | null, head: string) {
     setErr();
+    const permalink = `${readHref(slug())}?rev=${head}`;
     if (!base) {
-      setDiff({ a: "(none)", b: short(head), lines: null });
+      setDiff({
+        a: "(none)",
+        b: short(head),
+        lines: null,
+        bHref: commitUrl(head),
+        permalink,
+      });
       return;
     }
     try {
@@ -53,9 +75,30 @@ export default function History(props: { slug?: string }) {
         a: short(base),
         b: short(head),
         lines: patch ? parseDiff(patch) : null,
+        aHref: commitUrl(base),
+        bHref: commitUrl(head),
+        permalink,
       });
     } catch (e) {
       setErr(errMessage(e));
+    }
+  }
+
+  // Keyboard nav: ↑/↓ move focus between rows, Enter/Space diffs the focused
+  // revision against its parent. Ignored when a child control (button/radio)
+  // holds focus, so those keep their native keys.
+  function handleRowKey(e: KeyboardEvent, r: Revision) {
+    if (e.target !== e.currentTarget) return;
+    const li = e.currentTarget as HTMLElement;
+    if (e.key === "ArrowDown") {
+      (li.nextElementSibling as HTMLElement | null)?.focus();
+      e.preventDefault();
+    } else if (e.key === "ArrowUp") {
+      (li.previousElementSibling as HTMLElement | null)?.focus();
+      e.preventDefault();
+    } else if (e.key === "Enter" || e.key === " ") {
+      if (r.parent) show(r.parent, r.sha);
+      e.preventDefault();
     }
   }
 
@@ -67,10 +110,28 @@ export default function History(props: { slug?: string }) {
       />
 
       <Show when={revs()} fallback={<RevSkeleton />}>
+        <div class="rev-compare-bar">
+          <button
+            type="button"
+            class="btn btn-outline btn-sm"
+            disabled={(revs()?.length ?? 0) < 2}
+            onClick={compareSelected}
+          >
+            Compare selected revisions
+          </button>
+          <span class="rcb-hint">
+            Pick an older (left) and newer (right) revision, or use the cur / prev
+            links. Focus a row and press ↑/↓ to step, Enter to diff.
+          </span>
+        </div>
         <ol class="rev-list">
           <For each={revs()}>
             {(r: Revision, i) => (
-              <li class={`rev-row${i() === 0 ? " is-current" : ""}`}>
+              <li
+                class={`rev-row${i() === 0 ? " is-current" : ""}`}
+                tabindex={0}
+                onKeyDown={(e) => handleRowKey(e, r)}
+              >
                 <div class="rev-actions">
                   <button
                     type="button"
@@ -88,6 +149,28 @@ export default function History(props: { slug?: string }) {
                   >
                     prev
                   </button>
+                </div>
+                <div class="rev-radios">
+                  <span class="rr-col">
+                    <input
+                      type="radio"
+                      name="cmp-old"
+                      aria-label="Compare from this (older) revision"
+                      checked={cmpOld() === i()}
+                      disabled={i() <= cmpNew()}
+                      onChange={() => setCmpOld(i())}
+                    />
+                  </span>
+                  <span class="rr-col">
+                    <input
+                      type="radio"
+                      name="cmp-new"
+                      aria-label="Compare to this (newer) revision"
+                      checked={cmpNew() === i()}
+                      disabled={i() >= cmpOld()}
+                      onChange={() => setCmpNew(i())}
+                    />
+                  </span>
                 </div>
                 <div class="rev-main">
                   <div class="rev-line1">
@@ -114,14 +197,26 @@ export default function History(props: { slug?: string }) {
                     <a class="rev-permalink" href={`${readHref(slug())}?rev=${r.sha}`}>
                       permalink
                     </a>
-                    <Show when={isMaintainer() && i() !== 0}>
-                      <button
-                        type="button"
-                        class="link-btn rev-restore"
-                        onClick={() => setRestoring(r)}
+                    <Show when={i() !== 0}>
+                      <Show
+                        when={isMaintainer()}
+                        fallback={
+                          <a
+                            class="rev-undo"
+                            href={`${BASE}/edit/${slug()}?revert=${r.sha}`}
+                          >
+                            undo
+                          </a>
+                        }
                       >
-                        restore
-                      </button>
+                        <button
+                          type="button"
+                          class="link-btn rev-restore"
+                          onClick={() => setRestoring(r)}
+                        >
+                          restore
+                        </button>
+                      </Show>
                     </Show>
                   </div>
                   <div class="rev-summary">{r.message}</div>
@@ -133,7 +228,16 @@ export default function History(props: { slug?: string }) {
       </Show>
 
       <Show when={diff()}>
-        {(d) => <DiffView lines={d().lines} a={d().a} b={d().b} />}
+        {(d) => (
+          <DiffView
+            lines={d().lines}
+            a={d().a}
+            b={d().b}
+            aHref={d().aHref}
+            bHref={d().bHref}
+            permalink={d().permalink}
+          />
+        )}
       </Show>
       <ErrorNote msg={err()} />
 
@@ -168,6 +272,7 @@ function RevSkeleton() {
         {() => (
           <li class="rev-row">
             <div class="rev-actions" />
+            <div class="rev-radios" />
             <div class="rev-main">
               <div
                 class="sk-bar skeleton"

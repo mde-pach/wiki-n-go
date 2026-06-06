@@ -1,5 +1,5 @@
 import { utf8Bytes } from "../crypto";
-import { type CommitItem, gh } from "../github";
+import { type CommitItem, gh, ghHeaders } from "../github";
 import { HttpError } from "../http";
 import { resolve, type Writer } from "../identity";
 import { invalidateContent, kvGetJson, kvPutJson } from "../kv";
@@ -245,7 +245,24 @@ interface EditContext {
   verdict: Awaited<ReturnType<typeof runFilters>>;
 }
 
-export async function proposeEdit(env: Env, request: Request, body: EditBody) {
+export interface EditOutcome {
+  live: boolean;
+  author: string;
+  sha?: string;
+  url?: string;
+  prUrl?: string;
+}
+
+type Prepared = { done: EditOutcome } | { ctx: EditContext; trusted: boolean };
+
+// Everything that can *reject* an edit up front — so the caller can return a
+// clean HTTP status (400/403/413/422) before any streaming starts. Returns a
+// finished outcome for the no-op case, otherwise the context for runPublish.
+export async function prepareEdit(
+  env: Env,
+  request: Request,
+  body: EditBody,
+): Promise<Prepared> {
   const slug = String(body.slug ?? "");
   const content = String(body.content ?? "");
   const summary = body.summary ? String(body.summary) : "";
@@ -263,6 +280,18 @@ export async function proposeEdit(env: Env, request: Request, body: EditBody) {
     editorTier(env, writer.name, writer.email),
     getCurrentFile(env, repo, path),
   ]);
+  // Idempotent no-op: the live page already holds exactly this content — e.g. a
+  // prior attempt merged but its bookkeeping failed and the user resubmitted, or
+  // a submit with no actual change. Finish the (idempotent) bookkeeping, clean up
+  // any leftover branch, and report success without opening an empty PR. Fast
+  // enough to skip the progress stream.
+  if (current && current.raw === content) {
+    await invalidateContent(env, writer.name, { keepIndex: true });
+    await updateIndexEntry(env, slug, content);
+    await deleteBranch(env, repo, editBranch(writer, slug));
+    return { done: { live: true, author: writer.name } };
+  }
+
   const oldMeta = current ? frontmatter(current.raw) : {};
   enforceFieldPermissions(env, tier, oldMeta, frontmatter(content));
   const required = pageTier(env, oldMeta);
@@ -290,73 +319,169 @@ export async function proposeEdit(env: Env, request: Request, body: EditBody) {
     current,
     verdict,
   };
-  return TIER_RANK[tier] >= TIER_RANK[required]
-    ? publishDirect(env, ctx)
-    : openEditPr(env, ctx);
+  return { ctx, trusted: TIER_RANK[tier] >= TIER_RANK[required] };
 }
 
-function editCommit(env: Env, ctx: EditContext, branch: string): string {
+// The mutating half, streamed: a progress milestone is emitted before each real
+// step. Every edit becomes a PR; `trusted` only decides whether it's merged now
+// or waits for review, so git's 3-way merge is the single conflict detector.
+// Atomic-or-error — a step that throws aborts without a "done"; the deterministic
+// branch (see openOrReusePr) lets a resubmit reconcile rather than duplicate.
+export async function runPublish(
+  env: Env,
+  ctx: EditContext,
+  trusted: boolean,
+  emit: (progress: number, label: string) => void,
+): Promise<EditOutcome> {
+  emit(0.3, "Opening pull request");
+  const pr = await openOrReusePr(env, ctx);
+  if (trusted) {
+    emit(0.65, "Publishing your change");
+    const merged = await mergePr(
+      env,
+      ctx.repo,
+      pr.number,
+      ctx.summary || `Edit ${ctx.slug}`,
+    );
+    if (merged) {
+      emit(0.9, "Going live");
+      await finishPublish(env, ctx, pr.branch, merged.sha);
+      return {
+        live: true,
+        sha: merged.sha,
+        url: `https://github.com/${ctx.repo}/commit/${merged.sha}`,
+        author: ctx.writer.name,
+      };
+    }
+    // Trusted but not auto-mergeable (overlapping change): leave the PR open and
+    // let it fall into the review queue — an expected outcome, not an error.
+  }
+  return { live: false, prUrl: pr.htmlUrl, author: ctx.writer.name };
+}
+
+// One branch per author+slug (slug slashes kept so they can't collide), so all of
+// one editor's pending changes to a page live in a single PR — and a retry after
+// a partial failure reconciles that branch/PR instead of stacking a duplicate.
+function editBranch(writer: Writer, slug: string): string {
+  return `${writer.isAnon ? writer.name : `gh-${writer.name}`}/${slug}`;
+}
+
+function editCommit(env: Env, ctx: EditContext, branch: string, sha?: string): string {
   return commitPayload(env, {
     message: ctx.summary || `Edit ${ctx.slug}`,
     content: ctx.content,
     branch,
-    sha: ctx.current?.sha,
+    sha,
     author: { name: ctx.writer.name, email: ctx.writer.email },
   });
 }
 
-async function publishDirect(env: Env, ctx: EditContext) {
-  const { repo, path, slug, content, writer, tier, verdict } = ctx;
-  const res = await gh<{ commit: { sha: string; html_url: string } }>(
-    env,
-    `/repos/${repo}/contents/${path}`,
-    { method: "PUT", body: editCommit(env, ctx, env.BRANCH) },
-  );
-  await invalidateContent(env, writer.name, { keepIndex: true });
-  await updateIndexEntry(env, slug, content);
-  await autopatrol(env, tier, res.commit.sha);
-  if (verdict.tags.length)
-    await env.RATE_LIMIT?.put(`tag:${res.commit.sha}`, JSON.stringify(verdict.tags));
-  return {
-    live: true,
-    sha: res.commit.sha,
-    url: res.commit.html_url,
-    author: writer.name,
-  };
+async function deleteBranch(env: Env, repo: string, branch: string): Promise<void> {
+  await gh(env, `/repos/${repo}/git/refs/heads/${branch}`, {
+    method: "DELETE",
+    allow404: true,
+  });
 }
 
-// The branch prefix carries the author so the in-UI review queue can attribute
-// it (see refIdentity).
-async function openEditPr(env: Env, ctx: EditContext) {
-  const { repo, path, slug, summary, writer, verdict } = ctx;
+// Commit the edit to the author's deterministic branch (creating it if absent,
+// updating it if a prior edit/attempt left it) and return that branch's open PR,
+// opening one only if none exists yet. The branch prefix carries the author so
+// the review queue can attribute it (see refIdentity).
+async function openOrReusePr(
+  env: Env,
+  ctx: EditContext,
+): Promise<{ number: number; branch: string; htmlUrl: string }> {
+  const { repo, path, slug, summary, writer, current, verdict } = ctx;
   const author = writer.name;
-  const prefix = writer.isAnon ? writer.name : `gh-${writer.name}`;
-  const branch = `${prefix}/${slug.replace(/\//g, "-")}-${crypto.randomUUID().slice(0, 8)}`;
-  const base = await gh<{ object: { sha: string } }>(
+  const branch = editBranch(writer, slug);
+
+  const ref = await gh<{ object: { sha: string } } | undefined>(
     env,
-    `/repos/${repo}/git/ref/heads/${env.BRANCH}`,
+    `/repos/${repo}/git/ref/heads/${branch}`,
+    { allow404: true },
   );
-  await gh(env, `/repos/${repo}/git/refs`, {
-    method: "POST",
-    body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: base.object.sha }),
-  });
+  let fileSha: string | undefined;
+  if (ref) {
+    fileSha = (await getCurrentFile(env, repo, path, branch))?.sha;
+  } else {
+    const base = await gh<{ object: { sha: string } }>(
+      env,
+      `/repos/${repo}/git/ref/heads/${env.BRANCH}`,
+    );
+    await gh(env, `/repos/${repo}/git/refs`, {
+      method: "POST",
+      body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: base.object.sha }),
+    });
+    fileSha = current?.sha; // fresh branch tracks BRANCH, so the file sha matches
+  }
   await gh(env, `/repos/${repo}/contents/${path}`, {
     method: "PUT",
-    body: editCommit(env, ctx, branch),
+    body: editCommit(env, ctx, branch, fileSha),
   });
-  const pr = await gh<{ html_url: string }>(env, `/repos/${repo}/pulls`, {
-    method: "POST",
-    body: JSON.stringify({
-      title:
-        summary || `${writer.isAnon ? "Anonymous edit" : `Edit by ${author}`}: ${slug}`,
-      head: branch,
-      base: env.BRANCH,
-      body:
-        `Proposed in-site by \`${author}\`.` +
-        (verdict.tags.length ? `\n\nFilter tags: ${verdict.tags.join(", ")}` : ""),
-    }),
-  });
-  return { live: false, prUrl: pr.html_url, author };
+
+  const open = await gh<{ number: number; html_url: string }[]>(
+    env,
+    `/repos/${repo}/pulls?head=${env.REPO_OWNER}:${branch}&state=open`,
+  );
+  if (open.length) return { number: open[0].number, branch, htmlUrl: open[0].html_url };
+
+  const pr = await gh<{ number: number; html_url: string }>(
+    env,
+    `/repos/${repo}/pulls`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        title:
+          summary ||
+          `${writer.isAnon ? "Anonymous edit" : `Edit by ${author}`}: ${slug}`,
+        head: branch,
+        base: env.BRANCH,
+        body:
+          `Proposed in-site by \`${author}\`.` +
+          (verdict.tags.length ? `\n\nFilter tags: ${verdict.tags.join(", ")}` : ""),
+      }),
+    },
+  );
+  return { number: pr.number, branch, htmlUrl: pr.html_url };
+}
+
+// Post-merge bookkeeping for a clean auto-merge. Every step is idempotent, so a
+// resubmit that re-reaches it (via the no-op path) after a partial failure
+// converges. The branch delete is last — purely cosmetic cleanup.
+async function finishPublish(
+  env: Env,
+  ctx: EditContext,
+  branch: string,
+  sha: string,
+): Promise<void> {
+  await invalidateContent(env, ctx.writer.name, { keepIndex: true });
+  await updateIndexEntry(env, ctx.slug, ctx.content);
+  await autopatrol(env, ctx.tier, sha);
+  if (ctx.verdict.tags.length)
+    await env.RATE_LIMIT?.put(`tag:${sha}`, JSON.stringify(ctx.verdict.tags));
+  await deleteBranch(env, ctx.repo, branch);
+}
+
+// Squash-merge a PR. Returns the new commit, or null when GitHub reports it
+// isn't mergeable (405 conflict / 409 base moved) — the one expected non-error
+// outcome, so it bypasses gh()'s throw-on-non-2xx.
+async function mergePr(
+  env: Env,
+  repo: string,
+  number: number,
+  title: string,
+): Promise<{ sha: string } | null> {
+  const res = await fetch(
+    `https://api.github.com/repos/${repo}/pulls/${number}/merge`,
+    {
+      method: "PUT",
+      headers: await ghHeaders(env),
+      body: JSON.stringify({ merge_method: "squash", commit_title: title }),
+    },
+  );
+  if (res.ok) return (await res.json()) as { sha: string };
+  if (res.status === 405 || res.status === 409) return null;
+  throw new HttpError(502, `GitHub ${res.status}: ${await res.text()}`);
 }
 
 // Move/rename a page: copy it to the new slug and leave a redirect stub behind,
