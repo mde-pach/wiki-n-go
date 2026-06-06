@@ -1,4 +1,3 @@
-@import "tailwindcss";
 @import "@fontsource-variable/source-serif-4/wght.css";
 @import "@fontsource-variable/source-serif-4/wght-italic.css";
 @import "@fontsource-variable/libre-franklin/wght.css";
@@ -7,17 +6,6 @@
 @import "./base.css";
 @import "./components.css";
 @import "./views.css";
-
-/* Transition shim: old token names → design tokens, for widgets not yet ported
-   to the design's own classes (the talk/discussion thread). */
-:root {
-  --text: var(--color-ink);
-  --bg: var(--color-canvas);
-  --surface: var(--color-surface-sunken);
-  --muted: var(--color-ink-muted);
-  --accent: var(--color-accent);
-  --border: var(--color-border);
-}
 
 /* No transitions until the page is ready, so the theme doesn't fade-in (blink)
    on first paint. Re-enabled after load for smooth theme toggling. */
@@ -469,7 +457,7 @@ html.ready body {
   margin: 0.85rem 0 0;
 }
 
-/* ── Discussion / Talk thread (own styles until the talk view is ported) ──── */
+/* Discussion / Talk thread: own styles until the talk view is ported. */
 .discussion {
   font-family: var(--font-ui);
 }
@@ -528,7 +516,7 @@ html.ready body {
   color: var(--color-ink);
 }
 
-/* ── Talk: topics + arbitrarily-nested replies ───────────────────────────── */
+/* Talk: topics + arbitrarily-nested replies. */
 .talk {
   font-family: var(--font-ui);
 }

@@ -1,5 +1,4 @@
 import solid from "@astrojs/solid-js";
-import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 
 // Project site at https://<owner>.github.io/<repo>/. The Pages workflow injects
@@ -9,5 +8,4 @@ export default defineConfig({
   site: process.env.SITE_URL || "https://mde-pach.github.io",
   base: process.env.BASE_PATH || "/wiki-n-go",
   integrations: [solid()],
-  vite: { plugins: [tailwindcss()] },
 });

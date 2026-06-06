@@ -1,7 +1,5 @@
-/* ============================================================================
-   wiki-n-go · BASE  (resets, document, long-form reading typography)
-   Every value resolves to a token. No raw colours here.
-   ========================================================================== */
+/* Base: resets, document, long-form reading typography. Every value resolves
+   to a token; no raw colours here. */
 
 *,
 *::before,
@@ -136,9 +134,7 @@ hr {
   flex-direction: column;
 }
 
-/* ============================================================================
-   LONG-FORM ARTICLE TYPOGRAPHY  (.prose)
-   ========================================================================== */
+/* Long-form article typography (.prose). */
 .prose {
   color: var(--color-ink);
 }

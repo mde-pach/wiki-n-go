@@ -1,23 +1,11 @@
-/* ============================================================================
-   wiki-n-go · DESIGN TOKENS
-   ----------------------------------------------------------------------------
-   One source of truth. Everything visual is expressed as a SEMANTIC ROLE here,
-   never as a raw hex in component code.
-
-     [data-skin]            chooses type / spacing / radius / measure + base hues
-     [data-skin][data-theme="dark"]   overrides colour roles for dark mode
-
-   Two skins ship:
-     wiki-n-go  — the product's own look: cool, dense, utilitarian (default)
-     wiki       — a near 1:1 replica of Wikipedia (Vector 2022 / Codex tokens),
-                  system sans body, serif headings, the classic #36c link blue
-
-   The Tailwind theme.extend mapping that consumes these vars is shown verbatim
-   inside the in-app "Tokens" view.
-   ========================================================================== */
+/* Design tokens: one source of truth. Everything visual is a SEMANTIC ROLE
+   here, never a raw hex in component code. `[data-skin]` picks type/spacing/
+   radius/measure + base hues; `[data-skin][data-theme="dark"]` overrides colour
+   roles. Two skins ship: wiki-n-go (the product's own look) and wiki (a near
+   1:1 Wikipedia replica — Vector 2022 / Codex tokens). */
 
 :root {
-  /* --- Non-themed primitives (shared by every skin) --------------------- */
+  /* Non-themed primitives, shared by every skin. */
   --ring-width: 2px;
   --ring-offset: 2px;
   --transition-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -28,14 +16,10 @@
   --z-modal: 800;
 }
 
-/* ===========================================================================
-   SKIN · WIKI  (a near 1:1 replica of Wikipedia — Vector 2022 / Codex tokens)
-   ----------------------------------------------------------------------------
-   Values lifted from the Wikimedia Codex design-token set so the chrome reads
-   like the real thing: system-sans body, Linux Libertine/Georgia serif heads,
-   the #36c "progressive" link blue, #a2a9b1 hairline rules, 2px corners.
-   No web-font import — Wikipedia ships none either; serif resolves to Georgia.
-   ========================================================================== */
+/* Skin: wiki. Values lifted from the Wikimedia Codex token set so the chrome
+   reads like the real thing (system-sans body, serif heads, #36c link blue,
+   #a2a9b1 hairlines, 2px corners). No web-font import — Wikipedia ships none
+   either; serif resolves to Georgia. */
 [data-skin="wiki"] {
   /* Type — body & chrome are system sans; only headings go serif (as on WP) */
   --font-body:
@@ -155,9 +139,7 @@
   --shadow-pop: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 
-/* ===========================================================================
-   SKIN · WIKI-N-GO  (the product's own look — dense, cool, utilitarian · default)
-   ========================================================================== */
+/* Skin: wiki-n-go — the product's own look (dense, cool, utilitarian · default). */
 [data-skin="wiki-n-go"] {
   --font-body:
     "Libre Franklin Variable", "Libre Franklin", "Helvetica Neue", Helvetica, Arial,
