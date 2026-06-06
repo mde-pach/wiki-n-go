@@ -1,9 +1,7 @@
 ---
 import "../styles/app.css";
-import AuthButton from "../components/AuthButton.tsx";
-import MainMenu from "../components/MainMenu.tsx";
 import Route404 from "../components/Route404.tsx";
-import Search from "../components/Search.tsx";
+import SiteHeader from "../components/SiteHeader.astro";
 import ThemeBoot from "../components/ThemeBoot.astro";
 import TokenCapture from "../components/TokenCapture.astro";
 
@@ -22,19 +20,7 @@ const home = import.meta.env.BASE_URL;
   <body>
     <div class="app">
       <a class="skip-link" href="#main">Skip to content</a>
-      <header class="header">
-        <div class="header-inner">
-          <MainMenu client:load />
-          <a class="wordmark" href={home}>
-            <span>wiki</span><span class="wm-accent">-n-</span><span>go</span><span class="wm-dot"></span>
-            <span class="wordmark-sub">the open reference</span>
-          </a>
-          <Search client:load />
-          <div class="header-actions">
-            <AuthButton client:load />
-          </div>
-        </div>
-      </header>
+      <SiteHeader home={home} />
       <Route404 client:only="solid-js" />
     </div>
   </body>
