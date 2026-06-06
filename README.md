@@ -1,4 +1,4 @@
-# Fork-and-Go Wiki
+# Wikigit
 
 A collaborative wiki that **renders without rebuilds** and is **edited in-site
 with Wikipedia-level friction** — no account, no token. The GitHub repo,
@@ -6,12 +6,17 @@ Discussions, and Actions are the database; this app is the interface.
 
 **Live:** https://mde-pach.github.io/wiki-n-go/ · **Spec & tracker:** [`SPEC.md`](./SPEC.md)
 
+> The product is **Wikigit**; the hosting identifiers below (repo `mde-pach/wiki-n-go`,
+> the Pages path, the Worker URL) keep their original names so the live deployment
+> stays valid.
+
 - **Read** — content fetched from GitHub via jsDelivr (pinned to the latest
   commit SHA), rendered client-side. No rebuild when content changes.
 - **Edit** — in-site editor → one Cloudflare Worker → opens a PR as
-  `anon-<ip_hash>`. Rate-limited, bot-checked (Turnstile), ban-able; nothing
-  auto-merges.
-- **Discuss** — giscus over GitHub Discussions, one thread per page.
+  `anon-<ip_hash>`, or (for trusted editors / open pages) commits live.
+  Rate-limited, bot-checked (Turnstile), ban-able.
+- **Discuss** — anonymous comments via the Worker → GitHub Discussions,
+  threaded, one topic per thread (no GitHub login required to post).
 
 ## Deploy your own
 

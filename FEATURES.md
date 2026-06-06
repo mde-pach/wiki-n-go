@@ -102,14 +102,14 @@ and undo/thank/tag actions; Newer/Older pagination.
 
 ## H. Theming / appearance (our "Appearance" menu)
 Design token system adopted from `.design/` (single source of truth): two skins
-(Wiki-n-go / Wiki) × light/dark, semantic roles only. The **Wiki** skin is a
+(Wikigit / Wiki) × light/dark, semantic roles only. The **Wiki** skin is a
 near 1:1 replica of Wikipedia (Vector 2022 / Codex tokens).
 
 | Feature | St | Pri |
 |---|---|---|
 | Tailwind + centralized tokens (design `tokens.css`) | ✅ | P0 |
 | Light / dark mode | ✅ | P0 |
-| Swappable skins (Wiki-n-go / Wiki) | ✅ | P1 |
+| Swappable skins (Wikigit / Wiki) | ✅ | P1 |
 | Theme + skin toggle (temporary; final UI in chrome port) | 🟡 | P0 |
 | Width control (Standard/Wide) | ⬜ | P1 |
 | Config-/frontmatter-driven theming | ⬜ | P1 |
@@ -168,7 +168,7 @@ only **one** level), reusing the same marker trick as `anon-<hash>`.
 Research-derived (en.wikipedia.org + mediawiki.org, verified 2024–2025). The owner wants to
 **also** offer a Wikipedia-like *autonomous* model (immediate publish + post-hoc moderation),
 plus an **owner admin dashboard**. Wikipedia's *default* is immediate-publish; approval-before-display
-(Pending Changes) is the selective exception. Today wiki-n-go is the inverse (every edit is a
+(Pending Changes) is the selective exception. Today Wikigit is the inverse (every edit is a
 reviewed PR). The arc below is: **invert the default, then re-apply review selectively, and give the
 owner the console to run it.**
 

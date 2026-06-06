@@ -134,7 +134,7 @@ function Footer(props: { slug: string }) {
         </div>
         <div class="footer-bottom">
           <p class="fb-license">
-            Text is available under the CC BY-SA 4.0 license; the wiki-n-go software is
+            Text is available under the CC BY-SA 4.0 license; the Wikigit software is
             MIT-licensed. Content is stored as Markdown and is editable by anyone.
           </p>
           <a class="provenance" href={sourceUrl} target="_blank" rel="noreferrer">

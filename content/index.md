@@ -1,83 +1,95 @@
 ---
-hatnote: This is the project home page. For setup steps, see Getting started.
+hatnote: This is the Wikigit project home. New here? Start with Getting started.
+description: Wikigit is a collaborative wiki that renders without rebuilds and is edited in-site — no account, no token.
+kicker: Project home
 protection: auto
 translationKey: index
 tags:
   - Reference
   - Wiki software
+infobox:
+  Type: Wiki software
+  Reading: from a CDN, no rebuild
+  Editing: in-site, no account
+  Backend: one Cloudflare Worker
+  Storage: a GitHub repository
+  Talk: GitHub Discussions
+  License:
+    v: MIT (software)
+    mono: true
 banner:
   kind: info
-  text: This wiki is a work in progress — anyone can edit, every change is reviewed.
+  text: This is a living demo — every page here is Markdown in a GitHub repository, and anyone can edit it.
 ---
 
-# Welcome to the wikiwiki
+# Welcome to Wikigit
 
-This page is **served from GitHub via jsDelivr**[^cdn] and rendered in your browser at
-runtime. Editing this file and committing it updates the page **with no
-rebuild**[^norebuild] — the reader always fetches the latest commit.
+**Wikigit** is a collaborative [[w:Wiki|wiki]] built on a simple idea: let
+[[w:Git|git]] and [[w:GitHub|GitHub]] be the database, and let this site be the
+only interface. Pages read instantly without ever rebuilding the site, and
+anyone can edit a page **in the site itself** — no account and no token, the way
+[[w:Wikipedia|Wikipedia]] works.[^friction]
 
-## How it works ?
+Everything you are reading is a Markdown file in a public GitHub repository.
+When that file changes, this page changes — there is no publish step and no
+build to wait for.
 
-- Content lives as Markdown in a GitHub repo (the database).
-- The site (this interface) fetches it from the [[w:Content delivery network|CDN]],
-  pinned to the latest commit SHA, and renders it client-side.
-- Soon: edit **in this site** with Wikipedia-level friction — no account, no
-  token.
+## The big idea
 
-See [[getting-started]] for the next steps — or open a page that doesn't exist
-yet, like [[example draft]], to see a red link you can create.
-- Content lives as Markdown in a GitHub repo (the database).
-- The site (this interface) fetches it from the [[w:Content delivery network|CDN]],
-  pinned to the latest commit SHA, and renders it client-side.
-- Soon: edit **in this site** with Wikipedia-level friction — no account, no
-  token.
+A traditional wiki runs a server, a database, and an editor of its own. Wikigit
+runs almost none of that. Instead it **composes systems that already exist**:
 
-See [[getting-started]] for the next steps — or open a page that doesn't exist
-yet, like [[example draft]], to see a red link you can create.
+- **git** keeps every version of every page (the revision history).
+- **GitHub** stores the files and hosts the discussions.
+- **A free [[concepts|CDN]]** delivers pages to readers worldwide.
+- **One small [[concepts|Worker]]** turns "someone typed an
+  edit" into a saved change.
 
-## How it does ?
+The result is a full wiki — reading, editing, history, talk pages, moderation —
+with [[how-it-works|almost no infrastructure to run]].
 
-- Content lives as Markdown in a GitHub repo (the database).
-- The site (this interface) fetches it from the [[w:Content delivery network|CDN]],
-  pinned to the latest commit SHA, and renders it client-side.
-- Soon: edit **in this site** with Wikipedia-level friction — no account, no
-  token.
+## Start here
 
-See [[getting-started]] for the next steps — or open a page that doesn't exist
-yet, like [[example draft]], to see a red link you can create.
+| If you want to… | Go to |
+|---|---|
+| Read and edit your first page | [[getting-started|Getting started]] |
+| Understand the moving parts | [[how-it-works|How it works]] |
+| Learn the words (wiki, git, CDN…) in plain language | [[concepts|Concepts explained]] |
+| See everything Wikigit can do | [[features|Features]] |
+| Learn how edits are reviewed and trusted | [[governance|Governance & moderation]] |
+| Get help writing and formatting pages | [[help|Help]] |
 
-- Content lives as Markdown in a GitHub repo (the database).
-- The site (this interface) fetches it from the [[w:Content delivery network|CDN]],
-  pinned to the latest commit SHA, and renders it client-side.
-- Soon: edit **in this site** with Wikipedia-level friction — no account, no
-  token.
+## Try it right now
 
-## How it ends ?
+Click **Edit** at the top of this page. You will see the Markdown that produced
+it, with a live preview beside the text. Change a word, write a short summary,
+and publish — your change becomes a commit in the repository, and the page
+updates with **no rebuild**.[^norebuild]
 
-- Content lives as Markdown in a GitHub repo (the database).
-- The site (this interface) fetches it from the [[w:Content delivery network|CDN]],
-  pinned to the latest commit SHA, and renders it client-side.
-- Soon: edit **in this site** with Wikipedia-level friction — no account, no
-  token.
+Prefer to start a fresh page? Open a link to something that does not exist yet,
+like [[A page that does not exist]], and you will get a **red link** inviting you
+to create it.
 
-See [[getting-started]] for the next steps — or open a page that doesn't exist
-yet, like [[example draft]], to see a red link you can create.
+## Why it is built this way
 
-- Content lives as Markdown in a GitHub repo (the database).
-- The site (this interface) fetches it from the [[w:Content delivery network|CDN]],
-  pinned to the latest commit SHA, and renders it client-side.
-- Soon: edit **in this site** with Wikipedia-level friction — no account, no
-  token.
+Running a wiki usually means running infrastructure. Wikigit's bet is that the
+hardest parts — versioning, storage, identity, discussion, global delivery — are
+already solved by tools you can use for free. The only piece that genuinely must
+exist is a tiny relay that can write a commit on your behalf; everything else is
+borrowed. The reasoning is laid out in [[how-it-works|How it works]].
 
-See [[getting-started]] for the next steps — or open a page that doesn't exist
-yet, like [[example draft]], to see a red link you can create.
+## See also
 
-
-_Edited live to prove the no-rebuild path._
+- [[features|Features]] — the full tour, mapped to what is built.
+- [[governance|Governance & moderation]] — trust tiers, protection, and the
+  admin console.
+- [[w:Wikipedia|Wikipedia]] and [[w:Wiki software|wiki software]] on Wikipedia.
 
 ## References
 
-[^cdn]: jsDelivr serves any file from a public GitHub repo, pinned to a commit
-    SHA — see [jsdelivr.com/github](https://www.jsdelivr.com/github).
-[^norebuild]: Because content is fetched at runtime, a commit is live as soon as
-    the CDN cache refreshes — no site build runs on publish.
+[^friction]: "Wikipedia-level friction" means you can edit and save without
+    creating an account or pasting a token — the lowest barrier a public wiki
+    can offer while still attributing each change.
+[^norebuild]: Because pages are fetched at runtime from the CDN, a commit is
+    live as soon as the cache refreshes. No site build runs when content
+    changes — see [[how-it-works|the read path]].

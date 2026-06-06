@@ -78,7 +78,7 @@ export default function Search() {
         <input
           ref={field}
           value={q()}
-          placeholder="Search wiki-n-go…"
+          placeholder="Search Wikigit…"
           aria-label="Search the wiki"
           autocomplete="off"
           onFocus={() => {

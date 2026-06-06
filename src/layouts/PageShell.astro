@@ -58,7 +58,7 @@ const alternates = translations(slug).filter((l) => !l.current);
 ---
 
 <!doctype html>
-<html lang={pageLang} data-skin="wiki-n-go" data-theme="light">
+<html lang={pageLang} data-skin="wikigit" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -69,7 +69,7 @@ const alternates = translations(slug).filter((l) => !l.current);
         <link rel="alternate" hreflang={l.lang} href={new URL(readHref(l.slug), Astro.site)} />
       ))
     }
-    <title>{display} · wiki-n-go</title>
+    <title>{display} · Wikigit</title>
     <ThemeBoot />
     <ClientRouter />
     <TokenCapture />
@@ -81,7 +81,7 @@ const alternates = translations(slug).filter((l) => !l.current);
         <div class="header-inner">
           <MainMenu client:load />
           <a class="wordmark" href={read}>
-            <span>wiki</span><span class="wm-accent">-n-</span><span>go</span><span class="wm-dot"></span>
+            <span>wiki</span><span class="wm-accent">git</span><span class="wm-dot"></span>
             <span class="wordmark-sub">the open reference</span>
           </a>
           <Search client:load />
@@ -151,7 +151,7 @@ const alternates = translations(slug).filter((l) => !l.current);
           </div>
           <div class="footer-bottom">
             <p class="fb-license">
-              Text is available under the CC BY-SA 4.0 license; the wiki-n-go software is
+              Text is available under the CC BY-SA 4.0 license; the Wikigit software is
               MIT-licensed. Content is stored as Markdown and is editable by anyone.
             </p>
             <a class="provenance" href={sourceUrl} target="_blank" rel="noreferrer">

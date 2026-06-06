@@ -4,11 +4,11 @@
 ---
 <script is:inline>
   (() => {
-    const skins = ["wiki-n-go", "wiki"];
+    const skins = ["wikigit", "wiki"];
     const apply = (doc) => {
       const d = doc.documentElement;
       const saved = localStorage.getItem("wng-skin");
-      d.dataset.skin = skins.includes(saved) ? saved : "wiki-n-go";
+      d.dataset.skin = skins.includes(saved) ? saved : "wikigit";
       const pref = localStorage.getItem("wng-theme") || "light";
       const dark = pref === "dark" ||
         (pref === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);

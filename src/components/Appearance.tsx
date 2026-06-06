@@ -19,7 +19,7 @@ const COLOR: Opt[] = [
   { v: "dark", label: "Dark" },
 ];
 const SKIN: Opt[] = [
-  { v: "wiki-n-go", label: "Wiki-n-go" },
+  { v: "wikigit", label: "Wikigit" },
   { v: "wiki", label: "Wiki" },
 ];
 
@@ -31,7 +31,7 @@ export default function Appearance() {
   const [textsize, setTextsize] = createSignal("standard");
   const [width, setWidth] = createSignal("standard");
   const [color, setColor] = createSignal("light");
-  const [skin, setSkin] = createSignal("wiki-n-go");
+  const [skin, setSkin] = createSignal("wikigit");
   const [collapsed, setCollapsed] = createSignal(false);
 
   const setText = pick("textsize", "wng-textsize", setTextsize);
@@ -46,7 +46,7 @@ export default function Appearance() {
   onMount(() => {
     setTextsize(localStorage.getItem("wng-textsize") || "standard");
     setWidth(document.documentElement.dataset.width ?? "standard");
-    setSkin(document.documentElement.dataset.skin ?? "wiki-n-go");
+    setSkin(document.documentElement.dataset.skin ?? "wikigit");
     setColor(localStorage.getItem("wng-theme") || "light");
     setCollapsed(localStorage.getItem("wng-appearance") === "collapsed");
 

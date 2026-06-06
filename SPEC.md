@@ -1,4 +1,4 @@
-# SPEC — Fork-and-Go Wiki
+# SPEC — Wikigit
 
 > A collaborative wiki that **renders without rebuilds** and is **edited in-site
 > with Wikipedia-level friction** (no account, no token — just edit and save),

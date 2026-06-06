@@ -1,7 +1,7 @@
 /* Design tokens: one source of truth. Everything visual is a SEMANTIC ROLE
    here, never a raw hex in component code. `[data-skin]` picks type/spacing/
    radius/measure + base hues; `[data-skin][data-theme="dark"]` overrides colour
-   roles. Two skins ship: wiki-n-go (the product's own look) and wiki (a near
+   roles. Two skins ship: wikigit (the product's own look) and wiki (a near
    1:1 Wikipedia replica — Vector 2022 / Codex tokens). */
 
 :root {
@@ -139,8 +139,8 @@
   --shadow-pop: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 
-/* Skin: wiki-n-go — the product's own look (dense, cool, utilitarian · default). */
-[data-skin="wiki-n-go"] {
+/* Skin: wikigit — the product's own look (dense, cool, utilitarian · default). */
+[data-skin="wikigit"] {
   --font-body:
     "Libre Franklin Variable", "Libre Franklin", "Helvetica Neue", Helvetica, Arial,
     sans-serif;
@@ -223,7 +223,7 @@
   --shadow-pop: 0 6px 20px rgba(20, 25, 30, 0.16);
 }
 
-[data-skin="wiki-n-go"][data-theme="dark"] {
+[data-skin="wikigit"][data-theme="dark"] {
   --color-canvas: #0f1318;
   --color-surface: #181c22;
   --color-surface-sunken: #0a0d11;
