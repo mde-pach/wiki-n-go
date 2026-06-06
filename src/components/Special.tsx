@@ -1,9 +1,11 @@
-import { createMemo, createSignal, For, Show } from "solid-js";
+import { createMemo, createSignal, For, type JSX, Show } from "solid-js";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
-import { getLinkGraph, graphStats, mostLinked } from "../lib/linkgraph";
+import { getLinkGraph, graphStats, type LinkGraph, mostLinked } from "../lib/linkgraph";
 import { BASE, readHref } from "../lib/paths";
 import { clientResource } from "../lib/solid";
+import { PagePicker } from "./special/PagePicker";
+import { ReportList } from "./special/ReportList";
 import { Status, ViewHead } from "./ui";
 
 type Tab =
@@ -27,6 +29,97 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "redirects", label: "Redirects" },
   { id: "stats", label: "Statistics" },
 ];
+
+interface ReportContext {
+  g: LinkGraph;
+  title: (slug: string) => string;
+  slugs: string[];
+  redirectFroms: Set<string>;
+}
+
+type ReportConfig = (ctx: ReportContext) => JSX.Element;
+
+function slugLink(title: (slug: string) => string) {
+  return (slug: string) => <a href={readHref(slug)}>{title(slug)}</a>;
+}
+
+const REPORTS: Partial<Record<Tab, ReportConfig>> = {
+  orphaned: ({ g, title }) => (
+    <ReportList
+      items={g.orphans}
+      render={slugLink(title)}
+      empty="No orphaned pages — everything is linked."
+    />
+  ),
+  deadend: ({ g, title }) => (
+    <ReportList
+      items={g.deadends}
+      render={slugLink(title)}
+      empty="No dead-end pages — every page links onward."
+    />
+  ),
+  allpages: ({ slugs, title, redirectFroms }) => (
+    <ReportList
+      items={slugs}
+      render={slugLink(title)}
+      empty="No pages yet."
+      trailing={(s) => (
+        <Show when={redirectFroms.has(s)}>
+          <span class="sp-count">redirect</span>
+        </Show>
+      )}
+    />
+  ),
+  mostlinked: ({ g, title }) => (
+    <ReportList
+      items={mostLinked(g)}
+      render={(m) => <a href={readHref(m.slug)}>{title(m.slug)}</a>}
+      empty="No internal links yet."
+      trailing={(m) => (
+        <span class="sp-count">
+          {m.count} {m.count === 1 ? "link" : "links"}
+        </span>
+      )}
+    />
+  ),
+  wanted: ({ g }) => (
+    <ReportList
+      items={g.wanted}
+      render={(w) => (
+        <a class="wikilink is-red" href={`${BASE}/edit/${w.slug}`}>
+          {w.slug}
+        </a>
+      )}
+      empty="No wanted pages — every link resolves."
+      trailing={(w) => (
+        <span class="sp-count">
+          wanted by {w.by.length} {w.by.length === 1 ? "page" : "pages"}
+        </span>
+      )}
+    />
+  ),
+  redirects: ({ g, title }) => (
+    <ReportList
+      items={g.redirects}
+      empty="No redirects yet."
+      render={(r) => (
+        <>
+          <a href={`${readHref(r.from)}?redirect=no`}>{title(r.from)}</a>
+          <span class="sp-arrow">→</span>
+          <Show
+            when={!r.broken}
+            fallback={<span class="sp-badge sp-broken">{r.to} (missing)</span>}
+          >
+            <a href={readHref(r.to)}>{title(r.to)}</a>
+          </Show>
+          <Show when={r.double}>
+            <span class="sp-badge sp-double">double redirect</span>
+          </Show>
+        </>
+      )}
+    />
+  ),
+};
 
 export default function Special() {
   const graph = clientResource(getLinkGraph);
@@ -90,56 +183,35 @@ export default function Special() {
         {(g) => (
           <>
             <Show when={tab() === "backlinks"}>
-              <div class="sp-picker">
-                <label for="sp-page">Show pages that link to</label>
-                <select
-                  id="sp-page"
-                  class="input"
-                  value={page()}
-                  onChange={(e) => setPage(e.currentTarget.value)}
-                >
-                  <option value="">Choose a page…</option>
-                  <For each={slugs()}>
-                    {(s) => <option value={s}>{title(s)}</option>}
-                  </For>
-                </select>
-              </div>
+              <PagePicker
+                id="sp-page"
+                label="Show pages that link to"
+                value={page()}
+                slugs={slugs()}
+                title={title}
+                onChange={setPage}
+              />
               <Show
                 when={page()}
                 fallback={<Status>Pick a page to see its backlinks.</Status>}
               >
-                <Show
-                  when={linksHere().length > 0}
-                  fallback={<Status>No pages link to “{title(page())}” yet.</Status>}
-                >
-                  <ul class="special-list">
-                    <For each={linksHere()}>
-                      {(s) => (
-                        <li>
-                          <a href={readHref(s)}>{title(s)}</a>
-                        </li>
-                      )}
-                    </For>
-                  </ul>
-                </Show>
+                <ReportList
+                  items={linksHere()}
+                  render={slugLink(title)}
+                  empty={`No pages link to “${title(page())}” yet.`}
+                />
               </Show>
             </Show>
 
             <Show when={tab() === "pageinfo"}>
-              <div class="sp-picker">
-                <label for="sp-info">Page</label>
-                <select
-                  id="sp-info"
-                  class="input"
-                  value={page()}
-                  onChange={(e) => setPage(e.currentTarget.value)}
-                >
-                  <option value="">Choose a page…</option>
-                  <For each={slugs()}>
-                    {(s) => <option value={s}>{title(s)}</option>}
-                  </For>
-                </select>
-              </div>
+              <PagePicker
+                id="sp-info"
+                label="Page"
+                value={page()}
+                slugs={slugs()}
+                title={title}
+                onChange={setPage}
+              />
               <Show
                 when={page() && g().titles[page()] !== undefined}
                 fallback={<Status>Pick a page to see its details.</Status>}
@@ -187,105 +259,18 @@ export default function Special() {
               </Show>
             </Show>
 
-            <Show when={tab() === "wanted"}>
-              <Show
-                when={g().wanted.length > 0}
-                fallback={<Status>No wanted pages — every link resolves.</Status>}
-              >
-                <ul class="special-list">
-                  <For each={g().wanted}>
-                    {(w) => (
-                      <li>
-                        <a class="wikilink is-red" href={`${BASE}/edit/${w.slug}`}>
-                          {w.slug}
-                        </a>
-                        <span class="sp-count">
-                          wanted by {w.by.length} {w.by.length === 1 ? "page" : "pages"}
-                        </span>
-                      </li>
-                    )}
-                  </For>
-                </ul>
-              </Show>
-            </Show>
-
-            <Show when={tab() === "orphaned"}>
-              <ReportList
-                items={g().orphans}
-                title={title}
-                empty="No orphaned pages — everything is linked."
-              />
-            </Show>
-            <Show when={tab() === "deadend"}>
-              <ReportList
-                items={g().deadends}
-                title={title}
-                empty="No dead-end pages — every page links onward."
-              />
-            </Show>
-            <Show when={tab() === "redirects"}>
-              <Show
-                when={g().redirects.length > 0}
-                fallback={<Status>No redirects yet.</Status>}
-              >
-                <ul class="special-list">
-                  <For each={g().redirects}>
-                    {(r) => (
-                      <li>
-                        <a href={`${readHref(r.from)}?redirect=no`}>{title(r.from)}</a>
-                        <span class="sp-arrow">→</span>
-                        <Show
-                          when={!r.broken}
-                          fallback={
-                            <span class="sp-badge sp-broken">{r.to} (missing)</span>
-                          }
-                        >
-                          <a href={readHref(r.to)}>{title(r.to)}</a>
-                        </Show>
-                        <Show when={r.double}>
-                          <span class="sp-badge sp-double">double redirect</span>
-                        </Show>
-                      </li>
-                    )}
-                  </For>
-                </ul>
-              </Show>
-            </Show>
-
-            <Show when={tab() === "allpages"}>
-              <ul class="special-list">
-                <For each={slugs()}>
-                  {(s) => (
-                    <li>
-                      <a href={readHref(s)}>{title(s)}</a>
-                      <Show when={redirectFroms().has(s)}>
-                        <span class="sp-count">redirect</span>
-                      </Show>
-                    </li>
-                  )}
-                </For>
-              </ul>
-            </Show>
-
-            <Show when={tab() === "mostlinked"}>
-              <Show
-                when={mostLinked(g()).length > 0}
-                fallback={<Status>No internal links yet.</Status>}
-              >
-                <ul class="special-list">
-                  <For each={mostLinked(g())}>
-                    {(m) => (
-                      <li>
-                        <a href={readHref(m.slug)}>{title(m.slug)}</a>
-                        <span class="sp-count">
-                          {m.count} {m.count === 1 ? "link" : "links"}
-                        </span>
-                      </li>
-                    )}
-                  </For>
-                </ul>
-              </Show>
-            </Show>
+            <For each={Object.entries(REPORTS)}>
+              {([id, report]) => (
+                <Show when={tab() === id}>
+                  {report({
+                    g: g(),
+                    title,
+                    slugs: slugs(),
+                    redirectFroms: redirectFroms(),
+                  })}
+                </Show>
+              )}
+            </For>
 
             <Show when={tab() === "stats"}>
               <dl class="sp-stats">
@@ -314,23 +299,3 @@ const STAT_LABELS: Record<string, string> = {
   orphans: "Orphaned pages",
   deadends: "Dead-end pages",
 };
-
-function ReportList(props: {
-  items: string[];
-  title: (s: string) => string;
-  empty: string;
-}) {
-  return (
-    <Show when={props.items.length > 0} fallback={<Status>{props.empty}</Status>}>
-      <ul class="special-list">
-        <For each={props.items}>
-          {(s) => (
-            <li>
-              <a href={readHref(s)}>{props.title(s)}</a>
-            </li>
-          )}
-        </For>
-      </ul>
-    </Show>
-  );
-}
