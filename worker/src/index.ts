@@ -707,6 +707,10 @@ const TRUST_TTL_S = 3600;
 // allowlist + caches the result; `email` is the commit-author filter. Anonymous
 // and signed-in identities share the exact same machinery and thresholds.
 async function editorTier(env: Env, name: string, email: string): Promise<Tier> {
+  // The repo owner is always a maintainer. A signed-in login is identity-verified
+  // by OAuth, so login === REPO_OWNER is provably the owner — no allowlist entry
+  // needed. (Anonymous names are `anon-<hash>`, so they can't match.)
+  if (name === env.REPO_OWNER) return "maintainer";
   if ((await trustedEditors(env)).includes(name)) return "maintainer";
   const { n, firstMs } = await trustStats(env, name, email);
   const days = (Date.now() - firstMs) / 86_400_000;
