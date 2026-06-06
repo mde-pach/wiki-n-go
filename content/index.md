@@ -1,6 +1,6 @@
 ---
 hatnote: This is the project home page. For setup steps, see Getting started.
-protection: open
+protection: auto
 tags:
   - Reference
   - Wiki software
