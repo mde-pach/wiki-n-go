@@ -67,10 +67,10 @@ wired:
    - **Homepage URL** — your site origin (e.g. `https://mde-pach.github.io`).
    - **Authorization callback URL** — `<workerUrl>/auth/callback` (your Worker's
      URL + `/auth/callback`).
-2. **Worker side:** set `OAUTH_CLIENT_ID` as a `[vars]` entry in
-   `worker/wrangler.toml`, add the repo **secret** `OAUTH_CLIENT_SECRET`, then
-   **deploy the Worker** (push a `worker/**` change, or run the *Deploy Worker*
-   action) so both take effect. `SESSION_SECRET` is auto-generated on deploy.
+2. **Worker side:** add the repo **variable** `OAUTH_CLIENT_ID` (public) and the
+   repo **secret** `OAUTH_CLIENT_SECRET`, then **deploy the Worker** (run the
+   *Deploy Worker* action) so both take effect. No file edits —
+   `OAUTH_CLIENT_ID` is injected at deploy and `SESSION_SECRET` is auto-generated.
 3. **Site side:** set the repo **variable** `OAUTH_ENABLED=true`, then **trigger a
    Pages rebuild** (re-run *Deploy to GitHub Pages*) so the **Sign in** button
    appears. Until both sides are done, sign-in stays dark and editing is anonymous.

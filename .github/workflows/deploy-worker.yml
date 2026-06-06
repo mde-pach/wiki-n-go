@@ -27,8 +27,14 @@ jobs:
 
       - name: Deploy
         id: deploy
+        env:
+          # Public OAuth client id (not a secret) — injected as a plain var so a
+          # fork sets it as a repo variable, never edits a file. Empty = omit.
+          OAUTH_CLIENT_ID: ${{ vars.OAUTH_CLIENT_ID }}
         run: |
-          out=$(bunx wrangler deploy 2>&1)
+          args=""
+          [ -n "${OAUTH_CLIENT_ID:-}" ] && args="--var OAUTH_CLIENT_ID:$OAUTH_CLIENT_ID"
+          out=$(bunx wrangler deploy $args 2>&1)
           echo "$out"
           url=$(printf '%s\n' "$out" | grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' | head -1)
           echo "url=$url" >> "$GITHUB_OUTPUT"

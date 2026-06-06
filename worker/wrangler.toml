@@ -14,11 +14,9 @@ ALLOWED_ORIGIN = "https://mde-pach.github.io,http://localhost:4321"
 # Talk topics post to this Discussions category; its node id (and the repo id)
 # are derived at runtime, so a fork only names the category here.
 DISCUSSION_CATEGORY = "General"
-# Optional GitHub sign-in. Set OAUTH_CLIENT_ID to your OAuth App's client id
-# (public); leave commented to keep sign-in disabled. The matching secrets are
-# OAUTH_CLIENT_SECRET and SESSION_SECRET (a long random string for signing
-# session tokens). See README "Optional: GitHub sign-in".
-# OAUTH_CLIENT_ID = "Iv1.xxxxxxxxxxxxxxxx"
+# Optional GitHub sign-in is configured entirely via repo secrets/variables, no
+# edits here: OAUTH_CLIENT_ID is a repo variable injected at deploy (`--var`),
+# OAUTH_CLIENT_SECRET a repo secret, SESSION_SECRET auto-generated. See README.
 # Autonomous editing. DEFAULT_EDIT_TIER = "maintainer" keeps the reviewed-PR
 # model for any page without a `protection:` frontmatter field (set "open" to
 # flip the default to immediate-publish). Trust thresholds match Wikipedia's.
