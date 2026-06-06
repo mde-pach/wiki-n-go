@@ -266,6 +266,100 @@
   margin-top: 0.3rem;
 }
 
+/* ---- Main-menu drawer ---------------------------------------------------- */
+.menu-btn {
+  flex: none;
+  color: var(--color-ink-muted);
+}
+.menu-btn:hover {
+  background: var(--color-surface-sunken);
+  color: var(--color-ink);
+}
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+}
+.menu-scrim {
+  position: absolute;
+  inset: 0;
+  border: none;
+  cursor: default;
+  background: color-mix(in oklab, var(--color-ink) 40%, transparent);
+  animation: menu-fade 160ms ease;
+}
+@keyframes menu-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.menu-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100dvh;
+  width: min(320px, 84vw);
+  background: var(--color-surface);
+  border-right: var(--border-w) solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  animation: menu-slide 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes menu-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+.menu-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 0.85rem 0.7rem 1.1rem;
+  border-bottom: var(--border-w) solid var(--color-border);
+}
+.menu-drawer-title {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-ink-subtle);
+}
+.menu-links {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem;
+  overflow-y: auto;
+}
+.menu-link {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+}
+.menu-link:hover {
+  background: var(--color-accent-subtle);
+}
+.menu-link-label {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.menu-link-desc {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
 /* ---- Header right cluster ------------------------------------------------ */
 .header-actions {
   display: flex;

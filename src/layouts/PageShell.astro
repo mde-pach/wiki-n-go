@@ -2,6 +2,7 @@
 import "../styles/app.css";
 import { ClientRouter } from "astro:transitions";
 import AuthButton from "../components/AuthButton.tsx";
+import MainMenu from "../components/MainMenu.tsx";
 import PageMeta from "../components/PageMeta.tsx";
 import Search from "../components/Search.tsx";
 import ThemeBoot from "../components/ThemeBoot.astro";
@@ -65,6 +66,7 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
       <a class="skip-link" href="#main">Skip to content</a>
       <header class="header" transition:persist>
         <div class="header-inner">
+          <MainMenu client:load />
           <a class="wordmark" href={read}>
             <span>wiki</span><span class="wm-accent">-n-</span><span>go</span><span class="wm-dot"></span>
             <span class="wordmark-sub">the open reference</span>
