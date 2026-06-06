@@ -515,6 +515,12 @@
   grid-template-columns: 230px minmax(0, 1fr) 260px;
   align-items: start;
 }
+/* Stretch the rails to the full row height so their sticky contents (TOC,
+   Appearance) have room to stick instead of scrolling off with the column. */
+.col-toc,
+.col-info {
+  align-self: stretch;
+}
 .col-main {
   min-width: 0;
 }
