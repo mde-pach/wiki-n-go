@@ -1,12 +1,7 @@
 ---
-hatnote: This is the Wikigit project home. New here? Start with Getting started.
-description: Wikigit is a collaborative wiki that renders without rebuilds and is edited in-site — no account, no token.
-kicker: Project home
-protection: auto
+description: Wikigit is a collaborative wiki that renders without rebuilds and
+  is edited in-site — no account, no token.
 translationKey: index
-tags:
-  - Reference
-  - Wiki software
 infobox:
   Type: Wiki software
   Reading: from a CDN, no rebuild
@@ -17,9 +12,16 @@ infobox:
   License:
     v: MIT (software)
     mono: true
+kicker: Project home
+hatnote: This is the Wikigit project home. New here? Start with Getting started.
+protection: auto
+tags:
+  - Reference
+  - Wiki software
 banner:
   kind: info
-  text: This is a living demo — every page here is Markdown in a GitHub repository, and anyone can edit it.
+  text: This is a living demo — every page here is Markdown in a GitHub
+    repository, and anyone can edit it.
 ---
 
 # Welcome to Wikigit
@@ -68,7 +70,7 @@ updates with **no rebuild**.[^norebuild]
 
 Prefer to start a fresh page? Open a link to something that does not exist yet,
 like [[A page that does not exist]], and you will get a **red link** inviting you
-to create it.
+to create it yourself.
 
 ## Why it is built this way
 
