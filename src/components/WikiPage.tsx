@@ -2,9 +2,11 @@ import { createSignal, onMount, Show } from "solid-js";
 import { fetchMarkdown, fetchMarkdownAt, PageNotFoundError } from "../lib/content";
 import { decorate as decorateArticle } from "../lib/decorate";
 import type { PageMeta } from "../lib/frontmatter";
+import { pageSet } from "../lib/manifest";
 import { emphasizeLeadHtml, renderMarkdown, splitTitle } from "../lib/markdown";
 import { BASE, prettify, readHref, slugFromLocation } from "../lib/paths";
 import { errMessage } from "../lib/util";
+import { markRedLinksHtml } from "../lib/wikilink";
 import { Icons } from "./Icons";
 
 export default function WikiPage(props: {
@@ -22,16 +24,23 @@ export default function WikiPage(props: {
   const [revOf, setRevOf] = createSignal<string>();
   let body: HTMLDivElement | undefined;
 
+  // Render markdown with red links already resolved, so missing-target links
+  // paint red on first frame instead of flashing blue until `decorate` runs.
+  async function renderResolved(raw: string) {
+    const { title, body, meta } = splitTitle(raw);
+    const html = emphasizeLeadHtml(
+      markRedLinksHtml(renderMarkdown(body), await pageSet()),
+      title,
+    );
+    return { title, html, meta };
+  }
+
   // Render this page pinned to a historic commit (permalink to a revision).
   async function showRevision(rev: string) {
     try {
-      const {
-        title,
-        body: b,
-        meta: fresh,
-      } = splitTitle(await fetchMarkdownAt(slug(), rev));
-      setMeta(fresh);
-      setHtml(emphasizeLeadHtml(renderMarkdown(b), title));
+      const { html, meta } = await renderResolved(await fetchMarkdownAt(slug(), rev));
+      setMeta(meta);
+      setHtml(html);
       setRevOf(rev);
       queueMicrotask(decorate);
     } catch (e) {
@@ -53,9 +62,9 @@ export default function WikiPage(props: {
     try {
       const raw = await fetchMarkdown(slug());
       if (raw === props.initialRaw) return; // unchanged since build → keep SSR content (no shift)
-      const { title, body, meta: fresh } = splitTitle(raw);
-      setMeta(fresh);
-      setHtml(emphasizeLeadHtml(renderMarkdown(body), title));
+      const { title, html, meta } = await renderResolved(raw);
+      setMeta(meta);
+      setHtml(html);
       const heading = title || slug();
       document.title = heading;
       const el = document.querySelector(".page-title");
