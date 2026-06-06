@@ -1221,3 +1221,56 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+.new-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  max-width: 34rem;
+}
+.new-form .field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.template-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.template-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 400;
+}
+.template-option.is-active {
+  border-color: var(--accent);
+  background: var(--surface-2, var(--surface));
+}
+.template-option input {
+  margin-top: 0.2rem;
+}
+.template-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.template-label {
+  font-family: var(--font-ui);
+  font-weight: 600;
+}
+.template-desc {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}

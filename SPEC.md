@@ -314,7 +314,10 @@ Read-time reports + git-native operations (see `FEATURES.md` §§O–P):
       footnote-ready Markdown reference — Crossref for DOIs, OpenLibrary for ISBNs, OpenGraph/`<meta>`
       scraping for URLs (the one case that needs the Worker — arbitrary pages aren't CORS-readable
       from the browser; SSRF-guarded, KV-cached). `/cite` builder tool, linked from Special pages.
-      TODO: merge/split, drafts, creation wizard.
+- [x] ✅ **Creation wizard**: `/new` takes a title → live slug preview, "already exists" guard, and a
+      starting template (Article / Guide / Blank), then opens the editor seeded from that template;
+      the editor reads "Creating" vs "Editing" for pages that don't exist yet. Linked from Special pages.
+      TODO: merge/split, drafts.
 
 ---
 

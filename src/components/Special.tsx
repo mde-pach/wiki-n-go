@@ -82,6 +82,9 @@ export default function Special() {
         <a class="sp-tab sp-random" href={`${BASE}/cite`}>
           Cite a source ↗
         </a>
+        <a class="sp-tab sp-random" href={`${BASE}/new`}>
+          Create a page ↗
+        </a>
       </nav>
 
       <Show

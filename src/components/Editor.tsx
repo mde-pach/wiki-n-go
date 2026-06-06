@@ -8,6 +8,7 @@ import { splitFrontmatter, withFrontmatter } from "../lib/frontmatter";
 import { slugifyHeading } from "../lib/markdown";
 import { prettify, readHref } from "../lib/paths";
 import { slugFromLocation } from "../lib/slug";
+import { templateById } from "../lib/templates";
 import { createTurnstile } from "../lib/turnstile";
 import { errMessage } from "../lib/util";
 import { Icons } from "./Icons";
@@ -38,6 +39,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   const [who, setWho] = createSignal<{ author: string; tier: Tier }>();
   const [ready, setReady] = createSignal(false);
   const [restored, setRestored] = createSignal(false);
+  const [isNew, setIsNew] = createSignal(false);
   let ta: HTMLTextAreaElement | undefined;
 
   const turnstile = config.turnstileSiteKey
@@ -60,12 +62,27 @@ export default function Editor(props: { slug?: string; initialContent?: string }
         setExtra(extraFrom(fresh.data));
       }
     } catch (e) {
-      if (!(e instanceof PageNotFoundError)) setError(errMessage(e));
+      if (e instanceof PageNotFoundError) {
+        setIsNew(true);
+        seedTemplate();
+      } else setError(errMessage(e));
     }
     restoreDraft();
     setReady(true);
     queueMicrotask(focusSection);
   });
+
+  // A new page reached with `?template=` (from the create wizard) starts from a
+  // scaffold rather than blank; a restored draft still wins over this.
+  function seedTemplate() {
+    if (isServer) return;
+    const id = new URLSearchParams(window.location.search).get("template");
+    if (!id) return;
+    const seeded = splitFrontmatter(templateById(id).build(prettify(slug())));
+    setBody(seeded.body);
+    setFields(fieldsFrom(seeded.data));
+    setExtra(extraFrom(seeded.data));
+  }
 
   // Survive a reload: persist the in-progress edit per slug, restore it on mount
   // (over the freshly fetched content), and clear it once the edit is submitted.
@@ -174,7 +191,9 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   return (
     <div>
       <div class="view-head">
-        <h2>Editing “{prettify(slug())}”</h2>
+        <h2>
+          {isNew() ? "Creating" : "Editing"} “{prettify(slug())}”
+        </h2>
         <p>
           Anyone can edit — no account needed. Trusted edits publish immediately; others
           are submitted for review and go live once a maintainer approves.
