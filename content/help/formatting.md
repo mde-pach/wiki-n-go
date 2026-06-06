@@ -101,6 +101,33 @@ const greeting = "hello";
 ```
 ````
 
+## Diagrams
+
+A fenced ` ```mermaid ` block renders as a diagram using
+[[w:Mermaid (software)|Mermaid]] syntax — handy for flowcharts, sequences, and
+the like. The diagram renders in your browser; without JavaScript the source
+shows as a code block.
+
+````
+```mermaid
+flowchart LR
+  Edit[Type Markdown] --> Worker(Worker)
+  Worker --> PR{Trusted?}
+  PR -->|yes| Live[Published live]
+  PR -->|no| Review[Submitted for review]
+```
+````
+
+Renders as:
+
+```mermaid
+flowchart LR
+  Edit[Type Markdown] --> Worker(Worker)
+  Worker --> PR{Trusted?}
+  PR -->|yes| Live[Published live]
+  PR -->|no| Review[Submitted for review]
+```
+
 ## Page properties (frontmatter)
 
 Optional settings live in a `---` block at the very top of the file. All fields

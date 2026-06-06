@@ -42,6 +42,19 @@ md.renderer.rules.footnote_anchor = (tokens, idx) => {
   return ` <a href="#${citeMark(n, tokens[idx].meta.subId)}" class="ref-backlink" aria-label="Back to text">↑</a>`;
 };
 
+// A ```mermaid fence becomes a placeholder holding the diagram source; the
+// client decorator lazy-loads mermaid and renders it (no diagram engine at
+// build/SSR or in the base bundle). Without JS, the source shows as a code block.
+const defaultFence =
+  md.renderer.rules.fence ??
+  ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options));
+md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+  if (tokens[idx].info.trim() === "mermaid") {
+    return `<pre class="mermaid">${md.utils.escapeHtml(tokens[idx].content)}</pre>`;
+  }
+  return defaultFence(tokens, idx, options, env, self);
+};
+
 export interface Heading {
   id: string;
   text: string;

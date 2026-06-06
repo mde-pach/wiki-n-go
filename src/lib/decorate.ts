@@ -10,7 +10,26 @@ export async function decorate(root: HTMLElement, ctx: DecorateContext): Promise
   attachCiteTooltips(root);
   attachPagePreviews(root);
   await markRedLinks(root);
+  void renderMermaid(root);
   document.dispatchEvent(new CustomEvent("wiki:rendered"));
+}
+
+// Lazy-render ```mermaid blocks. Mermaid is heavy and only some pages use it, so
+// it's a dynamic import loaded on demand — never in the base bundle. Diagram
+// source is user content, so render under the strict (sanitizing) security level.
+export async function renderMermaid(root: HTMLElement): Promise<void> {
+  const blocks = root.querySelectorAll<HTMLElement>(
+    "pre.mermaid:not([data-processed])",
+  );
+  if (blocks.length === 0) return;
+  const { default: mermaid } = await import("mermaid");
+  const dark = document.documentElement.dataset.theme === "dark";
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "strict",
+    theme: dark ? "dark" : "default",
+  });
+  await mermaid.run({ nodes: Array.from(blocks), suppressErrors: true });
 }
 
 // Append a per-section `edit` link to each heading → opens the editor scoped

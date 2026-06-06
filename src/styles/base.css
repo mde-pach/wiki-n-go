@@ -335,6 +335,21 @@ hr {
   padding: 0;
   font-size: 0.82em;
 }
+/* Mermaid: code-box placeholder until rendered, then a centered diagram. */
+.prose pre.mermaid {
+  text-align: center;
+}
+.prose pre.mermaid[data-processed] {
+  background: none;
+  border: none;
+  padding: 0;
+}
+/* Override the 1em icon fallback above; mermaid caps width via its own inline
+   max-width, so fill the column up to that and scale height to match. */
+.prose pre.mermaid svg {
+  width: 100%;
+  height: auto;
+}
 
 /* Figures / image placeholders */
 .figure {
