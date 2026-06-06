@@ -1,6 +1,7 @@
 ---
 hatnote: This is the project home page. For setup steps, see Getting started.
 protection: auto
+translationKey: index
 tags:
   - Reference
   - Wiki software

@@ -33,6 +33,7 @@ export const GET: APIRoute = () => {
       title: title || prettify(slug),
       out: extractLinks(raw),
       redirect: meta.redirect ? slugifyPath(meta.redirect) : undefined,
+      translationKey: meta.translationKey,
     };
   });
   return new Response(JSON.stringify(computeGraph(nodes, config.homeSlug)), {

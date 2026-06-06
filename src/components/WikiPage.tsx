@@ -4,7 +4,7 @@ import { decorate as decorateArticle } from "../lib/decorate";
 import type { PageMeta } from "../lib/frontmatter";
 import { pageSet } from "../lib/manifest";
 import { emphasizeLeadHtml, renderMarkdown, splitTitle } from "../lib/markdown";
-import { BASE, prettify, readHref, slugFromLocation } from "../lib/paths";
+import { BASE, langOf, prettify, readHref, slugFromLocation } from "../lib/paths";
 import { errMessage } from "../lib/util";
 import { markRedLinksHtml } from "../lib/wikilink";
 import { Icons } from "./Icons";
@@ -29,7 +29,7 @@ export default function WikiPage(props: {
   async function renderResolved(raw: string) {
     const { title, body, meta } = splitTitle(raw);
     const html = emphasizeLeadHtml(
-      markRedLinksHtml(renderMarkdown(body), await pageSet()),
+      markRedLinksHtml(renderMarkdown(body), await pageSet(), langOf(slug())),
       title,
     );
     return { title, html, meta };

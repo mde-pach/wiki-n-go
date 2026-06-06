@@ -1,5 +1,5 @@
 import { pageSet } from "./manifest";
-import { BASE } from "./paths";
+import { BASE, langOf, resolveWikiSlug } from "./paths";
 import { attachPagePreviews } from "./previews";
 
 export type DecorateContext = { slug: string };
@@ -9,7 +9,7 @@ export async function decorate(root: HTMLElement, ctx: DecorateContext): Promise
   makeSectionsCollapsible(root);
   attachCiteTooltips(root);
   attachPagePreviews(root);
-  await markRedLinks(root);
+  await markRedLinks(root, langOf(ctx.slug));
   void renderMermaid(root);
   document.dispatchEvent(new CustomEvent("wiki:rendered"));
 }
@@ -143,15 +143,17 @@ export function attachCiteTooltips(root: HTMLElement): void {
   tip.addEventListener("mouseleave", scheduleHide);
 }
 
-export async function markRedLinks(root: HTMLElement): Promise<void> {
+export async function markRedLinks(root: HTMLElement, lang: string): Promise<void> {
   const links = root.querySelectorAll<HTMLAnchorElement>("a.wikilink[data-slug]");
   if (links.length === 0) return;
   const pages = await pageSet();
   for (const a of links) {
-    const slug = a.dataset.slug;
-    if (slug && !pages.has(slug)) {
-      a.classList.add("is-red");
-      a.title = "Page does not exist yet — click to create";
-    }
+    const base = a.dataset.slug;
+    if (!base) continue;
+    const { slug, red } = resolveWikiSlug(base, pages, lang);
+    a.setAttribute("href", `${BASE}/${slug}`);
+    a.classList.toggle("is-red", red);
+    if (red) a.title = "Page does not exist yet — click to create";
+    else a.removeAttribute("title");
   }
 }

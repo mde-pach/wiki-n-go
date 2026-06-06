@@ -5,7 +5,8 @@ export const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 export type View = "read" | "edit" | "history" | "talk";
 
 export function readHref(slug: string): string {
-  return `${BASE}/${slug === config.homeSlug ? "" : slug}`;
+  if (slug === config.homeSlug) return `${BASE}/`;
+  return `${BASE}/${isLangHome(slug) ?? slug}`;
 }
 
 // Non-default language codes are the reserved slug prefixes (M8): the default
@@ -18,6 +19,39 @@ const PREFIX_LANGS = new Set(
 export function langOf(slug: string): string {
   const seg = slug.split("/")[0];
   return PREFIX_LANGS.has(seg) ? seg : config.defaultLang;
+}
+
+// `<lang>/index` is that language's home, served at `/<lang>` (mirrors the
+// default home at `/`). Returns the language code, or null if not a lang home.
+export function isLangHome(slug: string): string | null {
+  const parts = slug.split("/");
+  return parts.length === 2 && parts[1] === "index" && PREFIX_LANGS.has(parts[0])
+    ? parts[0]
+    : null;
+}
+
+// Map a read-route param to its content slug: `/` → home, `/<lang>` → that
+// language's home (`<lang>/index`), everything else verbatim.
+export function contentSlugForRoute(routeSlug: string | undefined): string {
+  if (!routeSlug) return config.homeSlug;
+  return PREFIX_LANGS.has(routeSlug) ? `${routeSlug}/index` : routeSlug;
+}
+
+// Resolve a wikilink target for the *reading* language (M8). On a non-default
+// page, prefer the same-language article; fall back to the default-language one;
+// otherwise it's a red link to create in the reading language.
+export function resolveWikiSlug(
+  base: string,
+  exists: Set<string>,
+  lang: string,
+): { slug: string; red: boolean } {
+  if (lang !== config.defaultLang) {
+    const local = `${lang}/${base}`;
+    if (exists.has(local)) return { slug: local, red: false };
+    if (exists.has(base)) return { slug: base, red: false };
+    return { slug: local, red: true };
+  }
+  return { slug: base, red: !exists.has(base) };
 }
 
 // Title-case the last path segment for display, e.g. `guides/getting-started`
@@ -77,7 +111,7 @@ export function parseRoute(): {
       };
     }
   }
-  return { view: "read", slug: path || config.homeSlug };
+  return { view: "read", slug: contentSlugForRoute(path || undefined) };
 }
 
 export function slugFromLocation(): string {

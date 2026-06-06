@@ -66,7 +66,9 @@ function nodeFromRaw(slug: string, raw: string) {
   const meta = frontmatter(raw);
   const redirect =
     typeof meta.redirect === "string" ? slugifyTarget(meta.redirect) : undefined;
-  return buildNode(slug, raw, redirect);
+  const translationKey =
+    typeof meta.translationKey === "string" ? meta.translationKey : undefined;
+  return buildNode(slug, raw, redirect, translationKey);
 }
 
 // Patch one page's entry after a direct commit — no refetch, the content is in

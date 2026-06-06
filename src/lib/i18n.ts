@@ -43,3 +43,19 @@ export function translations(slug: string): LangLink[] {
     })
     .sort((a, b) => order.indexOf(a.lang) - order.indexOf(b.lang));
 }
+
+// Build/SSR-only: a page's translation group — its key and the slugs sharing it
+// (including itself) — or null when the page isn't marked translatable. Seeds the
+// switcher island, which reconciles against the live Worker index on the client.
+export function translationGroup(
+  slug: string,
+): { key: string; slugs: string[] } | null {
+  const mine = keyedSlugs().find((p) => p.slug === slug);
+  if (!mine) return null;
+  return {
+    key: mine.key,
+    slugs: keyedSlugs()
+      .filter((p) => p.key === mine.key)
+      .map((p) => p.slug),
+  };
+}

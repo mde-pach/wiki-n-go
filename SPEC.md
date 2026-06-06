@@ -342,7 +342,7 @@ Read-time reports + git-native operations (see `FEATURES.md` §§O–P):
       the editor reads "Creating" vs "Editing" for pages that don't exist yet. Linked from Special pages.
       TODO: merge/split, drafts.
 
-### M8 — Interlanguage (multilingual articles) 🟡
+### M8 — Interlanguage (multilingual articles) ✅
 Wikipedia-style "N languages" switcher — the **same article in several
 languages**, all hosted in our repo (distinct from interwiki links *out* to
 Wikipedia, `FEATURES.md` S5/W3). A translation is **a fully independent page**
@@ -374,10 +374,15 @@ page identity. URL shape and the linking mechanism are **independent choices**.
   resolve until someone creates the default version; the group still forms from
   whoever shares the key, and the absent default surfaces as a "translate this page"
   affordance (P2). This is *why* the link is a symmetric key, not a pointer to a canonical page.
-- [ ] ⬜ Live grouping in the Worker index (v1 groups at build time only); per-language
-  home pages (`/fr` → `fr/index`) — default home `/` unchanged.
-- [ ] ⬜ v1 keeps **wikilinks language-agnostic** (link by slug as today); a
-  language-aware resolver and a "translate this page" create-flow are follow-ons (P2).
+- [x] ✅ **v2 shipped** — **language-aware wikilinks** (`resolveWikiSlug`: a French
+  page's `[[Café]]` → `fr/cafe`, else the default article, else a red link to create
+  it in French; resolved at build + reconciled client-side); **per-language home**
+  (`/fr` → `content/fr/index.md`); **live grouping** (`translationKey` now in the
+  Worker index → `LinkGraph.translations`, so the switcher — a `LangBar` island —
+  reflects translations created with no rebuild); **"translate this page"** (missing
+  configured languages show a create link that seeds `translationKey` in the editor).
+- [ ] ⬜ Future polish (P2): localized create-slug picker (v2 seeds `<lang>/<key>`,
+  rename via move); `@mention`-style language badges; existence-checked interwiki (S5).
 
 ---
 

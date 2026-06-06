@@ -8,7 +8,15 @@ import { config } from "../config";
 import PageShell from "../layouts/PageShell.astro";
 import { emphasizeLeadHtml, parsePage } from "../lib/markdown";
 import { contentSlugs, rawPage } from "../lib/pages";
-import { BASE, prettify, readHref, slugifyPath } from "../lib/paths";
+import {
+  BASE,
+  contentSlugForRoute,
+  isLangHome,
+  langOf,
+  prettify,
+  readHref,
+  slugifyPath,
+} from "../lib/paths";
 import { markRedLinksHtml } from "../lib/wikilink";
 
 export function getStaticPaths() {
@@ -16,18 +24,18 @@ export function getStaticPaths() {
     { params: { slug: undefined } },
     ...contentSlugs()
       .filter((s) => s !== config.homeSlug)
-      .map((s) => ({ params: { slug: s } })),
+      .map((s) => ({ params: { slug: isLangHome(s) ?? s } })),
   ];
 }
 
 const { slug } = Astro.params;
-const pageSlug = slug ?? config.homeSlug;
+const pageSlug = contentSlugForRoute(slug);
 
 const raw = rawPage(pageSlug);
 const parsed = raw ? parsePage(raw) : null;
 const html = parsed
   ? emphasizeLeadHtml(
-      markRedLinksHtml(parsed.html, new Set(contentSlugs())),
+      markRedLinksHtml(parsed.html, new Set(contentSlugs()), langOf(pageSlug)),
       parsed.title,
     )
   : undefined;

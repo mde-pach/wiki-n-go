@@ -1,5 +1,5 @@
 import type MarkdownIt from "markdown-it";
-import { BASE, slugifyPath } from "./paths";
+import { BASE, resolveWikiSlug, slugifyPath } from "./paths";
 
 // `[[Target]]` / `[[Target|Label]]` → internal link carrying a data-slug, which
 // the reader uses to flag red links (pages that don't exist yet).
@@ -59,17 +59,22 @@ function interwiki(target: string): { href: string; title: string } | null {
   };
 }
 
-// Build-time pass: flag wikilinks whose target page doesn't exist so they paint
-// red on first load instead of flashing blue until the client manifest arrives.
-export function markRedLinksHtml(html: string, exists: Set<string>): string {
+// Build-time pass: resolve each wikilink for the reading language and flag the
+// ones whose target is missing, so links paint with the right href and red state
+// on first load instead of flashing until the client manifest arrives. `data-slug`
+// stays the raw base so the client can re-resolve against the live manifest.
+export function markRedLinksHtml(
+  html: string,
+  exists: Set<string>,
+  lang: string,
+): string {
   return html.replace(
     /<a href="[^"]*" class="wikilink" data-slug="([^"]+)">/g,
-    (whole, slug) =>
-      exists.has(slug)
-        ? whole
-        : whole.replace(
-            'class="wikilink"',
-            'class="wikilink is-red" title="Page does not exist yet — click to create"',
-          ),
+    (_whole, base) => {
+      const { slug, red } = resolveWikiSlug(base, exists, lang);
+      const cls = red ? "wikilink is-red" : "wikilink";
+      const title = red ? ' title="Page does not exist yet — click to create"' : "";
+      return `<a href="${BASE}/${slug}" class="${cls}" data-slug="${base}"${title}>`;
+    },
   );
 }

@@ -536,6 +536,23 @@
   font-weight: 700;
   color: var(--color-accent);
 }
+.langbar-menu a.is-missing {
+  color: var(--color-ink-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+.langbar-add {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-redlink);
+  border: var(--border-w) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+}
 
 .tabbar {
   display: flex;

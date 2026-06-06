@@ -97,10 +97,27 @@ describe("wikilink", () => {
 describe("markRedLinksHtml", () => {
   it("marks links whose target is missing and leaves existing ones blue", () => {
     const html = md.render("[[getting-started]] and [[Ghost Page]]");
-    const out = markRedLinksHtml(html, new Set(["getting-started"]));
+    const out = markRedLinksHtml(html, new Set(["getting-started"]), "en");
     expect(out).toContain('class="wikilink" data-slug="getting-started"');
     expect(out).toContain('class="wikilink is-red"');
     expect(out).toContain('data-slug="ghost-page"');
+  });
+
+  it("resolves wikilinks to the reading language (M8)", () => {
+    const html = md.render("[[coffee]] and [[tea]]");
+    const exists = new Set(["coffee", "fr/coffee"]);
+    const out = markRedLinksHtml(html, exists, "fr");
+    // fr/coffee exists → link there; data-slug stays the base for client re-resolve
+    expect(out).toContain('href="/fr/coffee" class="wikilink" data-slug="coffee"');
+    // no fr/tea and no default tea → red link to create it in French
+    expect(out).toContain('href="/fr/tea" class="wikilink is-red" data-slug="tea"');
+  });
+
+  it("falls back to the default-language article when no localized one exists", () => {
+    const html = md.render("[[coffee]]");
+    const out = markRedLinksHtml(html, new Set(["coffee"]), "fr");
+    expect(out).toContain('href="/coffee" class="wikilink" data-slug="coffee"');
+    expect(out).not.toContain("is-red");
   });
 });
 

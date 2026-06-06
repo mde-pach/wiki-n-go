@@ -7,6 +7,7 @@ export interface PageNode {
   title: string;
   out: string[]; // outgoing internal-link target slugs (deduped)
   redirect?: string; // target slug if this page is a redirect
+  translationKey?: string; // shared id grouping this page's translations (M8)
 }
 
 export interface WantedPage {
@@ -28,6 +29,7 @@ export interface LinkGraph {
   orphans: string[]; // existing pages nothing links to (home excluded)
   deadends: string[]; // existing pages with no outgoing internal links
   redirects: Redirect[]; // all redirects, flagged broken/double
+  translations: Record<string, string[]>; // translationKey -> sibling slugs (M8)
 }
 
 // Invert the page→links map into the reports the special pages need. Pure, so
@@ -73,7 +75,15 @@ export function computeGraph(nodes: PageNode[], homeSlug: string): LinkGraph {
     }))
     .sort((a, b) => a.from.localeCompare(b.from));
 
-  return { titles, backlinks, wanted, orphans, deadends, redirects };
+  const translations: Record<string, string[]> = {};
+  for (const n of nodes) {
+    const k = n.translationKey;
+    if (!k) continue;
+    if (!translations[k]) translations[k] = [];
+    translations[k].push(n.slug);
+  }
+
+  return { titles, backlinks, wanted, orphans, deadends, redirects, translations };
 }
 
 export interface GraphStats {

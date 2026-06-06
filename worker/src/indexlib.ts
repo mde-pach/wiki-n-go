@@ -6,6 +6,7 @@ export interface IndexNode {
   title: string;
   out: string[]; // outgoing internal-link target slugs
   redirect?: string; // target slug if this page is a redirect
+  translationKey?: string; // shared id grouping this page's translations (M8)
   text: string; // plain-text body for search
 }
 export type IndexMap = Record<string, IndexNode>;
@@ -15,6 +16,7 @@ export interface PageNode {
   title: string;
   out: string[];
   redirect?: string;
+  translationKey?: string;
 }
 export interface WantedPage {
   slug: string;
@@ -33,6 +35,7 @@ export interface LinkGraph {
   orphans: string[];
   deadends: string[];
   redirects: Redirect[];
+  translations: Record<string, string[]>; // translationKey -> sibling slugs (M8)
 }
 
 export function slugifyTarget(s: string): string {
@@ -78,15 +81,21 @@ export function toPlainText(md: string): string {
     .trim();
 }
 
-// Build one page's index entry from its raw markdown. `redirect` is resolved by
-// the caller (which has the parsed frontmatter).
-export function buildNode(slug: string, raw: string, redirect?: string): IndexNode {
+// Build one page's index entry from its raw markdown. `redirect` and
+// `translationKey` are resolved by the caller (which has the parsed frontmatter).
+export function buildNode(
+  slug: string,
+  raw: string,
+  redirect?: string,
+  translationKey?: string,
+): IndexNode {
   const body = raw.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "");
   const m = body.match(/^#\s+(.+?)\s*$/m);
   return {
     title: m ? m[1].trim() : prettify(slug),
     out: extractLinks(body),
     redirect: redirect || undefined,
+    translationKey: translationKey || undefined,
     text: toPlainText(body),
   };
 }
@@ -130,7 +139,15 @@ export function computeGraph(nodes: PageNode[], homeSlug: string): LinkGraph {
     }))
     .sort((a, b) => a.from.localeCompare(b.from));
 
-  return { titles, backlinks, wanted, orphans, deadends, redirects };
+  const translations: Record<string, string[]> = {};
+  for (const n of nodes) {
+    const k = n.translationKey;
+    if (!k) continue;
+    if (!translations[k]) translations[k] = [];
+    translations[k].push(n.slug);
+  }
+
+  return { titles, backlinks, wanted, orphans, deadends, redirects, translations };
 }
 
 // Project the stored map into the two response shapes.
@@ -140,6 +157,7 @@ export function graphFromMap(map: IndexMap, homeSlug: string): LinkGraph {
     title: n.title,
     out: n.out,
     redirect: n.redirect,
+    translationKey: n.translationKey,
   }));
   return computeGraph(nodes, homeSlug);
 }

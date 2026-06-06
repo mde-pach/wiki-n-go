@@ -2,6 +2,7 @@
 import "../styles/app.css";
 import { ClientRouter } from "astro:transitions";
 import AuthButton from "../components/AuthButton.tsx";
+import LangBar from "../components/LangBar.tsx";
 import MainMenu from "../components/MainMenu.tsx";
 import PageMeta from "../components/PageMeta.tsx";
 import PatrolMeta from "../components/PatrolMeta.tsx";
@@ -10,7 +11,7 @@ import ThemeBoot from "../components/ThemeBoot.astro";
 import TokenCapture from "../components/TokenCapture.astro";
 import { config } from "../config";
 import { gitRevisions } from "../lib/git";
-import { translations } from "../lib/i18n";
+import { translationGroup, translations } from "../lib/i18n";
 import {
   adminHref,
   BASE,
@@ -52,8 +53,8 @@ const source = `${config.contentDir}/${slug}.md`;
 const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blob/${config.branch}/${source}`;
 
 const pageLang = langOf(slug);
-const langs = translations(slug);
-const alternates = langs.filter((l) => !l.current);
+const group = translationGroup(slug);
+const alternates = translations(slug).filter((l) => !l.current);
 ---
 
 <!doctype html>
@@ -95,29 +96,13 @@ const alternates = langs.filter((l) => !l.current);
           <div class="page-head-top">
             <h1 class="page-title">{display}</h1>
             {
-              langs.length > 1 && (
-                <details class="langbar">
-                  <summary class="langbar-toggle">
-                    <svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6">
-                      <circle cx="10" cy="10" r="7.5" />
-                      <path d="M2.5 10h15M10 2.5c2.5 2.4 2.5 12.6 0 15M10 2.5c-2.5 2.4-2.5 12.6 0 15" />
-                    </svg>
-                    <span>{langs.length} languages</span>
-                  </summary>
-                  <ul class="langbar-menu">
-                    {langs.map((l) => (
-                      <li>
-                        <a
-                          href={readHref(l.slug)}
-                          lang={l.lang}
-                          aria-current={l.current ? "page" : undefined}
-                        >
-                          {l.name}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </details>
+              group && (
+                <LangBar
+                  slug={slug}
+                  translationKey={group.key}
+                  initialSiblings={group.slugs}
+                  client:load
+                />
               )
             }
           </div>

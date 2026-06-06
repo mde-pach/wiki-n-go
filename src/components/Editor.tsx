@@ -70,12 +70,21 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   });
 
   // A new page reached with `?template=` (from the create wizard) starts from a
-  // scaffold rather than blank; a restored draft still wins over this.
+  // scaffold rather than blank; `?translationKey=` (from the language switcher's
+  // "translate this page") seeds the key so the page joins its group on save.
+  // A restored draft still wins over both.
   function seedTemplate() {
     if (isServer) return;
-    const id = new URLSearchParams(window.location.search).get("template");
-    if (!id) return;
-    applyDocument(templateById(id).build(prettify(slug())));
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("template");
+    const tkey = params.get("translationKey");
+    if (!id && !tkey) return;
+    let doc = id ? templateById(id).build(prettify(slug())) : content();
+    if (tkey) {
+      const { data, body } = splitFrontmatter(doc);
+      doc = withFrontmatter({ ...data, translationKey: tkey }, body);
+    }
+    applyDocument(doc);
   }
 
   function restoreDraft() {
