@@ -391,6 +391,14 @@
   padding: 1px 6px;
   border-radius: var(--radius-pill);
 }
+.rev-permalink {
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  color: var(--color-ink-subtle);
+}
+.rev-permalink:hover {
+  color: var(--color-accent);
+}
 .rev-tag.tag-current {
   background: var(--color-add-bg);
   color: var(--color-add-ink);
@@ -1123,4 +1131,9 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--color-ink);
+}
+.sp-info-links {
+  margin-top: 1.1rem;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
 }

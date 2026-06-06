@@ -1,10 +1,12 @@
 import { createMemo, createResource, createSignal, For, Show } from "solid-js";
 import { isServer } from "solid-js/web";
+import { config } from "../config";
 import { getLinkGraph, graphStats, mostLinked } from "../lib/linkgraph";
 import { BASE, readHref } from "../lib/paths";
 
 type Tab =
   | "backlinks"
+  | "pageinfo"
   | "wanted"
   | "orphaned"
   | "deadend"
@@ -14,6 +16,7 @@ type Tab =
   | "stats";
 const TABS: { id: Tab; label: string }[] = [
   { id: "backlinks", label: "What links here" },
+  { id: "pageinfo", label: "Page info" },
   { id: "allpages", label: "All pages" },
   { id: "mostlinked", label: "Most linked" },
   { id: "wanted", label: "Wanted pages" },
@@ -119,6 +122,67 @@ export default function Special() {
                     </For>
                   </ul>
                 </Show>
+              </Show>
+            </Show>
+
+            <Show when={tab() === "pageinfo"}>
+              <div class="sp-picker">
+                <label for="sp-info">Page</label>
+                <select
+                  id="sp-info"
+                  class="input"
+                  value={page()}
+                  onChange={(e) => setPage(e.currentTarget.value)}
+                >
+                  <option value="">Choose a page…</option>
+                  <For each={slugs()}>
+                    {(s) => <option value={s}>{title(s)}</option>}
+                  </For>
+                </select>
+              </div>
+              <Show
+                when={page() && g().titles[page()] !== undefined}
+                fallback={<p class="wiki-status">Pick a page to see its details.</p>}
+              >
+                <dl class="sp-stats">
+                  <div>
+                    <dt>Title</dt>
+                    <dd>{title(page())}</dd>
+                  </div>
+                  <div>
+                    <dt>Slug</dt>
+                    <dd class="mono">{page()}</dd>
+                  </div>
+                  <div>
+                    <dt>Links here</dt>
+                    <dd>{g().backlinks[page()]?.length ?? 0}</dd>
+                  </div>
+                  <div>
+                    <dt>Redirects here</dt>
+                    <dd>{g().redirects.filter((r) => r.to === page()).length}</dd>
+                  </div>
+                  <Show when={g().redirects.find((r) => r.from === page())}>
+                    {(r) => (
+                      <div>
+                        <dt>Redirects to</dt>
+                        <dd>
+                          <a href={readHref(r().to)}>{title(r().to)}</a>
+                        </dd>
+                      </div>
+                    )}
+                  </Show>
+                </dl>
+                <p class="sp-info-links">
+                  <a href={readHref(page())}>Read</a> ·{" "}
+                  <a href={`${BASE}/history/${page()}`}>History</a> ·{" "}
+                  <a
+                    href={`https://github.com/${config.repoOwner}/${config.repoName}/blob/${config.branch}/${config.contentDir}/${page()}.md`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Source on GitHub
+                  </a>
+                </p>
               </Show>
             </Show>
 

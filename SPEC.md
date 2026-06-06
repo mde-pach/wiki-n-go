@@ -300,13 +300,15 @@ Read-time reports + git-native operations (see `FEATURES.md` §§O–P):
       Worker** (`/link-graph`, `/search-index`): a per-slug KV index maintained *incrementally* on each
       direct edit (full rebuild only on a cache miss), so it's fresh with no site rebuild; the app prefers
       the Worker and falls back to the static `*.json`.
-- [x] ✅ Special pages at `/special`: WhatLinksHere · Wanted · Orphaned · Dead-end · **Redirects
-      (broken/double)** · AllPages · MostLinked · Statistics · Random. (RecentChanges lives at `/changes`;
-      PageInfo ⬜.)
+- [x] ✅ Special pages at `/special`: WhatLinksHere · **PageInfo** · Wanted · Orphaned · Dead-end ·
+      **Redirects (broken/double)** · AllPages · MostLinked · Statistics · Random. (RecentChanges lives
+      at `/changes`.)
 - [x] ✅ **Redirects**: `redirect:` frontmatter bounces the reader (`#REDIRECT`) with a "Redirected from"
       note + `?redirect=no` escape; broken/double redirects flagged from the graph. TODO: move/rename
       (`git mv` + redirect stub), merge/split, drafts, creation wizard.
-- [ ] ⬜ Short descriptions; permalink-by-SHA (`/page@<sha>`); **Citoid-style auto-cite** (URL/DOI/ISBN).
+- [x] ✅ **Short descriptions** (`description:` frontmatter → `<meta description>`, hover-preview text)
+      and **permalink-by-revision** (`?rev=<sha>` renders the page from jsDelivr@sha with an
+      "old revision" banner; History rows link to it). TODO: **Citoid-style auto-cite** (URL/DOI/ISBN).
 
 ---
 

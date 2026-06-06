@@ -34,7 +34,11 @@ export function cdnUrl(sha: string, slug: string): string {
 }
 
 export async function fetchMarkdown(slug: string): Promise<string> {
-  const sha = await resolveLatestSha();
+  return fetchMarkdownAt(slug, await resolveLatestSha());
+}
+
+// Fetch a page pinned to a specific commit SHA (permalink to a revision).
+export async function fetchMarkdownAt(slug: string, sha: string): Promise<string> {
   const res = await fetch(cdnUrl(sha, slug));
   if (res.status === 404) throw new PageNotFoundError(slug);
   if (!res.ok) throw new Error(`Failed to fetch content (HTTP ${res.status}).`);

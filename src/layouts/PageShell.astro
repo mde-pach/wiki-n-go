@@ -21,8 +21,9 @@ interface Props {
   view: View;
   title?: string;
   categories?: string[];
+  description?: string;
 }
-const { slug, view, title, categories } = Astro.props;
+const { slug, view, title, categories, description } = Astro.props;
 
 const revisions = gitRevisions(slug);
 const read = readHref(slug);
@@ -50,6 +51,7 @@ const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blo
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
+    {description && <meta name="description" content={description} />}
     <title>{display} · wiki-n-go</title>
     <script is:inline>
       (() => {

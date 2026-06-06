@@ -39,7 +39,7 @@ const redirectUrl =
     : null;
 ---
 
-<PageShell slug={pageSlug} view="read" title={parsed?.title || prettify(pageSlug)} categories={parsed?.meta?.tags}>
+<PageShell slug={pageSlug} view="read" title={parsed?.title || prettify(pageSlug)} categories={parsed?.meta?.tags} description={parsed?.meta?.description}>
   {
     redirectUrl && (
       <script

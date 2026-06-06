@@ -1,9 +1,14 @@
 import { createSignal, onMount, Show } from "solid-js";
-import { fetchMarkdown, PageNotFoundError, renderMarkdown } from "../lib/content";
+import {
+  fetchMarkdown,
+  fetchMarkdownAt,
+  PageNotFoundError,
+  renderMarkdown,
+} from "../lib/content";
 import type { PageMeta } from "../lib/frontmatter";
 import { pageSet } from "../lib/manifest";
 import { emphasizeLeadHtml, splitTitle } from "../lib/markdown";
-import { BASE, prettify } from "../lib/paths";
+import { BASE, prettify, readHref } from "../lib/paths";
 import { attachPagePreviews } from "../lib/previews";
 import { slugFromLocation } from "../lib/slug";
 import { errMessage } from "../lib/util";
@@ -21,7 +26,25 @@ export default function WikiPage(props: {
   const [notFound, setNotFound] = createSignal(false);
   const [err, setErr] = createSignal<string>();
   const [redirectedFrom, setRedirectedFrom] = createSignal<string>();
+  const [revOf, setRevOf] = createSignal<string>();
   let body: HTMLDivElement | undefined;
+
+  // Render this page pinned to a historic commit (permalink to a revision).
+  async function showRevision(rev: string) {
+    try {
+      const {
+        title,
+        body: b,
+        meta: fresh,
+      } = splitTitle(await fetchMarkdownAt(slug(), rev));
+      setMeta(fresh);
+      setHtml(emphasizeLeadHtml(renderMarkdown(b), title));
+      setRevOf(rev);
+      queueMicrotask(decorate);
+    } catch (e) {
+      setErr(errMessage(e));
+    }
+  }
 
   async function decorate() {
     if (!body) return;
@@ -34,10 +57,11 @@ export default function WikiPage(props: {
   }
 
   onMount(async () => {
-    setRedirectedFrom(
-      new URLSearchParams(window.location.search).get("redirectedfrom") ?? undefined,
-    );
+    const params = new URLSearchParams(window.location.search);
+    setRedirectedFrom(params.get("redirectedfrom") ?? undefined);
     if (html()) decorate(); // server-rendered content: build the TOC + red links now
+    const rev = params.get("rev");
+    if (rev) return showRevision(rev); // historical view; skip the latest fetch
     try {
       const raw = await fetchMarkdown(slug());
       if (raw === props.initialRaw) return; // unchanged since build → keep SSR content (no shift)
@@ -69,6 +93,18 @@ export default function WikiPage(props: {
           </div>
         }
       >
+        <Show when={revOf()}>
+          {(rev) => (
+            <div class="notice notice-warn">
+              <Icons.Info />
+              <span>
+                You're viewing an old revision (as of{" "}
+                <span class="mono">{rev().slice(0, 7)}</span>
+                ). <a href={readHref(slug())}>View the current version</a>.
+              </span>
+            </div>
+          )}
+        </Show>
         <Show when={redirectedFrom()}>
           {(from) => (
             <div class="redirect-note">

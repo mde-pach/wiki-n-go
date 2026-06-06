@@ -14,8 +14,12 @@ function load(slug: string): Promise<Card> {
   if (!p) {
     p = fetchMarkdown(slug)
       .then((raw): Card => {
-        const { title, body } = splitTitle(raw);
-        return { kind: "page", title: title || prettify(slug), snippet: excerpt(body) };
+        const { title, body, meta } = splitTitle(raw);
+        return {
+          kind: "page",
+          title: title || prettify(slug),
+          snippet: meta.description?.trim() || excerpt(body),
+        };
       })
       .catch((e): Card => {
         if (e instanceof PageNotFoundError) return { kind: "missing" };

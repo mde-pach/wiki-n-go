@@ -3,6 +3,7 @@ import { isServer } from "solid-js/web";
 import { config } from "../config";
 import { type DLine, parseDiff } from "../lib/diff";
 import { getDiff, getHistory, type Revision } from "../lib/history";
+import { readHref } from "../lib/paths";
 import { slugFromLocation } from "../lib/slug";
 import { errMessage } from "../lib/util";
 import DiffView from "./DiffView";
@@ -93,6 +94,9 @@ export default function History(props: { slug?: string }) {
                     <Show when={i() === 0}>
                       <span class="rev-tag tag-current">current</span>
                     </Show>
+                    <a class="rev-permalink" href={`${readHref(slug())}?rev=${r.sha}`}>
+                      permalink
+                    </a>
                   </div>
                   <div class="rev-summary">{r.message}</div>
                 </div>
