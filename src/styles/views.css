@@ -651,6 +651,12 @@ a.dh-rev:hover {
   overflow: hidden;
   animation: pop-in 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
+.modal-wide {
+  max-width: 960px;
+}
+.modal-body .diff-card {
+  margin-bottom: 0;
+}
 .modal-head {
   display: flex;
   align-items: flex-start;
