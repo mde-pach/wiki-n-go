@@ -15,7 +15,4 @@ export const config = {
   workerUrl:
     env.PUBLIC_WORKER_URL || "https://wiki-n-go.maxime-depachtere-80f.workers.dev",
   turnstileSiteKey: env.PUBLIC_TURNSTILE_SITE_KEY || "0x4AAAAAADe7QjsOFAA6Fc8O",
-  // Enabled once a GitHub OAuth App is wired (Worker has OAUTH_CLIENT_ID /
-  // OAUTH_CLIENT_SECRET / SESSION_SECRET); set repo var OAUTH_ENABLED=true.
-  oauthEnabled: env.PUBLIC_OAUTH_ENABLED === "true",
 };

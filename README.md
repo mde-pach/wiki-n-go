@@ -67,13 +67,13 @@ wired:
    - **Homepage URL** — your site origin (e.g. `https://mde-pach.github.io`).
    - **Authorization callback URL** — `<workerUrl>/auth/callback` (your Worker's
      URL + `/auth/callback`).
-2. **Worker side:** add the repo **variable** `OAUTH_CLIENT_ID` (public) and the
-   repo **secret** `OAUTH_CLIENT_SECRET`, then **deploy the Worker** (run the
-   *Deploy Worker* action) so both take effect. No file edits —
-   `OAUTH_CLIENT_ID` is injected at deploy and `SESSION_SECRET` is auto-generated.
-3. **Site side:** set the repo **variable** `OAUTH_ENABLED=true`, then **trigger a
-   Pages rebuild** (re-run *Deploy to GitHub Pages*) so the **Sign in** button
-   appears. Until both sides are done, sign-in stays dark and editing is anonymous.
+2. Under **Settings → Secrets and variables → Actions** (repo level, *not* an
+   Environment), add the **variable** `OAUTH_CLIENT_ID` (public) and the
+   **secret** `OAUTH_CLIENT_SECRET`.
+3. Run the **Deploy Worker** action. That's it — `OAUTH_CLIENT_ID` is injected at
+   deploy, `SESSION_SECRET` is auto-generated, and the **Sign in** button appears
+   on its own (the site reads sign-in status from the Worker at runtime — no flag,
+   no rebuild). Until then, editing stays anonymous.
 
 The Worker only requests `read:user` and never stores a user token or email —
 commits are attributed via GitHub's public no-reply email, so no PII enters the

@@ -107,6 +107,7 @@ export default {
       "GET /changes": () => listChanges(env, q.get("limit") ?? ""),
       "GET /pending": () => listPending(env),
       "GET /pending-diff": () => pendingDiff(env, q.get("number") ?? ""),
+      "GET /auth/status": () => Promise.resolve({ enabled: oauthConfigured(env) }),
       "GET /auth/login": () => authLogin(env, url),
       "GET /auth/callback": () => authCallback(env, url),
       "POST /edit": async () =>

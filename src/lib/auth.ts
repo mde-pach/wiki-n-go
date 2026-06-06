@@ -27,6 +27,17 @@ function decode(token: string): SessionInfo | null {
   }
 }
 
+// Whether the Worker has GitHub sign-in configured — drives whether the button
+// shows, so enabling it needs only a Worker deploy (no site rebuild, no flag).
+export async function authEnabled(): Promise<boolean> {
+  try {
+    const res = await fetch(`${config.workerUrl}/auth/status`);
+    return res.ok && ((await res.json()) as { enabled?: boolean }).enabled === true;
+  } catch {
+    return false;
+  }
+}
+
 export function getSession(): SessionInfo | null {
   if (typeof window === "undefined") return null;
   const token = localStorage.getItem(KEY);

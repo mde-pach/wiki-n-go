@@ -36,7 +36,6 @@ jobs:
           PUBLIC_REPO_NAME: ${{ github.event.repository.name }}
           PUBLIC_WORKER_URL: ${{ vars.WORKER_URL }}
           PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
-          PUBLIC_OAUTH_ENABLED: ${{ vars.OAUTH_ENABLED }}
 
   deploy:
     needs: build
