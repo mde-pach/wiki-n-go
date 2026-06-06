@@ -75,6 +75,39 @@ export function computeGraph(nodes: PageNode[], homeSlug: string): LinkGraph {
   return { titles, backlinks, wanted, orphans, deadends, redirects };
 }
 
+export interface GraphStats {
+  pages: number; // content pages (redirects excluded)
+  redirects: number;
+  links: number; // internal links (resolved + wanted)
+  wanted: number;
+  orphans: number;
+  deadends: number;
+}
+
+export function graphStats(g: LinkGraph): GraphStats {
+  const redirects = g.redirects.length;
+  const resolved = Object.values(g.backlinks).reduce((n, a) => n + a.length, 0);
+  const wantedLinks = g.wanted.reduce((n, w) => n + w.by.length, 0);
+  return {
+    pages: Object.keys(g.titles).length - redirects,
+    redirects,
+    links: resolved + wantedLinks,
+    wanted: g.wanted.length,
+    orphans: g.orphans.length,
+    deadends: g.deadends.length,
+  };
+}
+
+export function mostLinked(
+  g: LinkGraph,
+  limit = 50,
+): { slug: string; count: number }[] {
+  return Object.keys(g.backlinks)
+    .map((slug) => ({ slug, count: g.backlinks[slug].length }))
+    .sort((a, b) => b.count - a.count || a.slug.localeCompare(b.slug))
+    .slice(0, limit);
+}
+
 let cache: Promise<LinkGraph | null> | undefined;
 
 // Prefer the Worker's live index (fresh on every edit, no rebuild); fall back to

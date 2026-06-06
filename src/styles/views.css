@@ -1093,3 +1093,34 @@
 .special-list .sp-double {
   color: var(--color-remove-ink);
 }
+.special-tabs .sp-random {
+  margin-left: auto;
+  color: var(--color-accent);
+}
+.sp-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.8rem 1.5rem;
+  margin: 0;
+  font-family: var(--font-ui);
+}
+.sp-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding-top: 0.5rem;
+  border-top: var(--border-w) solid var(--color-border);
+}
+.sp-stats dt {
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ink-subtle);
+}
+.sp-stats dd {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink);
+}

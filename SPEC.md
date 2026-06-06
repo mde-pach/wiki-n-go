@@ -294,11 +294,18 @@ The sysop console for the autonomous model (see `FEATURES.md` §N):
 - [ ] ⬜ **Oversight/suppression**: render-time redaction + owner-only hard-purge (history rewrite + CDN purge).
 - [ ] ⬜ New-Pages queue + Page-Curation-style reviewer overlay; deletion flow (CSD/PROD/AfD via PR policy).
 
-### M7 — Special pages & content lifecycle ⬜
+### M7 — Special pages & content lifecycle 🟡
 Read-time reports + git-native operations (see `FEATURES.md` §§O–P):
-- [ ] ⬜ **Link graph** (invert `[[links]]`+includes+tags) — keystone for WhatLinksHere/orphans/wanted/dead-end/redirects.
-- [ ] ⬜ Special pages: RecentChanges, Random, Stats, AllPages, PageInfo, double/broken redirects, MostLinked.
-- [ ] ⬜ Move/rename (`git mv` + redirect stub); redirects; merge/split; drafts; creation wizard.
+- [x] ✅ **Link graph** (invert `[[links]]` + tags) — built at build time **and served live by the
+      Worker** (`/link-graph`, `/search-index`): a per-slug KV index maintained *incrementally* on each
+      direct edit (full rebuild only on a cache miss), so it's fresh with no site rebuild; the app prefers
+      the Worker and falls back to the static `*.json`.
+- [x] ✅ Special pages at `/special`: WhatLinksHere · Wanted · Orphaned · Dead-end · **Redirects
+      (broken/double)** · AllPages · MostLinked · Statistics · Random. (RecentChanges lives at `/changes`;
+      PageInfo ⬜.)
+- [x] ✅ **Redirects**: `redirect:` frontmatter bounces the reader (`#REDIRECT`) with a "Redirected from"
+      note + `?redirect=no` escape; broken/double redirects flagged from the graph. TODO: move/rename
+      (`git mv` + redirect stub), merge/split, drafts, creation wizard.
 - [ ] ⬜ Short descriptions; permalink-by-SHA (`/page@<sha>`); **Citoid-style auto-cite** (URL/DOI/ISBN).
 
 ---
@@ -347,3 +354,4 @@ Read-time reports + git-native operations (see `FEATURES.md` §§O–P):
 | 2026-06-05 | Page protection = a `protection:` frontmatter field, not a central `protection.json` | Keeps the page URL stable, edits in-site like content, no glob upkeep; first of a per-field-permissioned **page-property** scheme |
 | 2026-06-05 | Trust tiers **derived from git history**, not a KV ledger or a merge webhook | Direct commits and merged PRs both land as commits by the pseudonym → one source of truth, PR-only contributors earn trust, no webhook/state to drift (KV is just a cache) |
 | 2026-06-05 | One worktree per session; enforced in CLAUDE.md | Parallel Claude sessions share the checkout and collided; isolate each on its own branch |
+| 2026-06-06 | Link graph + search index served **live by the Worker** (KV, patched per edit), not only a build-time file | The build-time `*.json` went stale on live edits; the Worker is the only writer, so it updates the index per commit (no rebuild). Static file kept as a no-Worker fallback |

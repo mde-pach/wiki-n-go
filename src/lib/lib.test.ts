@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { diffStats, parseDiff, splitDiff, wordDiff } from "./diff";
-import { computeGraph } from "./linkgraph";
+import { computeGraph, graphStats, mostLinked } from "./linkgraph";
 import { emphasizeLeadHtml, md, parsePage, splitTitle } from "./markdown";
 import { prettify, slugifyTarget } from "./paths";
 import { search, slugifyQuery, splitHighlight, toPlainText } from "./search";
@@ -207,6 +207,36 @@ describe("computeGraph", () => {
     // redirect pages (alias/hop/gone) are excluded from orphan/dead-end reports
     expect(r.orphans).toEqual(["lonely"]);
     expect(r.deadends).toEqual(["lonely", "real"]);
+  });
+});
+
+describe("graph reports (stats + most-linked)", () => {
+  const g = computeGraph(
+    [
+      { slug: "index", title: "Home", out: ["a", "b", "ghost"] },
+      { slug: "a", title: "A", out: ["b"] },
+      { slug: "b", title: "B", out: [] },
+      { slug: "alias", title: "Alias", out: [], redirect: "a" },
+    ],
+    "index",
+  );
+
+  it("graphStats counts pages, redirects, links and reports", () => {
+    expect(graphStats(g)).toEqual({
+      pages: 3, // index, a, b (alias is a redirect)
+      redirects: 1,
+      links: 4, // a←index, b←index, b←a (resolved) + ghost←index (wanted)
+      wanted: 1,
+      orphans: 0,
+      deadends: 1, // b
+    });
+  });
+
+  it("mostLinked ranks targets by incoming link count", () => {
+    expect(mostLinked(g)).toEqual([
+      { slug: "b", count: 2 },
+      { slug: "a", count: 1 },
+    ]);
   });
 });
 

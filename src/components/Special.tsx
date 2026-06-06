@@ -1,15 +1,26 @@
 import { createMemo, createResource, createSignal, For, Show } from "solid-js";
 import { isServer } from "solid-js/web";
-import { getLinkGraph } from "../lib/linkgraph";
+import { getLinkGraph, graphStats, mostLinked } from "../lib/linkgraph";
 import { BASE, readHref } from "../lib/paths";
 
-type Tab = "backlinks" | "wanted" | "orphaned" | "deadend" | "redirects";
+type Tab =
+  | "backlinks"
+  | "wanted"
+  | "orphaned"
+  | "deadend"
+  | "redirects"
+  | "allpages"
+  | "mostlinked"
+  | "stats";
 const TABS: { id: Tab; label: string }[] = [
   { id: "backlinks", label: "What links here" },
+  { id: "allpages", label: "All pages" },
+  { id: "mostlinked", label: "Most linked" },
   { id: "wanted", label: "Wanted pages" },
   { id: "orphaned", label: "Orphaned pages" },
   { id: "deadend", label: "Dead-end pages" },
   { id: "redirects", label: "Redirects" },
+  { id: "stats", label: "Statistics" },
 ];
 
 export default function Special() {
@@ -27,6 +38,17 @@ export default function Special() {
   });
   const title = (slug: string) => graph()?.titles[slug] ?? slug;
   const linksHere = () => graph()?.backlinks[page()] ?? [];
+  const redirectFroms = createMemo(
+    () => new Set(graph()?.redirects.map((r) => r.from) ?? []),
+  );
+
+  function randomPage() {
+    const g = graph();
+    if (!g) return;
+    const pages = Object.keys(g.titles).filter((s) => !redirectFroms().has(s));
+    if (pages.length)
+      window.location.href = readHref(pages[Math.floor(Math.random() * pages.length)]);
+  }
 
   return (
     <div class="special">
@@ -51,6 +73,9 @@ export default function Special() {
             </button>
           )}
         </For>
+        <button type="button" class="sp-tab sp-random" onClick={randomPage}>
+          Random page ↗
+        </button>
       </nav>
 
       <Show
@@ -163,12 +188,69 @@ export default function Special() {
                 </ul>
               </Show>
             </Show>
+
+            <Show when={tab() === "allpages"}>
+              <ul class="special-list">
+                <For each={slugs()}>
+                  {(s) => (
+                    <li>
+                      <a href={readHref(s)}>{title(s)}</a>
+                      <Show when={redirectFroms().has(s)}>
+                        <span class="sp-count">redirect</span>
+                      </Show>
+                    </li>
+                  )}
+                </For>
+              </ul>
+            </Show>
+
+            <Show when={tab() === "mostlinked"}>
+              <Show
+                when={mostLinked(g()).length > 0}
+                fallback={<p class="wiki-status">No internal links yet.</p>}
+              >
+                <ul class="special-list">
+                  <For each={mostLinked(g())}>
+                    {(m) => (
+                      <li>
+                        <a href={readHref(m.slug)}>{title(m.slug)}</a>
+                        <span class="sp-count">
+                          {m.count} {m.count === 1 ? "link" : "links"}
+                        </span>
+                      </li>
+                    )}
+                  </For>
+                </ul>
+              </Show>
+            </Show>
+
+            <Show when={tab() === "stats"}>
+              <dl class="sp-stats">
+                <For each={Object.entries(graphStats(g()))}>
+                  {([k, v]) => (
+                    <div>
+                      <dt>{STAT_LABELS[k] ?? k}</dt>
+                      <dd>{v}</dd>
+                    </div>
+                  )}
+                </For>
+              </dl>
+            </Show>
           </>
         )}
       </Show>
     </div>
   );
 }
+
+const STAT_LABELS: Record<string, string> = {
+  pages: "Content pages",
+  redirects: "Redirects",
+  links: "Internal links",
+  wanted: "Wanted (red links)",
+  orphans: "Orphaned pages",
+  deadends: "Dead-end pages",
+};
 
 function ReportList(props: {
   items: string[];
