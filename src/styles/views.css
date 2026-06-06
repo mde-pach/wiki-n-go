@@ -1116,3 +1116,88 @@ a.dh-rev:hover {
     display: none;
   }
 }
+
+/* ---- /setup wizard ------------------------------------------------------ */
+.setup {
+  max-width: 40rem;
+}
+.setup-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+.setup-lede,
+.setup-done {
+  color: var(--color-ink-muted);
+}
+.setup-done {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.setup-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 1rem 1.1rem;
+  border: var(--border-w) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+.setup-step-title {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+}
+.setup-step-sub {
+  margin: 0;
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+}
+.setup-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.setup-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+.setup-value {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: var(--border-w) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+  font-size: var(--text-sm);
+  word-break: break-all;
+}
+textarea.setup-value {
+  resize: vertical;
+  white-space: pre;
+  word-break: normal;
+  overflow-x: auto;
+}
+.setup-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--text-sm);
+}
+.setup-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  margin: 0;
+}
+.setup-alt {
+  margin-top: 0.2rem;
+  font-size: var(--text-sm);
+}
+.setup-alt summary {
+  cursor: pointer;
+  color: var(--color-accent);
+}

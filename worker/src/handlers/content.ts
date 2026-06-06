@@ -475,7 +475,7 @@ async function mergePr(
     `https://api.github.com/repos/${repo}/pulls/${number}/merge`,
     {
       method: "PUT",
-      headers: ghHeaders(env),
+      headers: await ghHeaders(env),
       body: JSON.stringify({ merge_method: "squash", commit_title: title }),
     },
   );

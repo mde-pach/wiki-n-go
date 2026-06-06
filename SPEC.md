@@ -147,6 +147,19 @@ Rejected zero-infra alternatives (all fail the friction bar):
 - "Edit on GitHub" link-out → leaves the site; breaks the in-site premise.
 - OAuth-only → requires a GitHub account + authorize click.
 
+**The Worker is irreducible — but it need not be infra the *adopter* sets up.**
+"Something we run" ≠ "the forker provisions it." Two moves collapse setup to a few
+clicks (M9):
+- **Credential = a GitHub App, not a bot PAT.** The Worker mints short-lived,
+  repo-scoped *installation tokens* from the App (`worker/src/githubApp.ts`);
+  nothing long-lived to store or rotate. PAT stays as a fallback.
+- **The App is created by a client-side wizard.** GitHub's app-manifest
+  conversions endpoint sends `access-control-allow-origin: *`, so `/setup` creates
+  the App *and* retrieves its private key in the browser — no setup-time backend.
+  A Deploy-to-Cloudflare click then provisions the Worker + KV. (A future shared
+  multi-tenant instance — the giscus model — would remove even the self-host
+  click; the App's per-repo token scoping already supports it.)
+
 ---
 
 ## 6. Identity Model
@@ -409,6 +422,31 @@ page identity. URL shape and the linking mechanism are **independent choices**.
 - [ ] ⬜ Future polish (P2): localized create-slug picker (v2 seeds `<lang>/<key>`,
   rename via move); `@mention`-style language badges; existence-checked interwiki (S5).
 
+### M9 — Low-click setup (no PAT, no token juggling) 🟡
+Collapse adoption from "wire ~5 secrets in CI" to a few clicks. See §5.
+- [x] ✅ **GitHub App credential** (`worker/src/githubApp.ts`): `ghToken()` mints
+  short-lived, repo-scoped installation tokens (RS256 App JWT → installation-id
+  derived from the repo → `/access_tokens`, cached to ~1 min before expiry).
+  Prefers the App when `GITHUB_APP_ID`+`GITHUB_APP_PRIVATE_KEY` are set, falls back
+  to the `GITHUB_TOKEN` PAT — backward-compatible. Accepts GitHub's PKCS#1 key by
+  wrapping it to PKCS#8 in-worker (no `openssl` for the user). Unit-tested.
+- [x] ✅ **Client-side `/setup` wizard** (`src/pages/setup.astro` + `Setup.tsx`,
+  `src/lib/setup.ts`): GitHub App **manifest flow** end to end in the browser —
+  create app (pre-filled, write-only scopes, no webhooks) → exchange the one-time
+  code for id+key client-side (conversions endpoint is CORS-`*`) → show id, key,
+  and a generated `HASH_SECRET` → **Deploy to Cloudflare** (fork's `worker/`
+  subdir) → install + `WORKER_URL`. Verified: config, loading, error, and
+  credentials states render.
+- [x] ✅ **Fork-portable deploy:** KV id dropped from `wrangler.toml` (auto-provision
+  per deploy; KV is cache-only); `deploy-worker.yml` provisions `GH_APP_ID` (var) +
+  `GH_APP_PRIVATE_KEY` (secret) alongside the legacy PAT.
+- [ ] ⬜ **Shared hosted instance (multi-tenant)** — one operator-run Worker + App
+  serving any repo that installs it (giscus model), so adopters skip even the
+  self-host click. Needs repo-from-request + per-repo KV/bans namespacing; the
+  App's per-repo token scoping already supports it. Privacy note: the operator
+  transiently sees IPs before hashing (repo invariant — only `ip_hash` committed —
+  still holds).
+
 ---
 
 ## 10. Open Decisions
@@ -482,3 +520,5 @@ page identity. URL shape and the linking mechanism are **independent choices**.
 | 2026-06-06 | **Pre-submit diff preview is computed client-side** from the two full texts (`diffLines`, an LCS line-diff), not by asking the Worker for a patch | The edit isn't a commit yet, so there's no SHA range for `/diff` — and the editor already holds both the loaded original and the assembled new doc, so an in-browser LCS reuses the same `DLine[]`/`DiffView` pipeline with zero Worker calls. Long unchanged runs collapse to a `⋯ N unchanged lines ⋯` separator so the dialog stays readable; the diff is memoised behind `modal()` so it costs nothing per keystroke |
 | 2026-06-06 | **Undo for non-maintainers = open the editor seeded with that revision (`?revert=<sha>`) and submit through the normal edit flow**, not a privileged instant write | Reuses the whole edit pipeline (trust gate, Turnstile, conflict check, the new diff preview) with **no Worker change** — `original()` stays the *current* page so the preview shows exactly what the revert removes/adds, while the reverted content fills the editor. Goes through review/trust like any anon edit (an anon revert of vandalism may queue rather than land instantly — accepted; maintainers keep the instant `restore`). Semantics match the spec's "resubmit prior content": reverting to the prior row undoes the latest edit |
 | 2026-06-06 | Diff polish: **collapse markers carry their elided lines** (`DLine.hidden`) so DiffView can expand them in place; collapsing is a view concern, not a re-fetch | The full text is already in hand for `diffLines` (editor preview), so stashing the skipped lines on the marker lets either diff mode reveal them with one click and no Worker round-trip — git's own `@@` hunks simply carry no `hidden`, so History diffs are unaffected. The field is optional/additive, so `parseDiff` and existing `DiffView` callers are untouched. Copy-permalink and ↑/↓/Enter row nav are local view state with graceful fallbacks (clipboard denial is swallowed; key nav defers to focused child controls) |
+| 2026-06-06 | **Write credential = a GitHub App installation token, not a bot PAT** (PAT kept as fallback) | The App mints short-lived, repo-scoped tokens on demand (`githubApp.ts`) — nothing long-lived in env to leak or rotate, scoped to exactly contents+PRs+discussions, and the per-repo scoping is what a future shared multi-tenant instance needs. `ghToken()` prefers the App, falls back to `GITHUB_TOKEN`, so existing deploys keep working. GitHub's PKCS#1 key is wrapped to PKCS#8 in-worker so the user pastes it as-is (no `openssl`) |
+| 2026-06-06 | **Setup is a 100% client-side `/setup` wizard** (GitHub App *manifest flow*), not a backend onboarding service | The manifest conversions endpoint is CORS-`*`, so the browser can create the App and retrieve its private key with no setup-time backend — dissolving the chicken-and-egg (no Worker exists yet at setup). Wizard then hands off to a **Deploy-to-Cloudflare** click (auto-provisions Worker + KV) + app install. Drops setup from ~5 CI secrets to a few clicks, no PAT, no Cloudflare API token. KV id removed from `wrangler.toml` (auto-provision; cache-only) to stay fork-portable |

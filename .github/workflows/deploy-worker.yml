@@ -5,6 +5,10 @@ name: Deploy Worker
 # are generated once and never rotated; the rest come from repo secrets and are
 # only applied when set, so missing-but-optional features simply stay off and an
 # already-provisioned secret is never clobbered.
+#
+# Write credential: set repo variable GH_APP_ID + secret GH_APP_PRIVATE_KEY (the
+# /setup wizard hands you both), and/or the legacy WORKER_GITHUB_TOKEN PAT. Forks
+# that prefer the Deploy-to-Cloudflare button can skip this workflow entirely.
 on:
   push:
     branches: [main]
@@ -28,12 +32,14 @@ jobs:
       - name: Deploy
         id: deploy
         env:
-          # Public OAuth client id (not a secret) — injected as a plain var so a
-          # fork sets it as a repo variable, never edits a file. Empty = omit.
+          # Non-secret ids injected as plain vars so a fork sets them as repo
+          # variables, never edits a file. Empty = omit.
           OAUTH_CLIENT_ID: ${{ vars.OAUTH_CLIENT_ID }}
+          GITHUB_APP_ID: ${{ vars.GH_APP_ID }}
         run: |
           args=""
-          [ -n "${OAUTH_CLIENT_ID:-}" ] && args="--var OAUTH_CLIENT_ID:$OAUTH_CLIENT_ID"
+          [ -n "${OAUTH_CLIENT_ID:-}" ] && args="$args --var OAUTH_CLIENT_ID:$OAUTH_CLIENT_ID"
+          [ -n "${GITHUB_APP_ID:-}" ] && args="$args --var GITHUB_APP_ID:$GITHUB_APP_ID"
           out=$(bunx wrangler deploy $args 2>&1)
           echo "$out"
           url=$(printf '%s\n' "$out" | grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' | head -1)
@@ -42,6 +48,7 @@ jobs:
       - name: Provision secrets
         env:
           WORKER_GITHUB_TOKEN: ${{ secrets.WORKER_GITHUB_TOKEN }}
+          GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
           TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET }}
           OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET }}
         run: |
@@ -60,6 +67,9 @@ jobs:
           }
           gen HASH_SECRET
           gen SESSION_SECRET
+          # Write credential: the App private key (preferred) and/or a bot PAT.
+          # The Worker prefers the App when GH_APP_ID + key are set (githubApp.ts).
+          put GITHUB_APP_PRIVATE_KEY "$GH_APP_PRIVATE_KEY"
           put GITHUB_TOKEN "$WORKER_GITHUB_TOKEN"
           put TURNSTILE_SECRET "$TURNSTILE_SECRET"
           put OAUTH_CLIENT_SECRET "$OAUTH_CLIENT_SECRET"

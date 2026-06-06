@@ -112,14 +112,14 @@ async function countAuthored(env: Env, email: string): Promise<TrustStats> {
   const base = `https://api.github.com/repos/${repo}/commits?author=${encodeURIComponent(
     email,
   )}&sha=${env.BRANCH}&per_page=1`;
-  const res = await fetch(base, { headers: ghHeaders(env) });
+  const res = await fetch(base, { headers: await ghHeaders(env) });
   if (!res.ok) return { n: 0, firstMs: Date.now() };
   const page = (await res.json()) as CommitItem[];
   if (page.length === 0) return { n: 0, firstMs: Date.now() };
   const n = lastPage(res.headers.get("Link") ?? "");
   let firstMs = new Date(page[0].commit.author.date).getTime();
   if (n > 1) {
-    const oldest = await fetch(`${base}&page=${n}`, { headers: ghHeaders(env) });
+    const oldest = await fetch(`${base}&page=${n}`, { headers: await ghHeaders(env) });
     if (oldest.ok) {
       const last = (await oldest.json()) as CommitItem[];
       if (last[0]) firstMs = new Date(last[0].commit.author.date).getTime();
