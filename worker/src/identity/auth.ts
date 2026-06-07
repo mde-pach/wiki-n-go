@@ -1,6 +1,6 @@
-import { b64urlDecode, b64urlEncode, hmacSign, timingSafeEq } from "./crypto";
-import { allowedOrigins, HttpError } from "./http";
-import type { Env } from "./types";
+import { b64urlDecode, b64urlEncode, hmacSign, timingSafeEq } from "../crypto";
+import { allowedOrigins, HttpError } from "../http";
+import type { Env } from "../types";
 
 // No DB, no stored user token: a session is a compact HS256 JWT carrying only
 // the verified GitHub identity. We never request email scope — the commit

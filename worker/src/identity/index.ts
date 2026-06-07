@@ -1,11 +1,11 @@
+import { isBanned } from "../bans";
+import { ipHash } from "../crypto";
+import { HttpError } from "../http";
+import { enforceRateLimit, verifyTurnstile } from "../moderation";
+import { multiTenant } from "../tenant";
+import { editorTier, type Tier } from "../trust";
+import type { Env } from "../types";
 import { ghNoreplyEmail, type Session, sessionIdentity } from "./auth";
-import { isBanned } from "./bans";
-import { ipHash } from "./crypto";
-import { HttpError } from "./http";
-import { enforceRateLimit, verifyTurnstile } from "./moderation";
-import { multiTenant } from "./tenant";
-import { editorTier, type Tier } from "./trust";
-import type { Env } from "./types";
 
 // Resolved identity behind a write: anonymous pseudonym or verified GitHub user.
 // `name` is the display label + trusted-editors / commit-author name; `email`

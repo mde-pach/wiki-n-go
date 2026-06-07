@@ -1,4 +1,3 @@
-import { authCallback, authLogin, oauthConfigured } from "./auth";
 import { auditLog, ban, listBans, unban } from "./handlers/bans";
 import { cite } from "./handlers/cite";
 import { createTopic, getThread, listTopics, postComment } from "./handlers/comments";
@@ -28,6 +27,7 @@ import { grant, listEditors, revoke } from "./handlers/rights";
 import { listSuppressed, suppress, unsuppress } from "./handlers/suppress";
 import { corsHeaders, HttpError, json, message, ndjsonStream } from "./http";
 import { whoami } from "./identity";
+import { authCallback, authLogin, oauthConfigured } from "./identity/auth";
 import { resolveTenant } from "./tenant";
 import type {
   BanBody,
@@ -48,9 +48,9 @@ import type {
   UnbanBody,
 } from "./types";
 
-export { signSession, verifySession } from "./auth";
 export { ipHash } from "./crypto";
 export { authorOf, pickCategory } from "./handlers/comments";
+export { signSession, verifySession } from "./identity/auth";
 export { frontmatter, lastPage, pageTier } from "./trust";
 export { SLUG_RE } from "./types";
 
