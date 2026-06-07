@@ -32,15 +32,15 @@
   --font-mono:
     "Menlo", Consolas, "Liberation Mono", "Courier New", ui-monospace, monospace;
 
-  --text-xs: 0.75rem; /* 12 */
-  --text-sm: 0.8125rem; /* 13 */
-  --text-ui: 0.875rem; /* 14 chrome */
-  --text-base: 0.875rem; /* 14 reading (WP .mw-body 0.875em) */
-  --text-md: 1rem; /* 16 */
-  --text-lg: 1.125rem; /* 18 h3/h4 */
-  --text-xl: 1.5rem; /* 24 h2 */
-  --text-2xl: 1.625rem; /* 26 */
-  --text-3xl: 1.75rem; /* 28 page title h1 */
+  --text-xs: 0.8125rem; /* 13 captions/footnotes */
+  --text-sm: 0.875rem; /* 14 */
+  --text-ui: 0.875rem; /* 14 chrome (unscaled by the reading bump) */
+  --text-base: 1rem; /* 16 reading (WP's post-2023 accessibility size) */
+  --text-md: 1.125rem; /* 18 */
+  --text-lg: 1.25rem; /* 20 h3/h4 */
+  --text-xl: 1.625rem; /* 26 h2 */
+  --text-2xl: 1.75rem; /* 28 */
+  --text-3xl: 1.9375rem; /* 31 page title h1 */
 
   --leading-body: 1.6; /* WP content line-height */
   --leading-snug: 1.4;
@@ -54,7 +54,7 @@
   --weight-bold: 700;
 
   /* Space + shape — WP is flat and square (Codex --border-radius-base 2px) */
-  --measure: 46rem; /* reading column */
+  --measure: 48rem; /* reading column — widened a touch for the larger body */
   --space-card: 1rem;
   --space-section: 1.5rem;
   --gap-chrome: 0.5rem;
@@ -154,11 +154,11 @@
     "JetBrains Mono Variable", "JetBrains Mono", "SF Mono", ui-monospace, Menlo,
     monospace;
 
-  --text-xs: 0.6875rem; /* 11 */
-  --text-sm: 0.75rem; /* 12 */
-  --text-ui: 0.8125rem; /* 13 */
-  --text-base: 0.9375rem; /* 15 */
-  --text-md: 1.0625rem; /* 17 */
+  --text-xs: 0.75rem; /* 12 captions/footnotes */
+  --text-sm: 0.8125rem; /* 13 */
+  --text-ui: 0.8125rem; /* 13 chrome (unscaled by the reading bump) */
+  --text-base: 1rem; /* 16 reading */
+  --text-md: 1.125rem; /* 18 */
   --text-lg: 1.25rem; /* 20 */
   --text-xl: 1.5rem; /* 24 */
   --text-2xl: 1.875rem; /* 30 */
@@ -175,7 +175,7 @@
   --weight-semibold: 600;
   --weight-bold: 700;
 
-  --measure: 46rem;
+  --measure: 48rem; /* widened a touch for the larger body */
   --space-card: 1rem;
   --space-section: 1.85rem;
   --gap-chrome: 0.375rem;
