@@ -173,6 +173,10 @@ We never run an auth database. Identity is whatever fills the commit `author`:
 
 Rules:
 - **Never** write a raw IP or email into the repo (immutable + public = unredactable PII).
+- On a **shared multi-tenant instance** (M9) the operator's Worker sees a request's
+  raw IP, but only *transiently in-memory* to derive `ip_hash` before doing anything —
+  exactly as the self-hosted Worker does; nothing raw is stored or committed. The
+  hash is **repo-salted** there so the same IP yields a different pseudonym per repo.
 - `ip_hash` uses a **secret server-side HMAC key** (never in the repo). Bare
   `sha256(ip)` is unsafe — IPv4 is brute-forceable.
 - Optional hardening: hash a coarsened input (`/24` subnet or geo region) so even
@@ -429,7 +433,7 @@ page identity. URL shape and the linking mechanism are **independent choices**.
 - [ ] ⬜ Future polish (P2): localized create-slug picker (v2 seeds `<lang>/<key>`,
   rename via move); `@mention`-style language badges; existence-checked interwiki (S5).
 
-### M9 — Low-click setup (no PAT, no token juggling) 🟡
+### M9 — Low-click setup (no PAT, no token juggling) ✅
 **One** setup path, collapsing adoption from "wire ~5 secrets in CI" to a few
 clicks: the `/setup` wizard → **Deploy to Cloudflare** button. The GitHub-Actions
 worker-deploy path (`deploy-worker.yml`, CF API token + PAT) is **retired** — a
@@ -453,12 +457,23 @@ single way, not two. See §5.
   Cloudflare redeploys automatically**, reusing the same secrets + KV — no per-fix
   step, no secret re-entry, same KV instance across updates. KV id dropped from
   `wrangler.toml` (Cloudflare owns/persists it; KV is cache-only anyway).
-- [ ] ⬜ **Shared hosted instance (multi-tenant)** — one operator-run Worker + App
+- [x] ✅ **Shared hosted instance (multi-tenant)** — one operator-run Worker + App
   serving any repo that installs it (giscus model), so adopters skip even the
-  self-host click. Needs repo-from-request + per-repo KV/bans namespacing; the
-  App's per-repo token scoping already supports it. Privacy note: the operator
-  transiently sees IPs before hashing (repo invariant — only `ip_hash` committed —
-  still holds).
+  self-host click. `MULTI_TENANT` flips it on: the target repo is derived from the
+  request (`X-Wiki-Repo` header / `?repo=`), validated against the App's installs
+  (`repoInstallationId`, cached), and **KV is namespaced per repo** by wrapping the
+  binding (`namespacedKV` in `worker/src/tenant.ts`) so every key — rate-limit,
+  trust, link-graph/index, tags, patrol, 3RR, change, cite, contributions,
+  discussion-ctx — is prefixed `r:<owner>/<repo>:` with no per-call-site audit;
+  **bans/trusted-editors/audit/content are repo files**, so the repo override alone
+  namespaces them. The App installation token cache is now keyed per repo (was a
+  single global), and `ip_hash` is repo-salted on shared instances so a pseudonym
+  can't be linked across tenants. Single-tenant stays the default and **ignores**
+  any request repo (a pinned Worker can't be redirected). Unit + integration tests
+  cover the isolation (a tenant can't read/clobber another's KV or bans).
+  **Privacy invariant holds** (and is noted in §6): only `ip_hash` is committed; the
+  operator sees the raw IP only *transiently*, in-Worker, before hashing — same as
+  the self-hosted path, just run by the operator for many repos.
 
 ---
 
@@ -540,4 +555,5 @@ single way, not two. See §5.
 | 2026-06-07 | **Automoderator auto-reverts only at a high, opt-in threshold (default OFF; ~80 when enabled), and backs off after a per-page revert cap** | The revert-risk score already surfaces a "high risk" badge at 50 for *human* triage; an **unreviewed bot auto-revert is a stronger action**, so it (a) stays **OFF unless `AUTOMOD_REVERT_SCORE` is set** — no fork gets surprise auto-reverts — and (b) when enabled runs **well above 50** (~80) to stay high-precision like ClueBot, leaving the 50–79 band for humans. The `AUTOMOD_REVERT_CAP` (per-page, 24 h, default 3) is the **anti-edit-war guardrail**: the bot reverts a given page at most N times before leaving it for review, so a determined re-adder can't ping-pong the bot indefinitely. Trusted tiers (≥ `AUTOMOD_EXEMPT_TIER`, default `auto`) are exempt, matching where abuse concentrates |
 | 2026-06-07 | **Auto-revert reuses the existing rollback primitive (`revertCommit`), not a new write path; recourse = audit entry + public tag + one-click maintainer undo (no auto-opened Discussion)** | Extracting the rollback loop into a shared `revertCommit` means a bot revert is *byte-identical* to a maintainer's manual rollback — a normal **reversible commit**, never a force-push or history rewrite (invariants hold), and no second code path to keep safe. For false-positive recourse we chose the **audit-log entry + a public `auto-reverted` tag + an informative revert commit message** (re-edit or raise on talk) over auto-opening a Discussion per revert: it adds no Discussion spam, stays within "no second store", and the **/admin Automoderator view's one-click undo is just `rollback` of the bot's revert commit** (which replays the contributor's version — no new endpoint, since the revert commit's parent *is* the contributor's edit) |
 | 2026-06-07 | **Profile pages (FEATURES U3) are GitHub-signed-in only; anonymous `anon-<hash>` ids get no editable user page** | An editable user page implies *ownership*, but our anonymous identity is a derived `ip_hash` that **cannot prove control of a page** (no account, stateless). So `/user/<login>` resolves a profile only for a durable GitHub identity; an `anon-<hash>` (or empty) id shows a soft "no profile" note that points at its existing `/changes?author=` contributions filter (M4.5) — which stays untouched. The `@login` mention now resolves **in-site** to `/user/<login>` instead of github.com |
+| 2026-06-07 | **Multi-tenant isolation = wrap the KV binding with a per-repo prefix + override REPO_OWNER/REPO_NAME per request; single-tenant ignores the request repo** | Namespacing at the *binding* (`namespacedKV`, prefix `r:<owner>/<repo>:`) isolates every KV key — present and future — without auditing each call site, the failure mode of a key-by-key prefix sweep. bans/trusted-editors/audit/content are repo *files*, so the repo override alone namespaces them (one mechanism, two layers). The token cache had to move from a single global to per-repo (installation tokens are per-install) and `ip_hash` is repo-salted so pseudonyms don't link across tenants. Backward-compat mirrors `ghToken`'s App-or-PAT fallback: a single-tenant Worker (no `MULTI_TENANT`) **ignores** any request repo, so a Worker holding one repo's credential can't be pointed at another. Validation = "is the App installed on the repo?" (cached), which is also why multi-tenant requires the App, not a PAT |
 | 2026-06-07 | **A user page is just content in a `user/` namespace, edited through the existing pipeline — no privileged write path; editing a profile is owner-only (not even maintainers), enforced server-side *and* mirrored in the UI** | Storing the profile as `content/user/<login>.md` (slug lowercased — GitHub logins are case-insensitive and `SLUG_RE` is lowercase) means it flows through the *exact* same edit/PR/trust/Turnstile/Filter machinery as any page (invariant: no second write path, no new auth). The only namespace-specific rule is an authorization gate in `prepareEdit`: a `user/<login>` page is editable **only by the signed-in owner** (`login` matches the slug) — anon and other signed-in users, **including maintainers, are refused 403**; maintainers moderate a bad profile through the dedicated **delete/rollback** endpoints rather than rewriting someone's page. The owner publishes their own page live. To avoid a misleading "edit then 403" flow, the **client mirrors the gate**: the Edit tab, the "Create it →" invite, and the editor itself are hidden/refused for non-owners (resolved from `whoami`); the server 403 is the authoritative backstop. The contributions/trust panel beside it is a **read-only** Worker endpoint (`GET /contributions?author=`, KV-cached like `/link-graph`, with a build-time `contributions.json` fallback) reusing the `/changes` data shape — no parallel UI |

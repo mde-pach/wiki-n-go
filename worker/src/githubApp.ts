@@ -93,22 +93,44 @@ function appHeaders(jwt: string, env: Env): Record<string, string> {
   };
 }
 
-async function resolveInstallationId(env: Env, jwt: string): Promise<string> {
-  if (env.GITHUB_APP_INSTALLATION_ID) return env.GITHUB_APP_INSTALLATION_ID;
+async function fetchInstallationId(
+  env: Env,
+  jwt: string,
+  owner: string,
+  name: string,
+): Promise<string | null> {
   const res = await fetch(
-    `https://api.github.com/repos/${env.REPO_OWNER}/${env.REPO_NAME}/installation`,
+    `https://api.github.com/repos/${owner}/${name}/installation`,
     { headers: appHeaders(jwt, env) },
   );
-  if (!res.ok) {
-    throw new HttpError(
-      502,
-      `App installation lookup ${res.status}: install the app on the repo`,
-    );
-  }
+  if (res.status === 404) return null;
+  if (!res.ok) throw new HttpError(502, `App installation lookup ${res.status}`);
   return String(((await res.json()) as { id: number }).id);
 }
 
-let cached: { token: string; expiresAtMs: number } | null = null;
+async function resolveInstallationId(env: Env, jwt: string): Promise<string> {
+  if (env.GITHUB_APP_INSTALLATION_ID) return env.GITHUB_APP_INSTALLATION_ID;
+  const id = await fetchInstallationId(env, jwt, env.REPO_OWNER, env.REPO_NAME);
+  if (!id)
+    throw new HttpError(502, "App installation lookup: install the app on the repo");
+  return id;
+}
+
+// Is the App installed on this repo? (null if not.) Used by the multi-tenant
+// gate to validate a request's target repo before serving it.
+export async function repoInstallationId(
+  env: Env,
+  owner: string,
+  name: string,
+): Promise<string | null> {
+  const jwt = await appJwt(env, Math.floor(Date.now() / 1000));
+  return fetchInstallationId(env, jwt, owner, name);
+}
+
+// Installation tokens are per-installation, so the cache is keyed by repo: a
+// multi-tenant Worker serves many repos (distinct installations) and must not
+// hand one repo's token to another. Single-tenant has just one entry.
+const tokenCache = new Map<string, { token: string; expiresAtMs: number }>();
 
 async function mintInstallationToken(
   env: Env,
@@ -127,9 +149,12 @@ async function mintInstallationToken(
 }
 
 async function installationToken(env: Env): Promise<string> {
-  if (cached && cached.expiresAtMs - TOKEN_SKEW_MS > Date.now()) return cached.token;
-  cached = await mintInstallationToken(env);
-  return cached.token;
+  const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
+  const hit = tokenCache.get(repo);
+  if (hit && hit.expiresAtMs - TOKEN_SKEW_MS > Date.now()) return hit.token;
+  const fresh = await mintInstallationToken(env);
+  tokenCache.set(repo, fresh);
+  return fresh.token;
 }
 
 export function usingApp(env: Env): boolean {

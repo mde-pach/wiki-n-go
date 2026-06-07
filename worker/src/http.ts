@@ -25,7 +25,7 @@ export function corsHeaders(env: Env, request: Request): Record<string, string> 
     "Access-Control-Allow-Origin": allow,
     Vary: "Origin",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Wiki-Repo",
   };
 }
 

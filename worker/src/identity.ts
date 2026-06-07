@@ -3,6 +3,7 @@ import { isBanned } from "./bans";
 import { ipHash } from "./crypto";
 import { HttpError } from "./http";
 import { enforceRateLimit, verifyTurnstile } from "./moderation";
+import { multiTenant } from "./tenant";
 import { editorTier, type Tier } from "./trust";
 import type { Env } from "./types";
 
@@ -45,9 +46,12 @@ export async function resolve(
 ): Promise<Writer> {
   const session = await sessionIdentity(env, request);
   const ip = request.headers.get("CF-Connecting-IP") ?? "0.0.0.0";
+  // On a shared instance, salt the hash with the repo so the same IP yields a
+  // different `anon-<hash>` per tenant — pseudonyms can't be linked across repos.
+  const hashInput = multiTenant(env) ? `${env.REPO_OWNER}/${env.REPO_NAME}\n${ip}` : ip;
   const writer = session
     ? githubWriter(session)
-    : anonWriter(await ipHash(env.HASH_SECRET, ip));
+    : anonWriter(await ipHash(env.HASH_SECRET, hashInput));
   if (!gate) return writer;
   if (!session) await verifyTurnstile(env, ip, gate.token ? String(gate.token) : "");
   if (await isBanned(env, writer.key, gate.path))
