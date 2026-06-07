@@ -1,19 +1,19 @@
 import { HttpError } from "../http";
 import type { Env } from "../types";
-import { discover } from "./oidc";
 
 // Sign-in providers the Worker can consume. GitHub is plain OAuth2 (identity via
-// api.github.com/user); Wikigit is standard OIDC against a configured issuer
-// (e.g. a Logto instance) — identity via discovery → token → userinfo. Both
-// converge on one verified identity; the commit author is the only place it
-// surfaces, and neither stores raw PII.
+// api.github.com/user); Wikigit is our OpenAuth issuer (the `accounts/` Worker) —
+// a standard OAuth2 code flow whose access token is a JWT we verify via the
+// issuer's JWKS. Both converge on one verified identity; the commit author is the
+// only place it surfaces, and neither stores raw PII.
 export type ProviderId = "github" | "wikigit";
 
 export interface OAuthIdentity {
   provider: ProviderId;
-  login: string; // GitHub login OR Wikigit handle — the display name + key base
+  login: string; // GitHub login OR Wikigit handle — the display name
   id: number; // GitHub numeric id (for the no-reply email); 0 for Wikigit
   avatar: string;
+  sub?: string; // stable unique id (Wikigit) — the `wg:` key base, survives handle changes
 }
 
 export interface Provider {
@@ -65,54 +65,44 @@ const github: Provider = {
   },
 };
 
+// A public OAuth2 client (no secret): the issuer's redirect_uri allowlist is the
+// protection. The issuer echoes our signed `state`, so we build the authorize URL
+// ourselves and use the OpenAuth client only for token exchange + JWKS
+// verification — lazy-imported so it never enters the base bundle unless a
+// Wikigit sign-in actually runs.
 const wikigit: Provider = {
   id: "wikigit",
-  configured: (env) =>
-    Boolean(env.WIKIGIT_ISSUER && env.WIKIGIT_CLIENT_ID && env.WIKIGIT_CLIENT_SECRET),
-  async authorizeUrl(env, redirectUri, state) {
-    const oidc = await discover(env.WIKIGIT_ISSUER as string);
-    const u = new URL(oidc.authorization_endpoint);
+  configured: (env) => Boolean(env.WIKIGIT_ISSUER && env.WIKIGIT_CLIENT_ID),
+  authorizeUrl(env, redirectUri, state) {
+    const issuer = (env.WIKIGIT_ISSUER as string).replace(/\/+$/, "");
+    const u = new URL(`${issuer}/authorize`);
     u.searchParams.set("client_id", env.WIKIGIT_CLIENT_ID as string);
     u.searchParams.set("redirect_uri", redirectUri);
     u.searchParams.set("response_type", "code");
-    u.searchParams.set("scope", "openid profile");
     u.searchParams.set("state", state);
-    return u.toString();
+    return Promise.resolve(u.toString());
   },
   async exchange(env, code, redirectUri) {
-    const oidc = await discover(env.WIKIGIT_ISSUER as string);
-    const tokenRes = await fetch(oidc.token_endpoint, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        grant_type: "authorization_code",
-        code,
-        redirect_uri: redirectUri,
-        client_id: env.WIKIGIT_CLIENT_ID as string,
-        client_secret: env.WIKIGIT_CLIENT_SECRET as string,
-      }),
+    const [{ createClient }, { createSubjects }, { object, string }] =
+      await Promise.all([
+        import("@openauthjs/openauth/client"),
+        import("@openauthjs/openauth/subject"),
+        import("valibot"),
+      ]);
+    const subjects = createSubjects({
+      user: object({ id: string(), email: string(), handle: string() }),
     });
-    const tok = (await tokenRes.json()) as { access_token?: string };
-    if (!tok.access_token) throw new HttpError(502, "Sign-in exchange failed.");
-    const uiRes = await fetch(oidc.userinfo_endpoint, {
-      headers: {
-        Authorization: `Bearer ${tok.access_token}`,
-        Accept: "application/json",
-      },
+    const client = createClient({
+      clientID: env.WIKIGIT_CLIENT_ID as string,
+      issuer: env.WIKIGIT_ISSUER as string,
     });
-    if (!uiRes.ok) throw new HttpError(502, "Could not read your Wikigit profile.");
-    const u = (await uiRes.json()) as {
-      sub: string;
-      preferred_username?: string;
-      username?: string;
-      name?: string;
-      picture?: string;
-    };
-    const handle = u.preferred_username || u.username || u.name || u.sub;
-    return { provider: "wikigit", login: handle, id: 0, avatar: u.picture ?? "" };
+    const exchanged = await client.exchange(code, redirectUri);
+    if (exchanged.err) throw new HttpError(502, "Sign-in exchange failed.");
+    const verified = await client.verify(subjects, exchanged.tokens.access);
+    if (verified.err)
+      throw new HttpError(502, "Could not verify your Wikigit identity.");
+    const { id, handle } = verified.subject.properties;
+    return { provider: "wikigit", login: handle, id: 0, avatar: "", sub: id };
   },
 };
 

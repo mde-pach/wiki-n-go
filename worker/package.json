@@ -16,6 +16,8 @@
     "wrangler": "^4"
   },
   "dependencies": {
+    "@openauthjs/openauth": "^0.4.3",
+    "valibot": "^1.4.1",
     "yaml": "^2.9.0"
   }
 }

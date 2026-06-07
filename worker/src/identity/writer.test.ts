@@ -18,18 +18,18 @@ describe("writerFor", () => {
     expect(w.email).toBe("583231+octocat@users.noreply.github.com");
   });
 
-  it("maps a Wikigit session to a wg: key + no-PII synthetic author", () => {
+  it("maps a Wikigit session to a wg: key off the stable sub (handle is display only)", () => {
     const w = writerFor(
-      { provider: "wikigit", login: "alice", id: 0, avatar: "p", exp: 0 },
+      { provider: "wikigit", login: "alice", id: 0, avatar: "p", sub: "u_123", exp: 0 },
       "x",
     );
     expect(w).toMatchObject({
-      name: "alice",
-      key: "wg:alice",
+      name: "alice", // display handle
+      key: "wg:u_123", // keyed off the stable id, not the handle
       isAnon: false,
       avatar: "p",
     });
-    expect(w.email).toBe("wg-alice@users.wikigit.invalid");
+    expect(w.email).toBe("wg-u_123@users.wikigit.invalid");
   });
 
   it("treats a legacy session without a provider as GitHub", () => {

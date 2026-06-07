@@ -34,15 +34,17 @@ function githubWriter(s: Session): Writer {
   };
 }
 
-// A centralised Wikigit account (M10). The handle is the label + key; the commit
-// author is a derived no-PII address — the real email lives only in the IdP.
+// A centralised Wikigit account (M10). The stable `sub` is the key + commit-author
+// base (so trust survives a handle change); the handle is the display label only.
+// The author email is derived + no-PII — the real email lives only in the IdP.
 function wikigitWriter(s: Session): Writer {
+  const id = s.sub ?? s.login;
   return {
     name: s.login,
-    email: `wg-${s.login}@users.wikigit.invalid`,
+    email: `wg-${id}@users.wikigit.invalid`,
     avatar: s.avatar ?? null,
     isAnon: false,
-    key: `wg:${s.login}`,
+    key: `wg:${id}`,
   };
 }
 

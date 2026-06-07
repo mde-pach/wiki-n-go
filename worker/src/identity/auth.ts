@@ -11,6 +11,7 @@ export interface Session {
   id: number;
   avatar: string;
   provider?: ProviderId; // undefined = legacy token, treated as GitHub
+  sub?: string; // stable unique id (Wikigit) — the `wg:` key, survives handle changes
   exp: number;
 }
 
@@ -21,7 +22,13 @@ export const ghNoreplyEmail = (id: number, login: string): string =>
 
 export async function signSession(
   secret: string,
-  who: { login: string; id: number; avatar: string; provider?: ProviderId },
+  who: {
+    login: string;
+    id: number;
+    avatar: string;
+    provider?: ProviderId;
+    sub?: string;
+  },
   nowMs: number = Date.now(),
 ): Promise<string> {
   const header = b64urlEncode(
@@ -145,6 +152,7 @@ export async function authCallback(env: Env, url: URL): Promise<Response> {
     id: who.id,
     avatar: who.avatar,
     provider: who.provider,
+    sub: who.sub,
   });
   const dest = new URL(st.ret);
   dest.hash = `wikitoken=${jwt}`;
