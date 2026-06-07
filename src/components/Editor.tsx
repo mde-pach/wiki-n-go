@@ -213,13 +213,14 @@ export default function Editor(props: { slug?: string; initialContent?: string }
               {isNew() ? "Creating" : "Editing"} “{prettify(slug())}”
             </>
           }
-          sub="Anyone can edit — no account needed. Trusted edits publish immediately; others are submitted for review and go live once a maintainer approves."
+          sub="Anyone can edit — no account needed. Trusted edits publish immediately; others go to review first."
         />
 
         <PageProperties
           fields={fields}
           setField={(k, v) => setFields(k, v)}
           tier={who()?.tier}
+          open={isNew()}
         />
 
         <div class="editor-shell">
@@ -247,41 +248,17 @@ export default function Editor(props: { slug?: string; initialContent?: string }
           </div>
         </div>
 
-        <div class="edit-sidebar" style={{ "margin-top": "1.1rem" }}>
-          <div class="panel">
-            <h3>Publish your change</h3>
-            <label class="field-label" for="edit-summary">
-              Edit summary
-            </label>
+        <div class="publish-bar">
+          <div class="publish-row">
             <input
               id="edit-summary"
               class="input"
               value={summary()}
-              placeholder="Briefly describe your change"
+              aria-label="Edit summary"
+              placeholder="Summarize your change (optional)"
               onInput={(e) => setSummary(e.currentTarget.value)}
             />
-            <div class="attribution-row" style={{ "margin-top": "0.8rem" }}>
-              Signed as{" "}
-              <span class="pseudonym">{who()?.author ?? "anon · your IP, hashed"}</span>
-              <Show when={who()}>
-                {(w) => <span class="tier-badge"> · {w().tier}</span>}
-              </Show>
-            </div>
-            <Show when={reverting()}>
-              {(rev) => (
-                <p class="editor-hint">
-                  Reverting to revision <code>{rev()}</code> — review the diff before
-                  you publish.
-                </p>
-              )}
-            </Show>
-            <Show when={restored()}>
-              <p class="editor-hint">Restored your unsaved draft from this device.</p>
-            </Show>
-            <Show when={config.turnstileSiteKey}>
-              <div class="editor-widget" ref={(el) => mount?.(el)} />
-            </Show>
-            <div class="editor-actions" style={{ "margin-top": "0.9rem" }}>
+            <div class="editor-actions">
               <button
                 type="button"
                 class="btn btn-primary"
@@ -294,63 +271,84 @@ export default function Editor(props: { slug?: string; initialContent?: string }
                 Cancel
               </a>
             </div>
-            <Show when={busy() && progress()}>
-              {(p) => (
-                <div class="publish-progress" role="status" aria-live="polite">
-                  <div class="publish-progress-head">
-                    <span>{p().label}…</span>
-                    <span class="mono">{Math.round(p().progress * 100)}%</span>
-                  </div>
-                  <div class="publish-progress-track">
-                    <div
-                      class="publish-progress-fill"
-                      style={{ width: `${Math.max(4, p().progress * 100)}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-            </Show>
-            <ErrorNote msg={error()} />
-            <Show when={result()}>
-              {(r) => (
-                <Show
-                  when={!r().autoReverted}
-                  fallback={
-                    <p class="editor-ok editor-reverted" role="alert">
-                      This edit was automatically reverted as likely vandalism. If
-                      that's wrong, re-edit the page or raise it on the talk page — a
-                      maintainer can restore it.
-                    </p>
-                  }
-                >
-                  <p class="editor-ok">
-                    <Show
-                      when={r().live}
-                      fallback={
-                        <>
-                          Submitted for review —{" "}
-                          <a href={r().prUrl} target="_blank" rel="noreferrer">
-                            track its status
-                          </a>
-                          .
-                        </>
-                      }
-                    >
-                      Published live — <a href={cancelHref()}>view the page</a>
-                      <Show when={r().url}>
-                        {" "}
-                        ·{" "}
-                        <a href={r().url} target="_blank" rel="noreferrer">
-                          see the change
-                        </a>
-                      </Show>
-                      .
-                    </Show>
-                  </p>
-                </Show>
-              )}
+          </div>
+          <div class="attribution-row">
+            Signed as{" "}
+            <span class="pseudonym">{who()?.author ?? "anon · your IP, hashed"}</span>
+            <Show when={who()}>
+              {(w) => <span class="tier-badge"> · {w().tier}</span>}
             </Show>
           </div>
+          <Show when={reverting()}>
+            {(rev) => (
+              <p class="editor-hint">
+                Reverting to revision <code>{rev()}</code> — review the diff before you
+                publish.
+              </p>
+            )}
+          </Show>
+          <Show when={restored()}>
+            <p class="editor-hint">Restored your unsaved draft from this device.</p>
+          </Show>
+          <Show when={config.turnstileSiteKey}>
+            <div class="editor-widget" ref={(el) => mount?.(el)} />
+          </Show>
+          <Show when={busy() && progress()}>
+            {(p) => (
+              <div class="publish-progress" role="status" aria-live="polite">
+                <div class="publish-progress-head">
+                  <span>{p().label}…</span>
+                  <span class="mono">{Math.round(p().progress * 100)}%</span>
+                </div>
+                <div class="publish-progress-track">
+                  <div
+                    class="publish-progress-fill"
+                    style={{ width: `${Math.max(4, p().progress * 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </Show>
+          <ErrorNote msg={error()} />
+          <Show when={result()}>
+            {(r) => (
+              <Show
+                when={!r().autoReverted}
+                fallback={
+                  <p class="editor-ok editor-reverted" role="alert">
+                    This edit was automatically reverted as likely vandalism. If that's
+                    wrong, re-edit the page or raise it on the talk page — a maintainer
+                    can restore it.
+                  </p>
+                }
+              >
+                <p class="editor-ok">
+                  <Show
+                    when={r().live}
+                    fallback={
+                      <>
+                        Submitted for review —{" "}
+                        <a href={r().prUrl} target="_blank" rel="noreferrer">
+                          track its status
+                        </a>
+                        .
+                      </>
+                    }
+                  >
+                    Published live — <a href={cancelHref()}>view the page</a>
+                    <Show when={r().url}>
+                      {" "}
+                      ·{" "}
+                      <a href={r().url} target="_blank" rel="noreferrer">
+                        see the change
+                      </a>
+                    </Show>
+                    .
+                  </Show>
+                </p>
+              </Show>
+            )}
+          </Show>
         </div>
 
         <Show when={modal()}>

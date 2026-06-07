@@ -226,6 +226,53 @@
   font-size: 0.95em;
 }
 
+/* ---- EDIT-PAGE DENSITY (T7) --------------------------------------------- */
+/* The edit page wrapped modest content in too much chrome. Tighten the
+   surrounding spacing, demote the properties panel (collapsed by default in
+   Editor), and give the textarea more viewport. */
+.edit-view {
+  padding-top: 1.1rem;
+  padding-bottom: 2.2rem;
+}
+.edit-view .edit-help-hint {
+  margin-bottom: 0.7rem;
+}
+.edit-view .view-head {
+  margin-bottom: 0.9rem;
+}
+.edit-view .props-panel {
+  margin-bottom: 0.85rem;
+}
+.edit-view .editor-pane,
+.edit-view .preview-pane {
+  min-height: clamp(360px, 60vh, 680px);
+}
+
+/* Publish controls: a compact bar (summary + actions on one row) rather than a
+   framed card with its own heading and a stacked, labelled summary field. */
+.publish-bar {
+  margin-top: 1rem;
+  border: var(--border-w) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  padding: 0.8rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+.publish-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 0.7rem;
+}
+.publish-row .input {
+  flex: 1 1 18rem;
+}
+.publish-row .editor-actions {
+  margin: 0;
+}
+
 /* ---- IN-PAGE FOCUSED SECTION EDIT --------------------------------------- */
 /* A section `[edit]` opens this in place, right under the heading. It reuses
    the full editor's panes/controls but stays compact — it edits one section,

@@ -79,17 +79,32 @@ export default function PageProperties(props: {
   fields: Fields;
   setField: (k: keyof Fields, v: string) => void;
   tier?: Tier;
+  // Collapsed by default so the body leads; the caller opens it when it's
+  // relevant (a new page, or one that already carries properties).
+  open?: boolean;
 }) {
   // You can only change protection if your tier clears the page's current
   // level (the Worker enforces this too; the UI just reflects it).
   const protectionLocked = () =>
     rank(props.tier ?? "open") < rank(props.fields.protection || "maintainer");
 
+  // So a collapsed-by-default panel still signals it carries metadata.
+  const setCount = () => {
+    const f = props.fields;
+    return [f.protection, f.tags, f.hatnote, f.bannerText, f.kicker, f.image].filter(
+      (v) => v.trim(),
+    ).length;
+  };
+
   return (
-    <details class="props-panel" open>
+    <details class="props-panel" open={props.open}>
       <summary>
         <span>Page properties</span>
-        <span class="props-hint">metadata stored in the page's frontmatter</span>
+        <span class="props-hint">
+          {setCount()
+            ? `${setCount()} set`
+            : "metadata stored in the page's frontmatter"}
+        </span>
       </summary>
       <div class="props-grid">
         <label class="field-label">
