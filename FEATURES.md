@@ -270,13 +270,13 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 | Categories: pages · subcats · hidden/maintenance · **intersection** | tag chips → real category pages, read live from the link-graph index (tags now inverted into a `categories` map; no rebuild): member listing, **subcategory hierarchy** (a member page that is itself a category nests, with parent breadcrumb), **hidden/maintenance** cats split from topical in the chips + on the page, boolean **`/category/a+b` intersection**; plus an All-categories special page (`lib/categories.ts`, unit-tested) | ✅ | P2 |
 | Files: description pages + **license** metadata; Commons | sidecar frontmatter per asset (source/author/license); Worker flags unlicensed; shared `media/` (serve binaries from CDN/R2, not git) | ⬜ | P2 |
 
-## Q. Identity, notifications & community (two-tier: anon vs GitHub account)
+## Q. Identity, notifications & community (three-tier: anon · GitHub · Wikigit account)
 | Wikipedia mechanism | Ours | St | Pri |
 |---|---|---|---|
 | **Temporary Accounts** (`~2025-NNN`, IP masked, 90-day) | our `anon-<hash>` is the precedent realized **more privately** (no reveal tier); show pseudonym in history/talk | ✅ | — |
-| Account login (optional) / SUL / 2FA / OAuth | **offload entirely to GitHub** ("Sign in with GitHub"); no own credential store | ⬜ | P2 |
-| **User contributions** (per-user history) | Worker `GET /contributions?author=` (full per-author history from git, KV-cached, static fallback) → profile panel for logins; anon uses the `/changes?author=` recent-window filter | ✅ | P1 |
-| **Watchlist** + **Echo notifications** (pings, reverts, thanks) | **account-path only** (needs durable, reachable identity): GitHub watch/subscribe + native @mention/reaction/email; anon has no inbox by design | ⬜ | P2 |
+| Account login (optional) / SUL / 2FA / OAuth | **two providers, never a password here:** "Sign in with GitHub" (`gh:`) **+ "Sign in with Wikigit"** (`wg:`) — a centralised, GitHub-optional account for people with no GitHub, run by the **Wikigit Accounts** OIDC provider (passwordless: magic-link + passkeys). The Engine stays an OIDC *consumer*, no credential store of its own. **→ SPEC M10** | ⬜ | P2 |
+| **User contributions** (per-user history) | Worker `GET /contributions?author=` (full per-author history from git, KV-cached, static fallback) → profile panel for `gh:`/`wg:` logins; anon uses the `/changes?author=` recent-window filter | ✅ | P1 |
+| **Watchlist** + **Echo notifications** (pings, reverts, thanks) | **account-path only** (needs durable, reachable identity): a `wg:` Wikigit account or GitHub watch/subscribe + native @mention/reaction/email; anon has no inbox by design | ⬜ | P2 |
 | **Thanks** / reactions · barnstars/WikiLove | GitHub reactions on commit/PR/Discussion; kudos templated post (account path) | ⬜ | P2 |
 | **Pageview analytics** ("watched by N", with privacy threshold) | edge-counted per-path views (privacy-safe, no identity); apply min-count threshold | ⬜ | P2 |
 | Appearance (dark mode) for **logged-out** readers | already have skins+theme via cookie/localStorage — keep anon-accessible | ✅ | — |
@@ -298,6 +298,8 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 Items the owner caught while using the in-progress build. Type: 🐛 bug · ✨ enhancement · ❓ decision.
 Cross-refs point at the relevant A–Q row so we extend, not duplicate.
 
+**2026-06-07 batch** folded in below: rows `S8`, `T6–T8`, `V2`, `W4–W7`, plus new areas **X** (hovercards), **Y** (feedback & config access), **Z** (rich media).
+
 ## R. Rendering & SSR (no client blink)
 | # | Item | Type | St | Pri | Ref |
 |---|---|---|---|---|---|
@@ -316,6 +318,7 @@ Cross-refs point at the relevant A–Q row so we extend, not duplicate.
 | S5 | **Interwiki link type** — a *third* link class beside internal `[[Page]]` and plain external links: a link that resolves to an **existing Wikipedia article** so we don't maintain a page for well-covered topics. Distinct visual treatment (e.g. W badge / outbound marker) so readers see it leaves the wiki; **documented as a Wikipedia-style interwiki link**. Proposed syntax: `[[w:Title]]` / `[[wikipedia:Title]]` → `en.wikipedia.org/wiki/Title`. Ex: homepage *CDN* → Wikipedia's *Content delivery network*. Open Qs: prefix set (`w:` only, or more wikis later?) and whether to existence-check the target. Shipped: `[[w:Title]]`/`[[wikipedia:Title]]` → Wikipedia, `.interwiki` badge. `0e878f4` | ✨ | ✅ | P1 | §B, §D, T4 |
 | S6 | **Reading-position restore animates from the top** — on refresh the page loads at the top, then scrolls down to the saved reading position. Restore the scroll **synchronously before first paint** (no smooth-scroll) so it opens directly at the saved spot. Gated `scroll-behavior: smooth` behind `.ready` so the browser's restore is instant; `87be78e` | 🐛 | ✅ | P1 | §C |
 | S7 | **`getting-started` shifts the column layout** — its body is too narrow to fill the content column, so the grid collapses to a different layout than other pages. The column geometry must stay **constant regardless of content width**. Likely downstream: the **info card is mispositioned** because the column widths changed (fix S7's width and the card should fall back into place). Fixed: `width: 100%` on `.read-grid`/`.view-wrap` (auto flex-margins were cancelling the stretch) + `230px minmax(0,1fr) 260px` columns; `a91e98d` | 🐛 | ✅ | P1 | §D, S3 |
+| S8 | **Body text is too small vs Wikipedia** — the base reading font is undersized; bump it and re-check the other type-scale steps (headings, captions) for the same gap. | 🐛 | ⬜ | P1 | §H, §D |
 
 ## T. Editing
 | # | Item | Type | St | Pri | Ref |
@@ -325,6 +328,9 @@ Cross-refs point at the relevant A–Q row so we extend, not duplicate.
 | T3 | **Hatnote shows as raw markdown in the editor** — preview the hat correctly (rendered), don't surface it inline in the md. Hatnote is a `PageProperties` field; the preview renders the body only (frontmatter split off). | 🐛 | ✅ | P1 | §D |
 | T4 | **Help/docs pages** (own namespace): how it works, how to contribute, a markdown primer for non-technical editors, and a reference of available md plugins + their syntax — surfaced near the editor. Shipped `help/` (index · editing · formatting) + editor hint. `2cc750d` | ✨ | ✅ | P1 | §P (help/ ns) |
 | T5 | **More markdown plugins** — evaluate e.g. **Mermaid** for technical diagrams; list candidates. Mermaid shipped, lazy-loaded (dynamic import, own chunk), strict security level. `0ac3e86` | ✨ | ✅ | P2 | §D |
+| T6 | **Section-scoped editing** — a section `[edit]` should open a focused editor for *that section only* (a purpose-built in-page edit surface), not the whole-page editor. Design it as the generic pattern for in-page content editing (header card, infobox row, section body all reuse it). | ✨ | ⬜ | P1 | §G, S3 |
+| T7 | **Edit page feels bloated** for a page with modest content — too much chrome around little data. Restructure the edit layout to surface the actual content more efficiently (denser, less framing). | 🐛/✨ | ⬜ | P1 | §G |
+| T8 | **Edit preview doesn't run md plugins** (e.g. Mermaid renders as raw fence in the preview viewer). Preview must use the **same renderer as the published page** so extensions render identically. | 🐛 | ⬜ | P1 | §D, T5 |
 
 ## U. Talk & profiles
 | # | Item | Type | St | Pri | Ref |
@@ -337,6 +343,7 @@ Cross-refs point at the relevant A–Q row so we extend, not duplicate.
 | # | Item | Type | St | Pri | Ref |
 |---|---|---|---|---|---|
 | V1 | **Richer, friendlier revision page** — 2-column side-by-side change view with line numbers, word-level highlights, an add/remove legend, and a split/unified toggle (`DiffView`); revision rows tidied with Wikipedia-style older/newer **compare-any-two** radios + a "Compare selected" button alongside the cur/prev quick links, and a permalink footer on the diff. Polish: collapsed context runs expand in place, the permalink has a copy button, and rows support ↑/↓/Enter keyboard nav. | ✨ | ✅ | P1 | §F |
+| V2 | **Page-meta (date + revision) bugs on load** — three issues in `PageMeta`: (a) the date/revision still **blink** on load (R2 was meant to SSR this — looks like a regression); (b) the **revision number starts at 1** instead of the real count (e.g. should read 16); (c) the **date isn't zero-padded** — renders `6/06/2026`, want `06/06/2026`. | 🐛 | ⬜ | P1 | §F, R2 |
 
 ## W. Header & top-of-page chrome (Vector 2022 layout)
 Owner ref (screenshot): title left + **languages** button top-right; below, a tab strip with **Article · Discussion left-aligned** and **Read · Edit · History · Tools right-aligned** on the same row.
@@ -346,3 +353,26 @@ Owner ref (screenshot): title left + **languages** button top-right; below, a ta
 | W1 | **Header is packed to the left** instead of spanning the bar — wordmark / search / personal-tools should distribute across the available width (justify the bar, don't bunch everything at the start). Fixed: search is a fixed-basis flex item with auto inline margins, so it centres between the wordmark cluster (left) and personal tools (right) and the bar spans full width. `8bb15f8` | 🐛 | ✅ | P1 | §A |
 | W2 | **Split the tab strip like Vector 2022** — namespace tabs (**Article · Discussion**) left-aligned; view/tool actions (**Read · Edit · History · Tools**) right-aligned, same row. Shipped: `.tabbar` is two `space-between` groups; **Tools** is a native `<details>` dropdown (SSR, no JS, no blink) of per-page tools (what-links-here · page info · cite · move · source); mirrored in the `Route404` SPA fallback; mobile wraps the two groups to stacked rows (also unclips the dropdown). Appearance stays the Vector-faithful right-rail sidebar panel (where real Vector 2022 puts it), not the row. `8bb15f8` | ✨ | ✅ | P1 | §B, §J |
 | W3 | **Interlanguage switcher** ("N languages", like Wikipedia's *209 langues*) — switch between language **versions of the same article**. Distinct from interwiki links (S5, which leave for Wikipedia): this is the same topic in another language, hosted by us. **Done → SPEC M8.** Translations are **independent pages** linked by a low-cost frontmatter `translationKey`; **default language languageless** (bare slugs), other langs URL-prefixed + localized (`/fr/cafe`). SSR `LangBar` switcher (no blink) + `<html lang>` + hreflang; **language-aware wikilinks**, **per-language home** (`/fr`), **live grouping** via the Worker index, and **"translate this page"** for missing languages. | ✨ | ✅ | P1 | §B, S5 |
+| W4 | **Clicking a non-default-language page that exists behaves as "page doesn't exist"** — spotted on the FR *Démarrer* (Get started) link: the target page is present but the UI treats it as a redlink/404. Interlanguage link/route resolution drops the language prefix or the `translationKey` lookup. | 🐛 | ⬜ | P1 | §B, W3 |
+| W5 | **"Add language" suggests irrelevant languages** (e.g. Dutch appears unprompted). Instead surface the **languages already present in the wiki** (those are the ones likely to be extended), and offer a distinct **"translate to a new language"** path for a language not yet in the wiki. | 🐛/✨ | ⬜ | P1 | §B, W3 |
+| W6 | **Header goes greyscale when the menu opens** — opening the main menu desaturates the header chrome (unintended overlay/filter bleed). | 🐛 | ⬜ | P2 | §A |
+| W7 | **Open nav menu doesn't close on outside click** — clicking outside the open navigation header should dismiss it (`MainMenu`). | 🐛 | ⬜ | P1 | §A |
+
+## X. Page-preview hovercards (`lib/previews`)
+| # | Item | Type | St | Pri | Ref |
+|---|---|---|---|---|---|
+| X1 | **Clicking a link before the hovercard appears strands the popover** — it pops in late at the top-left / out of bounds of the freshly opened page. Cancel the pending preview (and any in-flight fetch) on navigation so it never renders after the click. | 🐛 | ⬜ | P1 | §D |
+| X2 | **"Read full page" inside the hovercard isn't clickable** — the primary action of the popover does nothing; make it a working link to the article. | 🐛 | ⬜ | P1 | §D |
+| X3 | **Hovercards for Wikipedia (interwiki) links** — extend the preview to `[[w:Title]]`/`[[wikipedia:Title]]` so hovering an interwiki link previews the Wikipedia article (summary API). High-value reading feature. | ✨ | ⬜ | P1 | §D, S5 |
+
+## Y. Feedback & config access
+| # | Item | Type | St | Pri | Ref |
+|---|---|---|---|---|---|
+| Y1 | **"Report a bug" entry at the very bottom of the navigation** — a low-friction way for users to send a potential bug to Wikigit. | ✨ | ⬜ | P2 | §A, §Q |
+| Y2 | **No discoverable route to the setup/config page** — the Cloudflare-connect (and other) config controls live in `Setup.tsx` / `pages/setup.astro` but there's no entry point from the app chrome to reach them. Add a discoverable link (owner/admin menu). | 🐛/✨ | ⬜ | P1 | §A, SPEC M9 |
+
+## Z. Rich media in articles
+| # | Item | Type | St | Pri | Ref |
+|---|---|---|---|---|---|
+| Z1 | **Image in the page-header / infobox card** — the header card (`Infobox`) should support an image, edited inline via the same in-page edit flow (T6). | ✨ | ⬜ | P1 | §D, S3 |
+| Z2 | **Audio & phonetic pronunciation** — Wikipedia-style audio clips and IPA pronunciation in article bodies (and likely the header card). | ✨ | ⬜ | P2 | §D |

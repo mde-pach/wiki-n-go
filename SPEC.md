@@ -503,6 +503,55 @@ single way, not two. See §5.
   operator sees the raw IP only *transiently*, in-Worker, before hashing — same as
   the self-hosted path, just run by the operator for many repos.
 
+### M10 — Federated identity: the Wikigit account (centralised, GitHub-optional) ⬜
+Add a **third identity tier** so people without GitHub can attribute edits via a
+centralised **Wikigit account**, and split the platform into clear projects so the
+Engine's no-DB invariant survives. Today identity is anon `ip_hash` (primary) +
+GitHub `gh:<login>` (optional). New: **Wikigit `wg:<handle>`** (optional, GitHub-free).
+The bot (App installation token) stays the **only writer** — a signed-in identity only
+swaps the commit-author *label* + trust *key*, so a Wikigit account needs **no repo
+write access and no GitHub account**. `Writer` (`worker/src/identity.ts`) already
+generalises: add `wikigitWriter(session)`, key `wg:<handle>`, beside the two it has.
+
+**Three deployables — the 3 distributions map to 3 projects:**
+
+| Project | Identity role | DB | Distributions it serves |
+|---|---|---|---|
+| **Wikigit Engine** (this repo) | **OIDC relying party** — consumes GitHub + any configured Wikigit issuer; stores no accounts | **No** (invariant holds) | the dogfood "wikigit of wikigit" **and** every self-hosted instance — both are plain Engine deploys |
+| **Wikigit Accounts** (new) | standalone **OIDC provider** + passwordless account store; **self-hostable**, canonical one run by the main instance | **Yes** (its own store) | issues "Sign in with Wikigit" to any Engine instance |
+| **Wikigit Hub** (new) | tenant console: create/manage your wikigit; auth via Accounts | uses Accounts' store | "the main wikigit instance" product surface |
+
+- **The no-DB / single-Worker invariant binds the *Engine*, not the platform.** Accounts
+  and Hub are *separate* services with their own store **precisely so** the Engine stays
+  one Worker, no DB. The deployable wiki never grows a database; the account system that
+  needs one lives outside it.
+- **IdP is self-hostable, via standard OIDC.** An Engine instance configures an `issuer`
+  (default: the canonical Wikigit IdP); a sovereign operator can point it at their own
+  Accounts deployment. OIDC relying-party config makes many IdPs natural — "Sign in with
+  Wikigit" is the exact mirror of "Sign in with GitHub", different issuer.
+- **Passwordless only.** Native credential = email **magic-link** + WebAuthn **passkeys**;
+  no password hashes, no reset flows — lowest PII/abuse surface, consistent with the
+  `ip_hash`-only privacy ethos. Accounts may itself **federate to GitHub** so one human
+  can claim a single `wg:` handle.
+- **Trust + moderation carry over for free.** `wg:<handle>` accrues git-history trust
+  tiers like any author; `bans.json`, rate limits, suppression already key off `writer.key`.
+- **Profiles unlock for non-GitHub users.** A Wikigit account is the durable identity
+  behind profile pages / watchlist / notifications (FEATURES §Q, U3) — the account-path
+  features stop being GitHub-only.
+
+Build order (each ships independently; the Engine slice lands here first):
+- [ ] ⬜ **Engine — pluggable OIDC consumer.** Generalise `worker/src/auth.ts` from
+  GitHub-specific to an issuer config; add `wikigitWriter` + `wg:` key in `identity.ts`.
+  Inert until an issuer is set (mirrors today's `oauthEnabled` gate). *No DB, no new service.*
+- [ ] ⬜ **Accounts — minimal OIDC provider** on Workers + D1/DO: passwordless (magic-link
+  first, passkeys next); `authorize`/`token`/`userinfo` + JWKS; GitHub federation.
+- [ ] ⬜ **Hub — tenant console** on top of M9's shipped multi-tenant Worker (create/manage
+  instances); auth via Accounts.
+- [ ] ⬜ **Wire dogfood + main instance** to the canonical IdP; document the self-host `issuer` override.
+
+Open: handle namespace + uniqueness; whether `wg:` and `gh:` for one human merge to a
+single identity; abuse controls on free signup (magic-links are cheap to mint).
+
 ---
 
 ## 10. Open Decisions
@@ -516,6 +565,10 @@ single way, not two. See §5.
       content route on demand, server-side `noindex`, no rebuild. Off by default.
 - [ ] **PKCE watch:** drop the OAuth half of the Worker once GitHub supports
       client-side PKCE.
+- [ ] **`gh:` ↔ `wg:` identity merge (M10):** does one human's GitHub and Wikigit
+      handle unify (shared trust/profile) or stay distinct identities?
+- [ ] **Account-signup abuse (M10):** magic-link accounts are cheap to mint — what
+      gates `wg:` trust-tier accrual (email-domain reputation? slower thresholds?).
 - [x] ~~Interlanguage link shape (M8)~~ → **symmetric `translationKey`** on every
       member (default-language version optional; an article may exist only in non-default langs).
 - [ ] **Language-aware wikilinks (M8):** whether `[[Café]]` on a French page
@@ -591,3 +644,7 @@ single way, not two. See §5.
 | 2026-06-07 | **Page Curation toolbar (FEATURES §M) reuses the existing patrol/rollback/delete endpoints and adds one new maintainer route, `POST /tag`, for one-click change-tagging; remaining no-endpoint actions link to the in-site flow** | The New-pages queue, patrol, rollback and delete endpoints already existed (M6), so the reviewer toolbar is mostly a UX layer: one reusable `PageCuration` Solid component triages a page in one place (approve = `POST /patrol`, roll back = `POST /rollback`, propose-delete = `POST /delete`) with optimistic UI + error handling, surfacing patrol state + the revert-risk badge + applied tags inline. It resolves a page's latest sha + patrol bit from `GET /patrol-status` and enriches author/risk/tags from the recent-changes feed (`curation.ts`), so it works from a slug alone on the read view *and* from a handed-in change row on the New-pages tab (no refetch). **Tag is a real action, not a link-out:** rather than send the reviewer to the editor to hand-write frontmatter, `POST /tag` (maintainer-only, audited) read-merges a token into the same `tag:<sha>` KV set the AbuseFilter/3RR pass already writes (reusing the existing `addTag`, now exported), so manual + automatic change-tags share one store and render identically in RecentChanges — a small, well-scoped route that fits the single-Worker model better than a parallel mechanism. The two genuinely view-side actions still **link to the in-site flow** — **message author** → the page's talk, **contributions** → the author's `/changes?author=` (anon) or `/user/<login>` (signed-in). Maintainer-gated from `whoami` (same pattern as the other `/admin` surfaces); renders nothing for everyone else |
 | 2026-06-07 | **Optional edge-SSR variant: one content route on demand, switched on entirely from `astro.config.mjs` (an `astro:route:setup` hook), not an `export const prerender` in the page** | The SEO gap was structural: the static read path ships a shell whose content + `noindex` resolve client-side, so non-JS crawlers see an empty/stale page and `noindex` is best-effort. The fix had to be **opt-in and leave the GitHub Pages static build byte-for-byte unchanged**. Astro reads `prerender` only as a literal `true`/`false`, so a computed `export const prerender = !EDGE_SSR` is impossible — but the `astro:route:setup` integration hook can flip *just* `src/pages/[...slug].astro` to `prerender:false` when `EDGE_SSR` is set, with the adapter (`@astrojs/cloudflare`/`@astrojs/netlify`, dynamically imported so they're optional deps) added the same way. Output stays `static`; every other page prerenders. The page branches on `Astro.isPrerendered`: build → the content glob; edge → fetch content/slugs/revisions from jsDelivr@sha + the Worker **at request time** (no rebuild), with the glob as a transient-error fallback. `gitRevisions` (uses `node:child_process`) is lazily imported so it stays off the edge runtime path; the render pipeline is the shared `decorateArticleHtml` so all paths produce identical first-paint HTML |
 | 2026-06-07 | **On the edge path `noindex`-until-patrolled is real (server-rendered), the island hydrates with `fresh` (no double-fetch), and freshness is a short edge cache** | The SSR page queries `/patrol-status` server-side and emits `robots=noindex` in the head — JS-less crawlers now honor it — still **fail-open** (Worker/KV hiccup → indexable) so it can't deindex the wiki; the client `PatrolMeta` island is skipped there and kept only for the static host. Since SSR fetched request-time-fresh content, `WikiPage` gets `fresh` and **skips its on-mount refetch** (the "no double-fetch" goal), so freshness comes from a small `s-maxage=30, stale-while-revalidate` edge cache rather than the static path's per-request client fetch — the static path stays the instant-freshness one. A missing slug renders the "create it" UI server-side under a real **404**; a `redirect:` page returns a server-side **301** (better than the client `location.replace`, which stays as the static fallback) |
+| 2026-06-07 | **Third identity tier: a centralised, GitHub-optional `wg:<handle>` Wikigit account** (anon + GitHub + Wikigit) | The bot is always the writer, so a new identity source only supplies a commit-author label + trust key — `Writer` already generalises; lets people with no GitHub attribute edits and earn trust. Engine slice is inert until an issuer is configured |
+| 2026-06-07 | **Platform splits into 3 projects: Engine (no-DB OIDC *consumer*) · Accounts (OIDC *provider*, has a DB) · Hub (tenant console).** The no-DB / single-Worker invariant binds the *Engine*, not the platform | Accounts/Hub are separate services *precisely so* the Engine keeps its invariant; the deployable wiki never grows a DB, while the account store that needs one lives outside it. The dogfood wiki and every self-host are plain Engine deploys; only the main instance runs Accounts+Hub |
+| 2026-06-07 | **Wikigit IdP is self-hostable via standard OAuth2/OIDC; the main instance runs the canonical issuer** | OIDC relying-party config (an `issuer` URL per Engine instance) makes many IdPs natural — default points at the canonical Wikigit IdP, a sovereign operator points at their own — matching the fork-and-go ethos. The Engine's existing OAuth-consumer code generalises from GitHub-specific to pluggable-issuer |
+| 2026-06-07 | **Native Wikigit credential is passwordless (email magic-link + WebAuthn passkeys), never a password** | No password hashes / reset flows / breach surface; consistent with the `ip_hash`-only, no-raw-PII stance. Accounts may federate to GitHub so one human gets one `wg:` handle |
