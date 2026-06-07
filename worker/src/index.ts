@@ -21,6 +21,7 @@ import {
   restore,
   review,
   rollback,
+  tag,
 } from "./handlers/moderation";
 import { protect } from "./handlers/protect";
 import { grant, listEditors, revoke } from "./handlers/rights";
@@ -42,6 +43,7 @@ import type {
   ReviewBody,
   RollbackBody,
   SuppressBody,
+  TagBody,
   TopicBody,
   UnbanBody,
 } from "./types";
@@ -109,6 +111,7 @@ export default {
         movePage(env, request, (await request.json()) as MoveBody),
       "POST /patrol": async () =>
         patrol(env, request, (await request.json()) as PatrolBody),
+      "POST /tag": async () => tag(env, request, (await request.json()) as TagBody),
       "POST /review": async () =>
         review(env, request, (await request.json()) as ReviewBody),
       "POST /rollback": async () =>

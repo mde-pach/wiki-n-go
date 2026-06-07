@@ -503,7 +503,7 @@ const AUTOMOD_WINDOW_S = 86_400; // per-page revert-cap window (24h), like 3RR
 
 // Merge `tag` into a commit's KV tag set (preserving any filter tags already
 // stored), so RecentChanges shows it. Read-merge, not overwrite.
-async function addTag(env: Env, sha: string, tag: string): Promise<void> {
+export async function addTag(env: Env, sha: string, tag: string): Promise<void> {
   if (!env.RATE_LIMIT) return;
   const raw = await env.RATE_LIMIT.get(`tag:${sha}`);
   const tags = raw ? (JSON.parse(raw) as string[]) : [];

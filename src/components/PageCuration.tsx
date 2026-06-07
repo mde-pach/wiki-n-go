@@ -1,7 +1,7 @@
-import { createMemo, createResource, createSignal, Show } from "solid-js";
+import { createMemo, createResource, createSignal, For, Show } from "solid-js";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
-import { deletePage, rollbackCommit } from "../lib/admin";
+import { deletePage, rollbackCommit, tagChange } from "../lib/admin";
 import { type Change, markPatrolled, RISK_HIGH } from "../lib/changes";
 import { type Curation, curationFromChange, loadCuration } from "../lib/curation";
 import { BASE, changesHref, prettify, userHref } from "../lib/paths";
@@ -9,6 +9,10 @@ import { useWhoami } from "../lib/solid";
 import { errMessage } from "../lib/util";
 import { ConfirmDialog } from "./editor/ConfirmDialog";
 import { ErrorNote } from "./ui";
+
+// Common maintenance/review tags a reviewer applies in one click; the Worker
+// also accepts any other token matching TAG_RE.
+const TAG_PRESETS = ["vandalism", "spam", "notability", "sources", "cleanup", "npov"];
 
 // Reviewer overlay for triaging a new/unpatrolled page in one place: approve
 // (patrol), tag, message the author, jump to their contributions, propose
@@ -36,6 +40,8 @@ export default function PageCuration(props: {
     props.change ? curationFromChange(props.slug, props.change) : fetched();
 
   const [patrolledOpt, setPatrolledOpt] = createSignal<boolean>();
+  const [tagsOpt, setTagsOpt] = createSignal<string[]>();
+  const [tagOpen, setTagOpen] = createSignal(false);
   const [deleted, setDeleted] = createSignal(false);
   const cur = createMemo(() => {
     const b = base();
@@ -43,6 +49,7 @@ export default function PageCuration(props: {
     const opt = patrolledOpt();
     return opt === undefined ? b : { ...b, patrolled: opt };
   });
+  const tags = () => tagsOpt() ?? cur()?.tags ?? [];
 
   const [confirm, setConfirm] = createSignal<"delete" | "rollback">();
   const [busy, setBusy] = createSignal(false);
@@ -58,6 +65,22 @@ export default function PageCuration(props: {
       props.onChanged?.();
     } catch (e) {
       setPatrolledOpt(undefined);
+      setError(errMessage(e));
+    }
+  }
+
+  async function applyTag(label: string) {
+    const c = cur();
+    setTagOpen(false);
+    if (!c?.sha || tags().includes(label)) return;
+    setError();
+    const prev = tags();
+    setTagsOpt([...prev, label]);
+    try {
+      await tagChange(c.sha, label);
+      props.onChanged?.();
+    } catch (e) {
+      setTagsOpt(prev);
       setError(errMessage(e));
     }
   }
@@ -122,9 +145,42 @@ export default function PageCuration(props: {
                   high risk
                 </span>
               </Show>
-              <a class="cur-action" href={`${BASE}/edit/${c().slug}`}>
-                tag
-              </a>
+              <For each={tags()}>{(t) => <span class="rc-tag">{t}</span>}</For>
+              <Show
+                when={c().sha}
+                fallback={
+                  <a class="cur-action" href={`${BASE}/edit/${c().slug}`}>
+                    tag
+                  </a>
+                }
+              >
+                <span class="cur-tagger">
+                  <button
+                    type="button"
+                    class="link-btn cur-action"
+                    aria-expanded={tagOpen()}
+                    onClick={() => setTagOpen((o) => !o)}
+                  >
+                    tag
+                  </button>
+                  <Show when={tagOpen()}>
+                    <span class="cur-tagmenu">
+                      <For each={TAG_PRESETS}>
+                        {(t) => (
+                          <button
+                            type="button"
+                            class="link-btn cur-tagopt"
+                            disabled={tags().includes(t)}
+                            onClick={() => applyTag(t)}
+                          >
+                            {t}
+                          </button>
+                        )}
+                      </For>
+                    </span>
+                  </Show>
+                </span>
+              </Show>
               <a class="cur-action" href={`${BASE}/talk/${c().slug}`}>
                 message author
               </a>
