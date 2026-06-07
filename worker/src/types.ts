@@ -37,6 +37,12 @@ export interface Env {
   OAUTH_CLIENT_ID?: string;
   OAUTH_CLIENT_SECRET?: string;
   SESSION_SECRET?: string;
+  // Optional "Sign in with Wikigit" (M10): a standard OIDC issuer (e.g. a Logto
+  // instance). Unset → the Wikigit provider stays disabled. ISSUER + CLIENT_ID
+  // are public; CLIENT_SECRET is a secret. Reuses SESSION_SECRET for the session.
+  WIKIGIT_ISSUER?: string;
+  WIKIGIT_CLIENT_ID?: string;
+  WIKIGIT_CLIENT_SECRET?: string;
   // Shared hosted instance (giscus model). "1"/"true" → derive the target repo
   // from the request (X-Wiki-Repo header / ?repo=), validate it against the App's
   // installs, and namespace KV per repo. Requires the GitHub App credential.

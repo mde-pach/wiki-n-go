@@ -27,7 +27,7 @@ import { grant, listEditors, revoke } from "./handlers/rights";
 import { listSuppressed, suppress, unsuppress } from "./handlers/suppress";
 import { corsHeaders, HttpError, json, message, ndjsonStream } from "./http";
 import { whoami } from "./identity";
-import { authCallback, authLogin, oauthConfigured } from "./identity/auth";
+import { authCallback, authLogin, authStatus } from "./identity/auth";
 import { resolveTenant } from "./tenant";
 import type {
   BanBody,
@@ -91,7 +91,7 @@ export default {
       "GET /patrol-status": () => patrolStatus(env, q.get("slug") ?? ""),
       "GET /editors": () => listEditors(env, request),
       "GET /suppressed": () => listSuppressed(env, request),
-      "GET /auth/status": () => Promise.resolve({ enabled: oauthConfigured(env) }),
+      "GET /auth/status": () => Promise.resolve(authStatus(env)),
       "GET /auth/login": () => authLogin(env, url),
       "GET /auth/callback": () => authCallback(env, url),
       // Reject up front with a clean HTTP status; stream only the publish phase.

@@ -1,14 +1,16 @@
 import { b64urlDecode, b64urlEncode, hmacSign, timingSafeEq } from "../crypto";
 import { allowedOrigins, HttpError } from "../http";
 import type { Env } from "../types";
+import { getProvider, type ProviderId, providerStatus } from "./providers";
 
 // No DB, no stored user token: a session is a compact HS256 JWT carrying only
-// the verified GitHub identity. We never request email scope — the commit
-// author uses GitHub's public no-reply email, so no raw PII is stored.
+// the verified identity (GitHub or Wikigit). We never request an email scope —
+// the commit author is a derived no-PII label, so no raw PII is stored.
 export interface Session {
   login: string;
   id: number;
   avatar: string;
+  provider?: ProviderId; // undefined = legacy token, treated as GitHub
   exp: number;
 }
 
@@ -19,7 +21,7 @@ export const ghNoreplyEmail = (id: number, login: string): string =>
 
 export async function signSession(
   secret: string,
-  who: { login: string; id: number; avatar: string },
+  who: { login: string; id: number; avatar: string; provider?: ProviderId },
   nowMs: number = Date.now(),
 ): Promise<string> {
   const header = b64urlEncode(
@@ -54,30 +56,46 @@ export async function verifySession(
   }
 }
 
-// CSRF state for the OAuth round-trip: the signed, short-lived return URL — no
-// KV write needed, the signature is the anti-forgery proof.
-async function signState(secret: string, ret: string): Promise<string> {
+// CSRF state for the OAuth round-trip: the signed, short-lived return URL plus
+// the chosen provider (so one /auth/callback serves both) — no KV write needed,
+// the signature is the anti-forgery proof.
+async function signState(
+  secret: string,
+  ret: string,
+  provider: ProviderId,
+): Promise<string> {
   const body = b64urlEncode(
-    new TextEncoder().encode(JSON.stringify({ r: ret, t: Date.now() })),
+    new TextEncoder().encode(JSON.stringify({ r: ret, p: provider, t: Date.now() })),
   );
   return `${body}.${b64urlEncode(await hmacSign(secret, body))}`;
 }
 
-async function verifyState(secret: string, state: string): Promise<string | null> {
+async function verifyState(
+  secret: string,
+  state: string,
+): Promise<{ ret: string; provider: ProviderId } | null> {
   const [body, sig] = state.split(".");
   if (!body || !sig) return null;
   if (!timingSafeEq(sig, b64urlEncode(await hmacSign(secret, body)))) return null;
   try {
-    const { r, t } = JSON.parse(new TextDecoder().decode(b64urlDecode(body)));
+    const { r, p, t } = JSON.parse(new TextDecoder().decode(b64urlDecode(body)));
     if (typeof t !== "number" || Date.now() - t > 600_000) return null;
-    return typeof r === "string" ? r : null;
+    if (typeof r !== "string") return null;
+    return { ret: r, provider: p === "wikigit" ? "wikigit" : "github" };
   } catch {
     return null;
   }
 }
 
-export function oauthConfigured(env: Env): boolean {
-  return Boolean(env.OAUTH_CLIENT_ID && env.OAUTH_CLIENT_SECRET && env.SESSION_SECRET);
+// Which sign-in providers are live. `enabled` (any provider + a session secret)
+// keeps the old /auth/status contract; `providers` drives per-provider buttons.
+export function authStatus(env: Env): {
+  enabled: boolean;
+  providers: Record<ProviderId, boolean>;
+} {
+  const providers = providerStatus(env);
+  const enabled = Boolean(env.SESSION_SECRET) && Object.values(providers).some(Boolean);
+  return { enabled, providers };
 }
 
 // Guard the post-sign-in redirect against open-redirect: the return URL must
@@ -93,62 +111,42 @@ function isAllowedReturn(env: Env, ret: string): boolean {
   return allowed.length === 0 || allowed.includes(u.origin);
 }
 
+// `?provider=` picks the provider (default github); the callback path is shared
+// — the provider rides the signed state.
 export async function authLogin(env: Env, url: URL): Promise<Response> {
-  if (!oauthConfigured(env)) throw new HttpError(503, "Sign-in is not configured.");
+  const provider = getProvider(url.searchParams.get("provider") ?? "github");
+  if (!provider?.configured(env) || !env.SESSION_SECRET)
+    throw new HttpError(503, "Sign-in is not configured.");
   const ret = url.searchParams.get("return") ?? allowedOrigins(env)[0] ?? url.origin;
   if (!isAllowedReturn(env, ret)) throw new HttpError(400, "Invalid return URL.");
-  const authorize = new URL("https://github.com/login/oauth/authorize");
-  authorize.searchParams.set("client_id", env.OAUTH_CLIENT_ID as string);
-  authorize.searchParams.set("redirect_uri", `${url.origin}/auth/callback`);
-  authorize.searchParams.set("scope", "read:user");
-  authorize.searchParams.set(
-    "state",
-    await signState(env.SESSION_SECRET as string, ret),
+  const state = await signState(env.SESSION_SECRET, ret, provider.id);
+  const authorize = await provider.authorizeUrl(
+    env,
+    `${url.origin}/auth/callback`,
+    state,
   );
-  return Response.redirect(authorize.toString(), 302);
+  return Response.redirect(authorize, 302);
 }
 
 export async function authCallback(env: Env, url: URL): Promise<Response> {
-  if (!oauthConfigured(env)) throw new HttpError(503, "Sign-in is not configured.");
-  const ret = await verifyState(
-    env.SESSION_SECRET as string,
-    url.searchParams.get("state") ?? "",
-  );
-  if (!ret || !isAllowedReturn(env, ret))
+  if (!env.SESSION_SECRET) throw new HttpError(503, "Sign-in is not configured.");
+  const st = await verifyState(env.SESSION_SECRET, url.searchParams.get("state") ?? "");
+  if (!st || !isAllowedReturn(env, st.ret))
     throw new HttpError(400, "Invalid sign-in state.");
+  const provider = getProvider(st.provider);
+  if (!provider?.configured(env))
+    throw new HttpError(503, "Sign-in is not configured.");
   const code = url.searchParams.get("code");
   if (!code) throw new HttpError(400, "Missing authorization code.");
 
-  const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
-    method: "POST",
-    headers: { Accept: "application/json", "Content-Type": "application/json" },
-    body: JSON.stringify({
-      client_id: env.OAUTH_CLIENT_ID,
-      client_secret: env.OAUTH_CLIENT_SECRET,
-      code,
-      redirect_uri: `${url.origin}/auth/callback`,
-    }),
+  const who = await provider.exchange(env, code, `${url.origin}/auth/callback`);
+  const jwt = await signSession(env.SESSION_SECRET, {
+    login: who.login,
+    id: who.id,
+    avatar: who.avatar,
+    provider: who.provider,
   });
-  const tok = (await tokenRes.json()) as { access_token?: string };
-  if (!tok.access_token) throw new HttpError(502, "Sign-in exchange failed.");
-
-  // Use the token once to read the verified identity, then discard it.
-  const userRes = await fetch("https://api.github.com/user", {
-    headers: {
-      Authorization: `Bearer ${tok.access_token}`,
-      Accept: "application/vnd.github+json",
-      "User-Agent": `${env.REPO_NAME}-worker`,
-    },
-  });
-  if (!userRes.ok) throw new HttpError(502, "Could not read your GitHub profile.");
-  const u = (await userRes.json()) as { login: string; id: number; avatar_url: string };
-
-  const jwt = await signSession(env.SESSION_SECRET as string, {
-    login: u.login,
-    id: u.id,
-    avatar: u.avatar_url,
-  });
-  const dest = new URL(ret);
+  const dest = new URL(st.ret);
   dest.hash = `wikitoken=${jwt}`;
   return Response.redirect(dest.toString(), 302);
 }

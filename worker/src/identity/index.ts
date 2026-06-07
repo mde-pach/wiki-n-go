@@ -34,11 +34,32 @@ function githubWriter(s: Session): Writer {
   };
 }
 
-// The request's identity: a verified GitHub session, else the anonymous
-// pseudonym. With `gate`, this is a write: a GitHub session skips the bot check
-// (OAuth already proved a human) while the anonymous path keeps Turnstile, and
-// both reject bans and enforce the per-identity rate limit. Without it, it's a
-// read-only actor lookup (whoami, patrol, review) — no gate.
+// A centralised Wikigit account (M10). The handle is the label + key; the commit
+// author is a derived no-PII address — the real email lives only in the IdP.
+function wikigitWriter(s: Session): Writer {
+  return {
+    name: s.login,
+    email: `wg-${s.login}@users.wikigit.invalid`,
+    avatar: s.avatar ?? null,
+    isAnon: false,
+    key: `wg:${s.login}`,
+  };
+}
+
+// Pure session → Writer mapping (no IO), so the tiers are unit-testable. A
+// session without a provider is a legacy GitHub token.
+export function writerFor(session: Session | null, anonHash: string): Writer {
+  if (!session) return anonWriter(anonHash);
+  return session.provider === "wikigit"
+    ? wikigitWriter(session)
+    : githubWriter(session);
+}
+
+// The request's identity: a verified GitHub/Wikigit session, else the anonymous
+// pseudonym. With `gate`, this is a write: a signed-in session skips the bot
+// check (sign-in already proved a human) while the anonymous path keeps
+// Turnstile, and both reject bans and enforce the per-identity rate limit.
+// Without it, it's a read-only actor lookup (whoami, patrol, review) — no gate.
 export async function resolve(
   env: Env,
   request: Request,
@@ -49,9 +70,7 @@ export async function resolve(
   // On a shared instance, salt the hash with the repo so the same IP yields a
   // different `anon-<hash>` per tenant — pseudonyms can't be linked across repos.
   const hashInput = multiTenant(env) ? `${env.REPO_OWNER}/${env.REPO_NAME}\n${ip}` : ip;
-  const writer = session
-    ? githubWriter(session)
-    : anonWriter(await ipHash(env.HASH_SECRET, hashInput));
+  const writer = writerFor(session, await ipHash(env.HASH_SECRET, hashInput));
   if (!gate) return writer;
   if (!session) await verifyTurnstile(env, ip, gate.token ? String(gate.token) : "");
   if (await isBanned(env, writer.key, gate.path))
