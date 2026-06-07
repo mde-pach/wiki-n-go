@@ -1090,6 +1090,67 @@ a.dh-rev:hover {
   font-size: var(--text-sm);
 }
 
+/* ---- Saved drafts list -------------------------------------------------- */
+.draft-list {
+  margin-top: 1.4rem;
+  max-width: 34rem;
+}
+.draft-list h3 {
+  margin: 0 0 0.5rem;
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+.draft-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.draft-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 0.2rem 0.8rem;
+  padding: 0.5rem 0.7rem;
+  border: var(--border-w) solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+.draft-name {
+  font-weight: 600;
+}
+.draft-meta {
+  grid-column: 1;
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+}
+.draft-actions {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  display: flex;
+  gap: 0.7rem;
+  white-space: nowrap;
+}
+.draft-save-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.draft-save-row .input {
+  flex: 1;
+}
+
+/* ---- Merge / split forms (share the move-form column layout) ------------ */
+.merge-form,
+.split-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  max-width: 34rem;
+}
+
 /* ---- Mobile contents accordion (hidden on desktop) ---------------------- */
 .toc-mobile {
   display: none;

@@ -3,6 +3,7 @@ import { isServer } from "solid-js/web";
 import { BASE, prettify, readHref, slugifyPath } from "../lib/paths";
 import { getSearchDocs } from "../lib/search";
 import { PAGE_TEMPLATES } from "../lib/templates";
+import DraftList from "./DraftList";
 import { ViewHead } from "./ui";
 
 function initialTitle() {
@@ -94,6 +95,8 @@ export default function NewPage() {
           </a>
         </div>
       </form>
+
+      <DraftList heading="Resume a saved draft" />
     </div>
   );
 }

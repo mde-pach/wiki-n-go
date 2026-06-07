@@ -13,6 +13,7 @@ import {
 } from "./handlers/content";
 import { contributions } from "./handlers/contributions";
 import { latestSha, linkGraph, listPages, searchIndex } from "./handlers/index-cache";
+import { mergePages, splitPage } from "./handlers/lifecycle";
 import {
   deletePage,
   patrol,
@@ -36,12 +37,14 @@ import type {
   EditBody,
   Env,
   GrantBody,
+  MergeBody,
   MoveBody,
   PatrolBody,
   ProtectBody,
   RestoreBody,
   ReviewBody,
   RollbackBody,
+  SplitBody,
   SuppressBody,
   TagBody,
   TopicBody,
@@ -109,6 +112,10 @@ export default {
       },
       "POST /move": async () =>
         movePage(env, request, (await request.json()) as MoveBody),
+      "POST /merge": async () =>
+        mergePages(env, request, (await request.json()) as MergeBody),
+      "POST /split": async () =>
+        splitPage(env, request, (await request.json()) as SplitBody),
       "POST /patrol": async () =>
         patrol(env, request, (await request.json()) as PatrolBody),
       "POST /tag": async () => tag(env, request, (await request.json()) as TagBody),
