@@ -1,4 +1,5 @@
 import { parse, stringify } from "yaml";
+import type { AppearanceDefaults } from "../config";
 
 export interface InfoboxRow {
   v: string;
@@ -22,6 +23,9 @@ export interface PageMeta {
   translationKey?: string;
   // Privileged property: minimum trust tier to edit this page (Worker-enforced).
   protection?: "open" | "auto" | "extended" | "maintainer";
+  // Per-page Appearance default (Vector-2022 panel): overrides the config
+  // default, itself overridden by a reader's saved choice. Any subset of fields.
+  appearance?: Partial<AppearanceDefaults>;
 }
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;

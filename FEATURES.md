@@ -29,7 +29,7 @@ Sits above the article: title, the two tab rows, page tools, appearance, languag
 | **Namespaces tabs**: Article · Talk | tabs: Read · **Talk** (our discussion) | 🟡 | P0 |
 | **Views tabs**: Read · Edit · View history | tabs: Read · **Edit** · **History** | 🟡 | P0 |
 | **Page tools**: what-links-here, permanent link, page info, cite | permalink (jsDelivr@sha ★), backlinks (manifest ⚒), page info ★, cite ⚒ | ⬜ | P1 |
-| **Appearance**: text size · width · color theme | our **theme tokens** (light/dark/width) — direct analog | 🟡 | P1 |
+| **Appearance**: text size · width · color theme | right-rail panel (Vector-2022, `col-info`): text size · width · color · skin over the theme tokens; defaults from `config.appearance` (+ per-page `appearance:` frontmatter), reader's saved choice wins, all applied pre-paint (no blink); documented at `/design` | ✅ | P1 |
 | Languages (interwiki) | n/a v1 | ⬜ | — |
 | "From … / tagline" | optional subtitle | ⬜ | P2 |
 
@@ -115,8 +115,8 @@ near 1:1 replica of Wikipedia (Vector 2022 / Codex tokens).
 | Light / dark mode | ✅ | P0 |
 | Swappable skins (Wikigit / Wiki) | ✅ | P1 |
 | Theme + skin toggle (temporary; final UI in chrome port) | 🟡 | P0 |
-| Width control (Standard/Wide) | ⬜ | P1 |
-| Config-/frontmatter-driven theming | ⬜ | P1 |
+| Width control (Standard/Wide) | ✅ | P1 |
+| Config-/frontmatter-driven theming | ✅ | P1 |
 
 ## I. Talk page (Discussion namespace) — threaded, topic-organized, signed
 From the French `Discussion:Expresso` (real threads): each **topic** is a titled
@@ -163,7 +163,7 @@ only **one** level), reusing the same marker trick as `anon-<hash>`.
 - ✅ Help namespace (`/help` · editing · formatting); main-menu nav drawer; lazy-loaded Mermaid diagrams.
 
 ## Remaining page-level polish (P2)
-- ✅ **@mention** linkify · ✅ Named-ref **reuse** + lettered backlinks · ✅ citation templates · ⬜ `/design` tokens route
+- ✅ **@mention** linkify · ✅ Named-ref **reuse** + lettered backlinks · ✅ citation templates · ✅ `/design` tokens route
 
 ---
 
