@@ -8,12 +8,18 @@ import { config } from "../config";
 const KEY = "wiki_session";
 // Last known `/auth/status` result, so the button's initial render doesn't wait
 // on a Worker round-trip (which made the auth chrome blink in after first paint).
-const ENABLED_KEY = "wiki_auth_enabled";
+const PROVIDERS_KEY = "wiki_auth_providers";
 
 export interface SessionInfo {
   login: string;
   avatar: string;
+  provider?: "github" | "wikigit";
   exp: number;
+}
+
+export interface Providers {
+  github: boolean;
+  wikigit: boolean;
 }
 
 function decode(token: string): SessionInfo | null {
@@ -30,26 +36,37 @@ function decode(token: string): SessionInfo | null {
   }
 }
 
-// Whether the Worker has GitHub sign-in configured — drives whether the button
-// shows, so enabling it needs only a Worker deploy (no site rebuild, no flag).
-export async function authEnabled(): Promise<boolean> {
+// Which sign-in providers the Worker has configured — drives the buttons, so
+// enabling one needs only a Worker deploy (no site rebuild, no flag).
+export async function authProviders(): Promise<Providers> {
   try {
     const res = await fetch(`${config.workerUrl}/auth/status`);
-    const ok = res.ok && ((await res.json()) as { enabled?: boolean }).enabled === true;
+    const data = res.ok
+      ? ((await res.json()) as { enabled?: boolean; providers?: Partial<Providers> })
+      : {};
+    // Fall back to GitHub if an older Worker reports only `enabled`.
+    const src = data.providers ?? (data.enabled ? { github: true } : {});
+    const p: Providers = { github: !!src.github, wikigit: !!src.wikigit };
     if (typeof window !== "undefined")
-      localStorage.setItem(ENABLED_KEY, ok ? "1" : "0");
-    return ok;
+      localStorage.setItem(PROVIDERS_KEY, JSON.stringify(p));
+    return p;
   } catch {
-    return false; // a network blip shouldn't poison the cached value
+    return { github: false, wikigit: false }; // a network blip shouldn't poison the cache
   }
 }
 
-// Synchronous last-known enabled state for first paint; undefined before the
-// first successful `authEnabled()` of the session.
-export function authEnabledCached(): boolean | undefined {
+// Synchronous last-known providers for first paint; undefined before the first
+// successful `authProviders()` of the session.
+export function authProvidersCached(): Providers | undefined {
   if (typeof window === "undefined") return undefined;
-  const v = localStorage.getItem(ENABLED_KEY);
-  return v === null ? undefined : v === "1";
+  const v = localStorage.getItem(PROVIDERS_KEY);
+  if (!v) return undefined;
+  try {
+    const p = JSON.parse(v) as Partial<Providers>;
+    return { github: !!p.github, wikigit: !!p.wikigit };
+  } catch {
+    return undefined;
+  }
 }
 
 export function getSession(): SessionInfo | null {
@@ -67,8 +84,12 @@ export function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export function login(returnUrl: string = location.href): void {
-  location.href = `${config.workerUrl}/auth/login?return=${encodeURIComponent(returnUrl)}`;
+export function login(
+  provider: "github" | "wikigit" = "github",
+  returnUrl: string = location.href,
+): void {
+  const ret = encodeURIComponent(returnUrl);
+  location.href = `${config.workerUrl}/auth/login?provider=${provider}&return=${ret}`;
 }
 
 export function logout(): void {
