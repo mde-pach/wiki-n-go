@@ -537,24 +537,24 @@ generalises: add `wikigitWriter(session)`, key `wg:<handle>`, beside the two it 
 | Project | Identity role | DB | Distributions it serves |
 |---|---|---|---|
 | **Wikigit Engine** (this repo) | **OIDC relying party** — consumes GitHub + any configured Wikigit issuer; stores no accounts | **No** (invariant holds) | the dogfood "wikigit of wikigit" **and** every self-hosted instance — both are plain Engine deploys |
-| **Wikigit Accounts** (**adopted**, not built) | a lightweight OSS OIDC provider we *operate* — **Logto** (Zitadel alt): passwordless + passkeys + GitHub connector + account-linking out of the box | **Yes** (the IdP's store, external to the Engine) | issues "Sign in with Wikigit"; canonical instance out-of-the-box, self-host via `issuer` config |
+| **Wikigit Accounts** (**self-hosted OpenAuth**) | a tiny Worker (`accounts/`) running [OpenAuth](https://openauth.js.org): passwordless email **code**, one KV namespace, the Cloudflare **Email Sending** binding — identity only, nothing else | **Yes** (one KV namespace, external to the Engine) | issues "Sign in with Wikigit"; self-host via `issuer` config |
 | **Wikigit Hub** (new, ours) | tenant console: create/manage your wikigit; auth via Accounts | uses Accounts | "the main wikigit instance" product surface |
 
 - **The no-DB / single-Worker invariant binds the *Engine*, not the platform.** Accounts
   and Hub are *separate* services with their own store **precisely so** the Engine stays
   one Worker, no DB. The deployable wiki never grows a database; the account system that
   needs one lives outside it.
-- **Accounts is *adopted*, not built.** We operate a lightweight OSS OIDC provider —
-  **Logto** (Zitadel the alt) — that already ships passwordless, passkeys, a GitHub
-  connector and account-linking; building our own auth surface is needless risk. The
-  canonical Wikigit Accounts is **provided out-of-the-box** (zero adopter setup); a
-  self-hoster who wants their own just points the Engine's `issuer` config at any OIDC
-  provider — we ship no Accounts deployable.
-- **Passwordless, magic-link first** (passkeys next); no password ever. GitHub is a
-  **social connector on the IdP**, so signing in with GitHub and a native Wikigit login
-  **resolve to one linked identity** — one human, one `wg:` handle, one trust history,
-  no double-counting. (Today's direct GitHub OAuth stays as the fallback until the
-  connector path lands.)
+- **Accounts is a tiny *self-hosted OpenAuth* Worker, not an off-the-shelf IAM.** Scoped to
+  identity + magic-link only, a ~100-line [OpenAuth](https://openauth.js.org) issuer
+  (`accounts/`) is far lighter than a full platform — **Logto/Zitadel were overkill** for
+  "nothing but identity + magic link". OpenAuth flow + account records live on **one KV
+  namespace** (no relational DB). A self-hoster points the Engine's `issuer` at their own
+  deployment; we ship the Worker.
+- **Passwordless: an emailed code** (OpenAuth's `CodeProvider`/`CodeUI`), delivered by the
+  Cloudflare **Email Sending** binding (`env.EMAIL.send`, no API key); no password, no
+  passkey in v1. GitHub can later be added as an OpenAuth provider so a Wikigit account
+  **links** a GitHub identity (one human, one `wg:` id, one trust history); until then the
+  Engine's direct GitHub OAuth stays the GitHub path.
 - **No signup trust bonus (Sybil gate).** A fresh `wg:` account starts at the
   anon-equivalent tier and earns trust only from real merged edits, **per-repo** (the
   account is a stable global *label*, not a global trust score); real power stays
@@ -566,24 +566,25 @@ generalises: add `wikigitWriter(session)`, key `wg:<handle>`, beside the two it 
   features stop being GitHub-only.
 
 Build order (each ships independently; the Engine slice lands here first):
-- [x] ✅ **Engine — pluggable OIDC consumer.** Identity consolidated under a
-  `worker/src/identity/` namespace; sign-in generalised to a provider registry
-  (`providers.ts`: GitHub OAuth2 + Wikigit OIDC via discovery→token→userinfo;
-  `oidc.ts` discovery). `authLogin`/`authCallback` dispatch by `?provider=` over a
-  shared `/auth/callback` (provider rides the signed state); `authStatus` reports
-  per-provider. `wikigitWriter` + `wg:` key + no-PII author
-  (`wg-<handle>@users.wikigit.invalid`); `resolve()` branches via a pure, unit-tested
-  `writerFor`. Frontend: "Sign in with Wikigit" beside GitHub. **Inert** until
-  `WIKIGIT_ISSUER`/`WIKIGIT_CLIENT_ID`/`WIKIGIT_CLIENT_SECRET` are set. No DB, no new service.
-- [ ] ⬜ **Stand up the adopted IdP (Logto)** as the canonical Wikigit Accounts: passwordless
-  (magic-link first) + passkeys + a GitHub connector for linking. Operated (Logto Cloud or
-  self-hosted) — no provider code to write.
+- [x] ✅ **Engine — pluggable consumer + OpenAuth client.** Identity consolidated under
+  `worker/src/identity/`; sign-in generalised to a provider registry (`providers.ts`:
+  GitHub OAuth2 + Wikigit via a standard `/authorize`+signed-state, then OpenAuth-client
+  `exchange` + JWKS `verify`, both lazy-imported so OpenAuth stays out of the base bundle).
+  `authLogin`/`authCallback` dispatch by `?provider=` over a shared `/auth/callback`;
+  `authStatus` reports per-provider. `wikigitWriter` keys `wg:` + the no-PII author off the
+  stable `sub` (handle is display only); `resolve()` branches via a pure, unit-tested
+  `writerFor`. Frontend: "Sign in with Wikigit" beside GitHub. Public client — **no secret**;
+  **inert** until `WIKIGIT_ISSUER` + `WIKIGIT_CLIENT_ID` are set. No DB, no new service in the Engine.
+- [ ] 🟡 **Accounts — OpenAuth Worker (`accounts/`), drafted.** Scaffolded + typechecks against
+  `@openauthjs/openauth`: `CodeProvider`/`CodeUI` email code, `CloudflareStorage` on KV, subjects
+  `{id,email,handle}`, redirect allowlist. **Not yet deployed** — needs a verified email domain +
+  runtime confirmation (authorize path, non-PKCE accept, Email Sending binding signature).
 - [ ] ⬜ **Hub — tenant console** on top of M9's shipped multi-tenant Worker (create/manage
   instances); auth via Accounts.
 - [ ] ⬜ **Wire dogfood + main instance** to the canonical IdP; expose the self-host `issuer` override in config.
 
-Open: exact IdP pick (Logto vs Zitadel — confirm in a spike); magic-link email provider
-(Cloudflare Email vs Resend); `wg:` handle namespace + uniqueness (mostly the IdP's job).
+Open: `wg:` handle namespace + uniqueness (the Engine keys `wg:` off the stable `sub`
+meanwhile); runtime-confirm OpenAuth's `/authorize` path + the Email Sending binding on first deploy.
 
 ---
 
@@ -600,10 +601,8 @@ Open: exact IdP pick (Logto vs Zitadel — confirm in a spike); magic-link email
       client-side PKCE.
 - [x] ~~`gh:` ↔ `wg:` identity merge (M10)~~ → **link** (one identity; GitHub a connector on the IdP).
 - [x] ~~Account-signup abuse (M10)~~ → **no signup trust bonus**; trust earned per-repo, real power human-granted.
-- [ ] **IdP pick (M10):** Logto vs Zitadel for the adopted Accounts provider — confirm in
-      a short spike (passwordless + passkeys + GitHub connector + linking).
-- [ ] **Magic-link email provider (M10):** Cloudflare Email Routing vs Resend/Postmark for
-      the canonical Accounts instance.
+- [x] ~~IdP pick (M10): Logto vs Zitadel~~ → **self-hosted OpenAuth Worker** (lighter; identity + email code only).
+- [x] ~~Magic-link email provider (M10)~~ → **Cloudflare Email Sending** binding (`env.EMAIL.send`, no API key).
 - [x] ~~Interlanguage link shape (M8)~~ → **symmetric `translationKey`** on every
       member (default-language version optional; an article may exist only in non-default langs).
 - [ ] **Language-aware wikilinks (M8):** whether `[[Café]]` on a French page
@@ -683,7 +682,8 @@ Open: exact IdP pick (Logto vs Zitadel — confirm in a spike); magic-link email
 | 2026-06-07 | **Platform splits into 3 projects: Engine (no-DB OIDC *consumer*) · Accounts (OIDC *provider*, has a DB) · Hub (tenant console).** The no-DB / single-Worker invariant binds the *Engine*, not the platform | Accounts/Hub are separate services *precisely so* the Engine keeps its invariant; the deployable wiki never grows a DB, while the account store that needs one lives outside it. The dogfood wiki and every self-host are plain Engine deploys; only the main instance runs Accounts+Hub |
 | 2026-06-07 | **Wikigit IdP is self-hostable via standard OAuth2/OIDC; the main instance runs the canonical issuer** | OIDC relying-party config (an `issuer` URL per Engine instance) makes many IdPs natural — default points at the canonical Wikigit IdP, a sovereign operator points at their own — matching the fork-and-go ethos. The Engine's existing OAuth-consumer code generalises from GitHub-specific to pluggable-issuer |
 | 2026-06-07 | **Native Wikigit credential is passwordless (email magic-link + WebAuthn passkeys), never a password** | No password hashes / reset flows / breach surface; consistent with the `ip_hash`-only, no-raw-PII stance. Accounts may federate to GitHub so one human gets one `wg:` handle |
-| 2026-06-07 | **Accounts is an *adopted* lightweight OSS IdP (Logto rec.; Zitadel alt), not a built OIDC provider; canonical instance operated out-of-the-box, self-host via `issuer` config** | Passwordless + passkeys + OIDC + GitHub-connector + linking are exactly what Logto/Zitadel give out of the box — building our own auth surface is needless risk. We *operate* the canonical one (zero adopter setup); a self-hoster who wants their own points the Engine's `issuer` at any OIDC provider, so we ship no Accounts deployable. The no-DB invariant still holds for the Engine — the account store is the IdP's, external |
+| 2026-06-07 | **Accounts is an *adopted* lightweight OSS IdP (Logto rec.; Zitadel alt), not a built OIDC provider; canonical instance operated out-of-the-box, self-host via `issuer` config** | Passwordless + passkeys + OIDC + GitHub-connector + linking are exactly what Logto/Zitadel give out of the box — building our own auth surface is needless risk. We *operate* the canonical one (zero adopter setup); a self-hoster who wants their own points the Engine's `issuer` at any OIDC provider, so we ship no Accounts deployable. The no-DB invariant still holds for the Engine — the account store is the IdP's, external. *(Superseded 2026-06-08 → self-hosted OpenAuth; see below.)* |
+| 2026-06-08 | **Accounts = a self-hosted OpenAuth Worker (not Logto/Zitadel); magic-link = the Cloudflare Email Sending binding; Engine is a public client (no secret)** | Scoped to identity + email code only, a ~100-line OpenAuth issuer on Workers + KV + `env.EMAIL.send` is far lighter than a full IAM — Logto/Zitadel were overkill for "nothing but identity + magic link". OpenAuth is OAuth2+JWT (no OIDC userinfo), so the Engine verifies the access-token JWT via the issuer's JWKS (OpenAuth client, lazy-imported) instead of calling userinfo, and runs as a public client (the issuer's redirect_uri allowlist is the protection) → `WIKIGIT_CLIENT_SECRET` dropped. `wg:` keys off the token's stable `sub`, not the handle, so trust survives a handle change |
 | 2026-06-07 | **`gh:` and `wg:` link to one identity — GitHub is a social connector on the IdP, not a separate Engine OAuth path** | One human → one `wg:` handle → one trust history + one profile, no double-counting; routing GitHub *through* the IdP gets linking for free instead of reconciling two keys in the Engine. Today's direct GitHub OAuth stays as the fallback until the connector path lands |
 | 2026-06-07 | **A fresh `wg:` account gets no trust head start (Sybil gate); trust stays per-repo and earned, real power human-granted** | Magic-link accounts are cheap to mint, so an account must not shortcut tiers — it starts anon-equivalent and earns trust only from merged edits in *that* repo (the account is a stable global label, not a global score). Matches the standing "auto-tiers are gameable → reserve real power for human-granted maintainer" decision |
 | 2026-06-07 | **Magic-link is the first native credential (passkeys next); `wg:` commits use a no-PII synthetic author** | Email magic-link is universal (passkeys need enrollment + a colder first run); the real email lives only in the IdP, never in a commit — the author is `wg-<handle>@users.wikigit.invalid`, mirroring the `gh` no-reply / `anon.invalid` pattern |
