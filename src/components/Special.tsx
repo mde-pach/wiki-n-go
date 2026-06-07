@@ -1,8 +1,9 @@
 import { createMemo, createSignal, For, type JSX, Show } from "solid-js";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
+import { allCategories } from "../lib/categories";
 import { getLinkGraph, graphStats, type LinkGraph, mostLinked } from "../lib/linkgraph";
-import { BASE, readHref } from "../lib/paths";
+import { BASE, categoryHref, prettify, readHref } from "../lib/paths";
 import { clientResource } from "../lib/solid";
 import { PagePicker } from "./special/PagePicker";
 import { ReportList } from "./special/ReportList";
@@ -16,12 +17,14 @@ type Tab =
   | "deadend"
   | "redirects"
   | "allpages"
+  | "allcategories"
   | "mostlinked"
   | "stats";
 const TABS: { id: Tab; label: string }[] = [
   { id: "backlinks", label: "What links here" },
   { id: "pageinfo", label: "Page info" },
   { id: "allpages", label: "All pages" },
+  { id: "allcategories", label: "Categories" },
   { id: "mostlinked", label: "Most linked" },
   { id: "wanted", label: "Wanted pages" },
   { id: "orphaned", label: "Orphaned pages" },
@@ -70,6 +73,36 @@ const REPORTS: Partial<Record<Tab, ReportConfig>> = {
       )}
     />
   ),
+  allcategories: ({ g }) => {
+    const cats = allCategories(g.categories);
+    const count = (c: { count: number }) => (
+      <span class="sp-count">
+        {c.count} {c.count === 1 ? "page" : "pages"}
+      </span>
+    );
+    const link = (c: { slug: string }) => (
+      <a href={categoryHref(c.slug)}>{prettify(c.slug)}</a>
+    );
+    return (
+      <>
+        <ReportList
+          items={cats.topical}
+          render={link}
+          trailing={count}
+          empty="No categories yet — add a tags: list to a page's frontmatter."
+        />
+        <Show when={cats.maintenance.length > 0}>
+          <h3 class="sp-subhead">Maintenance categories</h3>
+          <ReportList
+            items={cats.maintenance}
+            render={link}
+            trailing={count}
+            empty=""
+          />
+        </Show>
+      </>
+    );
+  },
   mostlinked: ({ g, title }) => (
     <ReportList
       items={mostLinked(g)}

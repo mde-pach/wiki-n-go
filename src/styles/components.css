@@ -1180,19 +1180,31 @@ html[data-textsize="large"] {
   padding: 1.6rem 1.25rem 2.4rem;
   font-family: var(--font-ui);
 }
+.cat-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-bottom: 1.1rem;
+  border-bottom: var(--border-w) solid var(--color-border);
+}
 .cat-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
-  padding-bottom: 1.1rem;
-  border-bottom: var(--border-w) solid var(--color-border);
 }
 .cat-row .cat-label {
   font-size: var(--text-sm);
   font-weight: 700;
   color: var(--color-ink-subtle);
   margin-right: 0.3rem;
+}
+.cat-row-maint .cat-label {
+  font-weight: 600;
+  color: var(--color-ink-muted);
+}
+.cat-row-maint .chip {
+  font-style: italic;
 }
 .footer-bottom {
   display: flex;
@@ -1328,6 +1340,32 @@ html[data-textsize="large"] {
 .category-list li {
   padding: 0.3rem 0;
   break-inside: avoid;
+}
+.category-list .sp-count {
+  color: var(--color-ink-subtle);
+  font-size: var(--text-xs);
+  margin-left: 0.45rem;
+}
+.cat-section {
+  margin-top: 1.6rem;
+}
+.cat-section h3 {
+  font-family: var(--font-ui);
+  font-size: var(--text-lg);
+  margin: 0 0 0.6rem;
+}
+.cat-note {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+  margin: 0 0 1rem;
+}
+.cat-parents {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
 }
 
 /* ---- Page properties form (friendly face over frontmatter) -------------- */

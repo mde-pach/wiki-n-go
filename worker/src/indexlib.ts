@@ -7,6 +7,7 @@ export interface IndexNode {
   out: string[]; // outgoing internal-link target slugs
   redirect?: string; // target slug if this page is a redirect
   translationKey?: string; // shared id grouping this page's translations (M8)
+  tags?: string[]; // category tags carried in frontmatter (M7)
   text: string; // plain-text body for search
 }
 export type IndexMap = Record<string, IndexNode>;
@@ -17,6 +18,7 @@ export interface PageNode {
   out: string[];
   redirect?: string;
   translationKey?: string;
+  tags?: string[];
 }
 export interface WantedPage {
   slug: string;
@@ -36,6 +38,7 @@ export interface LinkGraph {
   deadends: string[];
   redirects: Redirect[];
   translations: Record<string, string[]>; // translationKey -> sibling slugs (M8)
+  categories: Record<string, string[]>; // slugified tag -> member slugs (M7)
 }
 
 export function slugifyTarget(s: string): string {
@@ -45,6 +48,17 @@ export function slugifyTarget(s: string): string {
     .replace(/\s+/g, "-")
     .replace(/[^a-z0-9/-]/g, "")
     .replace(/^-+|-+$/g, "");
+}
+
+// Tag/label slug — drops slashes (unlike slugifyTarget), mirroring the app's
+// `slugifyLabel` so category keys match `categoryHref` and the `/category/<tag>`
+// URL on the read side.
+export function slugifyLabel(s: string): string {
+  return s
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-");
 }
 
 export function prettify(slug: string): string {
@@ -88,6 +102,7 @@ export function buildNode(
   raw: string,
   redirect?: string,
   translationKey?: string,
+  tags?: string[],
 ): IndexNode {
   const body = raw.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "");
   const m = body.match(/^#\s+(.+?)\s*$/m);
@@ -96,6 +111,7 @@ export function buildNode(
     out: extractLinks(body),
     redirect: redirect || undefined,
     translationKey: translationKey || undefined,
+    tags: tags?.length ? tags : undefined,
     text: toPlainText(body),
   };
 }
@@ -147,7 +163,29 @@ export function computeGraph(nodes: PageNode[], homeSlug: string): LinkGraph {
     translations[k].push(n.slug);
   }
 
-  return { titles, backlinks, wanted, orphans, deadends, redirects, translations };
+  const categories: Record<string, Set<string>> = {};
+  for (const n of nodes) {
+    for (const tag of n.tags ?? []) {
+      const key = slugifyLabel(tag);
+      if (!key) continue;
+      if (!categories[key]) categories[key] = new Set();
+      categories[key].add(n.slug);
+    }
+  }
+  const categoryLists: Record<string, string[]> = {};
+  for (const key of Object.keys(categories))
+    categoryLists[key] = [...categories[key]].sort();
+
+  return {
+    titles,
+    backlinks,
+    wanted,
+    orphans,
+    deadends,
+    redirects,
+    translations,
+    categories: categoryLists,
+  };
 }
 
 // Project the stored map into the two response shapes.
@@ -158,6 +196,7 @@ export function graphFromMap(map: IndexMap, homeSlug: string): LinkGraph {
     out: n.out,
     redirect: n.redirect,
     translationKey: n.translationKey,
+    tags: n.tags,
   }));
   return computeGraph(nodes, homeSlug);
 }

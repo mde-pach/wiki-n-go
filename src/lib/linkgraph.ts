@@ -1,6 +1,6 @@
 import { config } from "../config";
 import { fetchFirstOk } from "./net";
-import { BASE } from "./paths";
+import { BASE, slugifyLabel } from "./paths";
 
 export interface PageNode {
   slug: string;
@@ -8,6 +8,7 @@ export interface PageNode {
   out: string[]; // outgoing internal-link target slugs (deduped)
   redirect?: string; // target slug if this page is a redirect
   translationKey?: string; // shared id grouping this page's translations (M8)
+  tags?: string[]; // category tags carried in frontmatter (M7)
 }
 
 export interface WantedPage {
@@ -30,6 +31,7 @@ export interface LinkGraph {
   deadends: string[]; // existing pages with no outgoing internal links
   redirects: Redirect[]; // all redirects, flagged broken/double
   translations: Record<string, string[]>; // translationKey -> sibling slugs (M8)
+  categories: Record<string, string[]>; // slugified tag -> member slugs (M7)
 }
 
 // Invert the page→links map into the reports the special pages need. Pure, so
@@ -83,7 +85,35 @@ export function computeGraph(nodes: PageNode[], homeSlug: string): LinkGraph {
     translations[k].push(n.slug);
   }
 
-  return { titles, backlinks, wanted, orphans, deadends, redirects, translations };
+  const categories = invertTags(nodes);
+
+  return {
+    titles,
+    backlinks,
+    wanted,
+    orphans,
+    deadends,
+    redirects,
+    translations,
+    categories,
+  };
+}
+
+// Invert page→tags into category→members. Keys are slugified tags (matching
+// `categoryHref`), each member list deduped and sorted so it's stable to diff.
+function invertTags(nodes: PageNode[]): Record<string, string[]> {
+  const map: Record<string, Set<string>> = {};
+  for (const n of nodes) {
+    for (const tag of n.tags ?? []) {
+      const key = slugifyLabel(tag);
+      if (!key) continue;
+      if (!map[key]) map[key] = new Set();
+      map[key].add(n.slug);
+    }
+  }
+  const out: Record<string, string[]> = {};
+  for (const key of Object.keys(map)) out[key] = [...map[key]].sort();
+  return out;
 }
 
 export interface GraphStats {

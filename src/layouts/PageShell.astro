@@ -10,6 +10,7 @@ import Search from "../components/Search.tsx";
 import ThemeBoot from "../components/ThemeBoot.astro";
 import TokenCapture from "../components/TokenCapture.astro";
 import { config } from "../config";
+import { classifyTags } from "../lib/categories";
 import { gitRevisions } from "../lib/git";
 import { translationGroup, translations } from "../lib/i18n";
 import {
@@ -64,6 +65,7 @@ const toolLinks: { label: string; href: string; external?: boolean }[] = [
 const pageLang = langOf(slug);
 const group = translationGroup(slug);
 const alternates = translations(slug).filter((l) => !l.current);
+const cats = categories?.length ? classifyTags(categories) : null;
 ---
 
 <!doctype html>
@@ -186,14 +188,28 @@ const alternates = translations(slug).filter((l) => !l.current);
       <footer class="site-footer">
         <div class="footer-inner">
           {
-            categories && categories.length > 0 && (
-              <div class="cat-row">
-                <span class="cat-label">Categories</span>
-                {categories.map((c) => (
-                  <a class="chip chip-link" href={categoryHref(c)}>
-                    {c}
-                  </a>
-                ))}
+            cats && (cats.topical.length > 0 || cats.maintenance.length > 0) && (
+              <div class="cat-block">
+                {cats.topical.length > 0 && (
+                  <div class="cat-row">
+                    <span class="cat-label">Categories</span>
+                    {cats.topical.map((c) => (
+                      <a class="chip chip-link" href={categoryHref(c)}>
+                        {c}
+                      </a>
+                    ))}
+                  </div>
+                )}
+                {cats.maintenance.length > 0 && (
+                  <div class="cat-row cat-row-maint">
+                    <span class="cat-label">Maintenance</span>
+                    {cats.maintenance.map((c) => (
+                      <a class="chip chip-link" href={categoryHref(c)}>
+                        {c}
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
             )
           }

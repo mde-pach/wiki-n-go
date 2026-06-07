@@ -267,7 +267,7 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 | **Permalink to a revision** (`oldid`) | route to a page **at a commit SHA** (`/page@<sha>`) | 🟡 | P1 |
 | **Short description** | frontmatter `description:` → search snippets, `<meta>`, hover previews, disambiguation | ⬜ | P1 |
 | **Citoid** (auto-cite from URL/DOI/ISBN) | Worker endpoint: fetch URL/DOI/ISBN → metadata → citation partial — **high ROI, pure HTTP, no new service** | ⬜ | P1 |
-| Categories: pages · subcats · hidden/maintenance · **intersection** | already have tag chips + `/category`; add member pages, hierarchy, hidden cats, boolean tag intersection | 🟡 | P2 |
+| Categories: pages · subcats · hidden/maintenance · **intersection** | tag chips → real category pages, read live from the link-graph index (tags now inverted into a `categories` map; no rebuild): member listing, **subcategory hierarchy** (a member page that is itself a category nests, with parent breadcrumb), **hidden/maintenance** cats split from topical in the chips + on the page, boolean **`/category/a+b` intersection**; plus an All-categories special page (`lib/categories.ts`, unit-tested) | ✅ | P2 |
 | Files: description pages + **license** metadata; Commons | sidecar frontmatter per asset (source/author/license); Worker flags unlicensed; shared `media/` (serve binaries from CDN/R2, not git) | ⬜ | P2 |
 
 ## Q. Identity, notifications & community (two-tier: anon vs GitHub account)

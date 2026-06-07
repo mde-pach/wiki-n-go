@@ -204,6 +204,20 @@ describe("computeGraph", () => {
     expect(g.deadends).toEqual(["getting-started", "sandbox/playground"]);
   });
 
+  it("inverts frontmatter tags into a slugified categories map", () => {
+    const t = computeGraph(
+      [
+        { slug: "espresso", title: "Espresso", out: [], tags: ["Coffee", "Drinks"] },
+        { slug: "latte", title: "Latte", out: [], tags: ["coffee"] },
+      ],
+      "index",
+    );
+    expect(t.categories).toEqual({
+      coffee: ["espresso", "latte"],
+      drinks: ["espresso"],
+    });
+  });
+
   it("flags broken and double redirects, and excludes redirects from orphans", () => {
     const r = computeGraph(
       [

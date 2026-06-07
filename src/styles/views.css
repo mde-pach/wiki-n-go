@@ -796,6 +796,12 @@ a.dh-rev:hover {
   flex-direction: column;
   gap: 0.4rem;
 }
+.sp-subhead {
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  color: var(--color-ink-muted);
+  margin: 1.6rem 0 0.6rem;
+}
 .special-list li {
   display: flex;
   align-items: baseline;

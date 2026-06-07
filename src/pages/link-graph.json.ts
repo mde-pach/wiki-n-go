@@ -34,6 +34,7 @@ export const GET: APIRoute = () => {
       out: extractLinks(raw),
       redirect: meta.redirect ? slugifyPath(meta.redirect) : undefined,
       translationKey: meta.translationKey,
+      tags: meta.tags,
     };
   });
   return new Response(JSON.stringify(computeGraph(nodes, config.homeSlug)), {
