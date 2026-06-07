@@ -58,6 +58,28 @@ export interface MoveBody {
   token?: unknown;
 }
 
+// Merge folds `from` into `to`: the client sends the already-composed `to`
+// content (its body + `from`'s, with `merged_from` frontmatter), and the Worker
+// leaves a redirect stub at `from` — like a move whose target already exists.
+export interface MergeBody {
+  from?: unknown;
+  to?: unknown;
+  content?: unknown; // composed new content for `to`
+  summary?: unknown;
+  token?: unknown;
+}
+
+// Split carves a section of `from` into a brand-new page `to`: the client sends
+// both composed sides (`to` seeded from the section, `from` with it trimmed).
+export interface SplitBody {
+  from?: unknown;
+  to?: unknown;
+  fromContent?: unknown; // trimmed source
+  toContent?: unknown; // new page seeded from the section
+  summary?: unknown;
+  token?: unknown;
+}
+
 export interface TopicBody {
   slug?: unknown;
   title?: unknown;

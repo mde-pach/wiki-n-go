@@ -5,15 +5,23 @@ import { config } from "../config";
 import { type EditResult, type Progress, submitEdit } from "../lib/api";
 import { fetchMarkdown, fetchMarkdownAt, PageNotFoundError } from "../lib/content";
 import { diffLines } from "../lib/diff";
-import { clearDraft, loadDraft, persistDraft } from "../lib/draft";
+import {
+  clearDraft,
+  deleteNamedDraft,
+  getNamedDraft,
+  loadDraft,
+  persistDraft,
+  saveNamedDraft,
+} from "../lib/draft";
 import { findSection } from "../lib/editor-section";
 import { splitFrontmatter, withFrontmatter } from "../lib/frontmatter";
 import { renderMarkdown } from "../lib/markdown";
-import { prettify, readHref, slugFromLocation, userLogin } from "../lib/paths";
+import { BASE, prettify, readHref, slugFromLocation, userLogin } from "../lib/paths";
 import { useSubmit, useWhoami } from "../lib/solid";
 import { templateById } from "../lib/templates";
 import { errMessage } from "../lib/util";
 import DiffView from "./DiffView";
+import DraftList from "./DraftList";
 import { ConfirmDialog } from "./editor/ConfirmDialog";
 import { MarkdownToolbar } from "./editor/MarkdownToolbar";
 import PageProperties, {
@@ -45,6 +53,11 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   const [restored, setRestored] = createSignal(false);
   const [reverting, setReverting] = createSignal<string>();
   const [isNew, setIsNew] = createSignal(false);
+  // The named draft being resumed (deleted once it publishes); `draftName` feeds
+  // the save field; `draftSaved` is bumped to refresh the saved-drafts list.
+  const [activeDraftId, setActiveDraftId] = createSignal<string>();
+  const [draftName, setDraftName] = createSignal("");
+  const [draftSaved, setDraftSaved] = createSignal(0);
   let ta: HTMLTextAreaElement | undefined;
 
   const { busy, error, setError, run, mount } = useSubmit();
@@ -84,6 +97,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
       } else setError(errMessage(e));
     }
     restoreDraft();
+    applyNamedDraft();
     await applyRevert();
     setReady(true);
     queueMicrotask(focusSection);
@@ -130,6 +144,38 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     applyDocument(draft.content);
     if (draft.summary) setSummary(draft.summary);
     setRestored(true);
+  }
+
+  // Resume a named draft reached with `?draft=<id>` (from the saved-drafts list).
+  // Wins over the scratch autosave; an explicit `?revert=` still wins over it.
+  function applyNamedDraft() {
+    if (isServer) return;
+    const id = new URLSearchParams(window.location.search).get("draft");
+    if (!id) return;
+    const draft = getNamedDraft(id);
+    if (!draft) return;
+    applyDocument(draft.content);
+    setSummary(draft.summary);
+    setActiveDraftId(draft.id);
+    setDraftName(draft.name);
+    setRestored(false);
+  }
+
+  // Snapshot the current work as a named draft (client-side only — no PR, no
+  // write path). Reuses the resumed draft's id so re-saving updates in place.
+  function saveDraft() {
+    if (!body().trim()) return setError("Nothing to save yet.");
+    const name = draftName().trim() || summary().trim() || prettify(slug());
+    const saved = saveNamedDraft({
+      id: activeDraftId(),
+      name,
+      slug: slug(),
+      content: content(),
+      summary: summary(),
+    });
+    setActiveDraftId(saved.id);
+    setDraftName(saved.name);
+    setDraftSaved((n) => n + 1);
   }
 
   createEffect(() => {
@@ -198,6 +244,11 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     run(async (tok) => {
       setResult(await submitEdit(slug(), content(), tok, summary(), setProgress));
       clearDraft(slug());
+      // The work is published, so its saved draft (if any) is now stale.
+      const id = activeDraftId();
+      if (id) deleteNamedDraft(id);
+      setActiveDraftId(undefined);
+      setDraftSaved((n) => n + 1);
     });
   }
 
@@ -278,6 +329,34 @@ export default function Editor(props: { slug?: string; initialContent?: string }
             <Show when={restored()}>
               <p class="editor-hint">Restored your unsaved draft from this device.</p>
             </Show>
+            <div class="draft-save" style={{ "margin-top": "0.8rem" }}>
+              <label class="field-label" for="draft-name">
+                Save as draft
+              </label>
+              <div class="draft-save-row">
+                <input
+                  id="draft-name"
+                  class="input"
+                  value={draftName()}
+                  placeholder="Draft name (optional)"
+                  onInput={(e) => setDraftName(e.currentTarget.value)}
+                />
+                <button
+                  type="button"
+                  class="btn btn-ghost"
+                  disabled={!body().trim()}
+                  onClick={saveDraft}
+                >
+                  Save draft
+                </button>
+              </div>
+              <Show when={draftSaved() > 0 && activeDraftId()}>
+                <p class="editor-hint">
+                  Saved to this device — resume it later from here or the{" "}
+                  <a href={`${BASE}/new`}>create page</a>.
+                </p>
+              </Show>
+            </div>
             <Show when={config.turnstileSiteKey}>
               <div class="editor-widget" ref={(el) => mount?.(el)} />
             </Show>
@@ -352,6 +431,12 @@ export default function Editor(props: { slug?: string; initialContent?: string }
             </Show>
           </div>
         </div>
+
+        <DraftList
+          slug={slug()}
+          heading="Saved drafts for this page"
+          refresh={draftSaved}
+        />
 
         <Show when={modal()}>
           <ConfirmDialog

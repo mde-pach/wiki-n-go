@@ -250,8 +250,8 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 | **Move/rename** (leaves redirect) | Worker `POST /move`: copies the page to the new path + writes a `#REDIRECT` stub at the old path, **committed directly** (no `git mv`, no PR; old-path history stays at the old path). Tier-gated; 422 if target exists. `/move` form + PageInfo link | ✅ | P1 |
 | Move-over-redirect / round-robin / **history-merge** | **dissolved by git** (swap = two `git mv`s; `--follow` preserves attribution); lint copy-paste moves | ⬜ | P2 |
 | **Redirects** (`#REDIRECT`); double/broken redirects | `redirect:` frontmatter bounces the reader ("Redirected from" banner, `?redirect=no` to view the stub); link graph flags double/broken chains | ✅ | P1 |
-| **Merge / split** (with attribution) | content PR + redirect stub; **attribution is free** in git (no dummy-edit trick); `merged_from:`/`split_from:` frontmatter | ⬜ | P2 |
-| **Drafts** / AfC / sandboxes | the open **PR is already the draft**; or a non-indexed `drafts/` tree promoted via `git mv` | 🟡 | P2 |
+| **Merge / split** (with attribution) | Worker `POST /merge` folds a page in (composed body + `merged_from:`) and leaves a redirect; `POST /split` carves a `##` section into a new page (`split_from:`) + trims the source. Built from the move primitive, gated like a normal edit (Turnstile/Filter/trust); `/merge` + `/split` forms linked from PageInfo. **attribution is free** in git | ✅ | P2 |
+| **Drafts** / AfC / sandboxes | the open **PR is already the draft**, *plus* **named client-side drafts** (`draft.ts`, localStorage): save WIP for a page under a name, resume from the editor or `/new` — no DB, no write path | ✅ | P2 |
 | **Article/creation wizard** (red link → create) | guided Worker UI pre-filling frontmatter (title, short-desc, infobox skeleton, stub refs) | 🟡 | P1 |
 
 ## P. Structure: namespaces · templates · special pages · the link graph

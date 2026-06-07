@@ -281,6 +281,8 @@ export default function Special() {
                   <a href={readHref(page())}>Read</a> ·{" "}
                   <a href={`${BASE}/history/${page()}`}>History</a> ·{" "}
                   <a href={`${BASE}/move?page=${page()}`}>Move/rename</a> ·{" "}
+                  <a href={`${BASE}/merge?page=${page()}`}>Merge</a> ·{" "}
+                  <a href={`${BASE}/split?page=${page()}`}>Split</a> ·{" "}
                   <a
                     href={`https://github.com/${config.repoOwner}/${config.repoName}/blob/${config.branch}/${config.contentDir}/${page()}.md`}
                     target="_blank"
