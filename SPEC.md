@@ -262,7 +262,8 @@ costs; consider salt/epoch rotation to limit long-term linkability (M5).
       GitHub no-reply email (profile link + contribution credit, **no PII**).
       Worker stays the only writer; sign-in just swaps the identity label.
       Signed-in users follow the same trust gate as anon (earn tiers from
-      history). Flag-gated by `oauthEnabled` / OAuth env — inert until wired.
+      history). Runtime-gated by OAuth env presence — live: `/auth/login`,
+      `/auth/callback`, `/auth/status` are wired and `AuthButton` revalidates.
 
 ### M3 — Moderation & abuse (essential)
 - [x] ✅ `bans.json` at repo root (outside anon-writable `content/`) + Worker 403 on banned `anon-<hash>`.
@@ -348,8 +349,9 @@ follow-ups (CODEOWNERS sync, hard-purge, revert-risk/3RR), not core console gaps
 - [x] ✅ **Blocks + audit log** — Worker `POST /ban` / `POST /unban` edit `bans.json` (maintainer-only,
       committed → git is the record), supporting **path-scoped partial blocks** (`{key, paths}`; enforced by
       threading the edit slug through `isBanned`, so a partial block gags only its subtrees and never a comment).
-      Append-only `audit-log.jsonl` records rollback/ban/unban. New **Blocks** + **Audit log** tabs in `/admin`
-      (`GET /bans`, maintainer-only `GET /audit`). TODO: ban `expires`, path-scoped blocks in the abuse path.
+      Append-only `audit-log.jsonl` records rollback · restore · protect · delete · grant · revoke · ban · unban ·
+      suppress · unsuppress · auto-revert. New **Blocks** + **Audit log** tabs in `/admin`
+      (`GET /bans`, maintainer-only `GET /audit`). TODO: ban `expires`.
 - [x] ✅ **Protection + rights management** — Worker `POST /protect {slug, tier}` rewrites the page's `protection:`
       frontmatter via a targeted line edit (clean diff); `POST /grant`/`/revoke` (+ `GET /editors`) edit
       `trusted-editors.json` to add/remove maintainers (the owner is always one). **Protection** + **Rights** tabs in

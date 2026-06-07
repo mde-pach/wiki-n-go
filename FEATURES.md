@@ -199,14 +199,14 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 | Edit summary · minor-edit flag | commit message / PR title; `Minor:` trailer or label | 🟡 | P1 |
 | **Undo** one edit · **restore to revision** | Worker `POST /restore {slug, rev}` writes the page's content at `rev` (History-row "restore", maintainer); undo-latest = restore the prior row | 🟡 | P1 |
 | **Rollback** (1-click revert a contributor's trailing run) | maintainer-gated Worker `POST /rollback` restores each page a commit touched to its pre-commit state (per-commit; trailing-run TODO) | 🟡 | P1 |
-| CAPTCHA only for risky/untrusted edits (autoconfirmed exempt) | Turnstile on untrusted `ip_hash` / external-link adds; **exempt trusted tiers** | 🟡 | P1 |
+| CAPTCHA only for risky/untrusted edits (autoconfirmed exempt) | Turnstile on **anonymous** edits; **any signed-in GitHub user is exempt** (`if (!session)`), not just trusted tiers | 🟡 | P1 |
 
 ## L. Trust tiers & page protection (earned autonomy)
 | Wikipedia mechanism | Ours | St | Pri |
 |---|---|---|---|
-| **Autoconfirmed** (≥10 edits & ≥4 days) | Worker **trust ledger** on `ip_hash`: N clean merged edits over M days → flips to auto-merge | ⬜ | P0 |
-| **Extended-confirmed** (≥500 & ≥30 days) | higher tier unlocking sensitive paths | ⬜ | P1 |
-| **Autopatrolled / Reviewer / Rollbacker** (human-granted) | maintainer-curated `trusted-editors.json` / GitHub team → auto-merge & approve others | ⬜ | P1 |
+| **Autoconfirmed** (≥10 edits & ≥4 days) | `trust.ts editorTier`: ≥`AUTOCONFIRM_EDITS` (10) accepted commits over ≥`AUTOCONFIRM_DAYS` (4) days → `auto` (auto-merge). Counted from git history per pseudonym — no separate ledger | ✅ | P0 |
+| **Extended-confirmed** (≥500 & ≥30 days) | ≥`EXTENDED_EDITS` (500) over ≥`EXTENDED_DAYS` (30) days → `extended` tier for sensitive paths | ✅ | P1 |
+| **Autopatrolled / Reviewer / Rollbacker** (human-granted) | maintainer-curated `trusted-editors.json` (+ `REPO_OWNER`) → `maintainer`: auto-merge & approve others; GitHub-team sync still TODO | ✅ | P1 |
 | **Protection levels** (semi / extended-confirmed / full / create / move / cascading; temp vs indefinite) | `protection:` frontmatter tier the Worker enforces; set via `POST /protect` + `/admin` Protection tab; `expires` / CODEOWNERS / **full** = branch protection still TODO | 🟡 | P0 |
 | Protection edit-notices (`{{pp}}`) | per-path "protected / under review" banner (UI metadata) | ⬜ | P2 |
 | *Note:* auto tiers are gameable via IP rotation | keep auto thresholds modest; reserve real power for human-granted tiers | — | — |
@@ -239,7 +239,7 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 | **Bans** (community vs ArbCom) as decisions enforced by blocks | record *authority/reason* on `bans.json` entries; lightweight Discussion-consensus to authorize | ⬜ | P2 |
 | **CheckUser** (IP correlation) | **impossible by design** — exact-`ip_hash` match only; document as intentional | ⊘ | — |
 | **Oversight / RevDel / Suppression** (hide revisions even from admins) | `suppressed.json` (author/revision) → Worker **redacts server-side** in `/changes`+`/history` (`Suppression` tab); owner-only **hard-purge** (history rewrite + CDN purge) stays a manual op | 🟡 | P1 |
-| **Logs** (block/delete/protect/rights/move/abuse) | git history = most of it **for free**; append-only `audit-log.jsonl` records rollback/ban/unban (Audit log tab); private suppression log still TODO | 🟡 | P1 |
+| **Logs** (block/delete/protect/rights/move/abuse) | git history = most of it **for free**; append-only `audit-log.jsonl` records rollback · restore · protect · delete · grant · revoke · ban · unban · suppress · unsuppress · auto-revert (Audit log tab); a dedicated private suppression log still TODO | 🟡 | P1 |
 | Dispute resolution: talk → **RfC** → noticeboards (**ANI/AIV/3RR**) → **ArbCom**; **RfA** | Discussions categories (RfC, incidents, vandalism fast-lane); owner = final authority; future EC-gated grant process | ⬜ | P2 |
 
 ## O. Content lifecycle (deletion · move · redirect · merge · drafts)
@@ -247,9 +247,9 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 |---|---|---|---|
 | Deletion: **CSD** (speedy) · **PROD** (7-day quiet) · **AfD** (discussion) | maintainer **delete** (`POST /delete`, audited) from the New-pages queue = speedy; PROD/AfD-by-PR-policy still TODO | 🟡 | P1 |
 | **Undeletion** + deletion log | **restore a pre-deletion revision** from History (git retains content) — no separate endpoint; deletion log = audit log + git | ✅ | P1 |
-| **Move/rename** (leaves redirect; history follows) | `git mv` in a PR — history follows **natively**; write a redirect stub at the old path | 🟡 | P1 |
+| **Move/rename** (leaves redirect) | Worker `POST /move`: copies the page to the new path + writes a `#REDIRECT` stub at the old path, **committed directly** (no `git mv`, no PR; old-path history stays at the old path). Tier-gated; 422 if target exists. `/move` form + PageInfo link | ✅ | P1 |
 | Move-over-redirect / round-robin / **history-merge** | **dissolved by git** (swap = two `git mv`s; `--follow` preserves attribution); lint copy-paste moves | ⬜ | P2 |
-| **Redirects** (`#REDIRECT`); double/broken redirects | redirect frontmatter the Worker honors; reports flag chains>1 & missing targets (auto-fix doubles) | ⬜ | P1 |
+| **Redirects** (`#REDIRECT`); double/broken redirects | `redirect:` frontmatter bounces the reader ("Redirected from" banner, `?redirect=no` to view the stub); link graph flags double/broken chains | ✅ | P1 |
 | **Merge / split** (with attribution) | content PR + redirect stub; **attribution is free** in git (no dummy-edit trick); `merged_from:`/`split_from:` frontmatter | ⬜ | P2 |
 | **Drafts** / AfC / sandboxes | the open **PR is already the draft**; or a non-indexed `drafts/` tree promoted via `git mv` | 🟡 | P2 |
 | **Article/creation wizard** (red link → create) | guided Worker UI pre-filling frontmatter (title, short-desc, infobox skeleton, stub refs) | 🟡 | P1 |
@@ -261,12 +261,12 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 | **Templates / transclusion** (params, `{{subst:}}`) | `{{slug}}` transcludes a page body, filled from the CDN at read time (no rebuild); recursion-bounded + cycle-safe (`lib/transclude`). Params / `{{subst:}}` still TODO | ✅ | P2 |
 | **Navboxes** | author a page as a link grid, transclude it with `{{slug}}` at the bottom of articles | ✅ | P2 |
 | **Lua/Scribunto modules**, full parser functions | **out of scope** (conflicts with single-Worker invariant); minimal magic-words only (`noindex`, `notoc`) | ⊘ | — |
-| **The link graph** (invert `[[links]]`+includes+tags) | **keystone** — one inverted index unlocks ~10 special pages | ⬜ | P0 |
-| **Special pages**: WhatLinksHere · RecentChanges · Random · Stats · Orphaned · Wanted (=red links) · Dead-end · Double/Broken redirects · Long/Short · MostLinked · AllPages · PageInfo | Worker-computed from tree + git log + link graph (cache in KV; recompute on push) | ⬜ | P1 |
+| **The link graph** (invert `[[links]]`+includes+tags) | **keystone** — built (`linkgraph.ts` + `/link-graph`): one inverted index drives the special pages (orphaned/wanted/dead-end/double+broken redirects) **and categories** (frontmatter `tags` inverted into a `categories` map) | ✅ | P0 |
+| **Special pages**: WhatLinksHere · RecentChanges · Random · Stats · Orphaned · Wanted (=red links) · Dead-end · Double/Broken redirects · Long/Short · MostLinked · AllPages · PageInfo · Categories | Worker-computed from tree + git log + link graph; live in `Special.tsx` + `/search-index` (cache in KV) | ✅ | P1 |
 | **Export** | `git clone` **is** the export — already true | ✅ | — |
-| **Permalink to a revision** (`oldid`) | route to a page **at a commit SHA** (`/page@<sha>`) | 🟡 | P1 |
-| **Short description** | frontmatter `description:` → search snippets, `<meta>`, hover previews, disambiguation | ⬜ | P1 |
-| **Citoid** (auto-cite from URL/DOI/ISBN) | Worker endpoint: fetch URL/DOI/ISBN → metadata → citation partial — **high ROI, pure HTTP, no new service** | ⬜ | P1 |
+| **Permalink to a revision** (`oldid`) | route to a page **at a commit SHA** via `?rev=<sha>` (old-revision banner) | ✅ | P1 |
+| **Short description** | frontmatter `description:` → search snippets, `<meta>`, hover previews, disambiguation | ✅ | P1 |
+| **Citoid** (auto-cite from URL/DOI/ISBN) | Worker `/cite` endpoint (`citelib.ts`): fetch URL/DOI/ISBN → metadata → citation partial — **pure HTTP, no new service** | ✅ | P1 |
 | Categories: pages · subcats · hidden/maintenance · **intersection** | tag chips → real category pages, read live from the link-graph index (tags now inverted into a `categories` map; no rebuild): member listing, **subcategory hierarchy** (a member page that is itself a category nests, with parent breadcrumb), **hidden/maintenance** cats split from topical in the chips + on the page, boolean **`/category/a+b` intersection**; plus an All-categories special page (`lib/categories.ts`, unit-tested) | ✅ | P2 |
 | Files: description pages + **license** metadata; Commons | sidecar frontmatter per asset (source/author/license); Worker flags unlicensed; shared `media/` (serve binaries from CDN/R2, not git) | ⬜ | P2 |
 
