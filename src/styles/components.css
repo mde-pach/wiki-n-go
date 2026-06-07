@@ -1867,15 +1867,18 @@ html[data-textsize="large"] {
   font-size: var(--text-sm);
 }
 .np-row {
-  display: grid;
-  grid-template-columns: 1fr auto 4.5rem auto auto;
-  gap: 0.65rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.65rem;
   align-items: baseline;
   padding: 0.5rem 0;
   border-top: var(--border-w) solid var(--color-border);
 }
 .np-page {
   font-weight: 600;
+}
+.np-row .curation {
+  margin-left: auto;
 }
 .np-author {
   color: var(--color-ink-muted);
@@ -1888,10 +1891,45 @@ html[data-textsize="large"] {
   color: var(--color-ink-subtle);
   white-space: nowrap;
 }
-.np-delete {
+
+/* ---- Page-curation toolbar (reviewer overlay) -------------------------- */
+.curation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.7rem;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+}
+.cur-bar {
+  margin: 0 0 1rem;
+  padding: 0.45rem 0.7rem;
+  border: var(--border-w) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+}
+.cur-label {
+  font-weight: 600;
+  color: var(--color-ink-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.78em;
+}
+.cur-action {
+  white-space: nowrap;
+}
+.cur-approve {
+  font-size: 0.85em;
+  color: var(--color-add-ink);
+}
+.cur-rollback,
+.cur-delete {
   font-size: 0.85em;
   color: var(--color-remove-ink);
-  white-space: nowrap;
+}
+.cur-done {
+  color: var(--color-ink-muted);
+  font-style: italic;
 }
 
 /* Hatnote: italic disambiguation note above the lead (Wikipedia convention). */

@@ -2,6 +2,7 @@
 import Appearance from "../components/Appearance.tsx";
 import Contributions from "../components/Contributions.tsx";
 import Infobox from "../components/Infobox.tsx";
+import PageCuration from "../components/PageCuration.tsx";
 import Toc from "../components/Toc.tsx";
 import TocMobile from "../components/TocMobile.tsx";
 import WikiPage from "../components/WikiPage.tsx";
@@ -72,6 +73,7 @@ const contributor =
     </div>
     <div class="col-main">
       <TocMobile initialItems={parsed?.headings ?? []} client:load />
+      <PageCuration slug={pageSlug} bar client:idle />
       <Infobox slug={pageSlug} meta={parsed?.meta} client:load />
       <WikiPage slug={pageSlug} initialHtml={html} initialRaw={raw} meta={parsed?.meta} client:load />
       {contributor && <Contributions login={contributor} client:load />}
