@@ -522,7 +522,7 @@ single way, not two. See §5.
   operator sees the raw IP only *transiently*, in-Worker, before hashing — same as
   the self-hosted path, just run by the operator for many repos.
 
-### M10 — Federated identity: the Wikigit account (centralised, GitHub-optional) ⬜
+### M10 — Federated identity: the Wikigit account (centralised, GitHub-optional) 🟡
 Add a **third identity tier** so people without GitHub can attribute edits via a
 centralised **Wikigit account**, and split the platform into clear projects so the
 Engine's no-DB invariant survives. Today identity is anon `ip_hash` (primary) +
@@ -566,10 +566,15 @@ generalises: add `wikigitWriter(session)`, key `wg:<handle>`, beside the two it 
   features stop being GitHub-only.
 
 Build order (each ships independently; the Engine slice lands here first):
-- [ ] ⬜ **Engine — pluggable OIDC consumer.** Generalise `worker/src/auth.ts` from
-  GitHub-specific to an `issuer` config; add `wikigitWriter` + `wg:` key in `identity.ts`,
-  with a no-PII commit author (`wg-<handle>@users.wikigit.invalid`). Inert until an issuer
-  is set (mirrors today's `oauthEnabled` gate). *No DB, no new service.*
+- [x] ✅ **Engine — pluggable OIDC consumer.** Identity consolidated under a
+  `worker/src/identity/` namespace; sign-in generalised to a provider registry
+  (`providers.ts`: GitHub OAuth2 + Wikigit OIDC via discovery→token→userinfo;
+  `oidc.ts` discovery). `authLogin`/`authCallback` dispatch by `?provider=` over a
+  shared `/auth/callback` (provider rides the signed state); `authStatus` reports
+  per-provider. `wikigitWriter` + `wg:` key + no-PII author
+  (`wg-<handle>@users.wikigit.invalid`); `resolve()` branches via a pure, unit-tested
+  `writerFor`. Frontend: "Sign in with Wikigit" beside GitHub. **Inert** until
+  `WIKIGIT_ISSUER`/`WIKIGIT_CLIENT_ID`/`WIKIGIT_CLIENT_SECRET` are set. No DB, no new service.
 - [ ] ⬜ **Stand up the adopted IdP (Logto)** as the canonical Wikigit Accounts: passwordless
   (magic-link first) + passkeys + a GitHub connector for linking. Operated (Logto Cloud or
   self-hosted) — no provider code to write.
