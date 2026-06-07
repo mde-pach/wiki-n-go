@@ -1,0 +1,186 @@
+---
+import "../styles/app.css";
+import Appearance from "../components/Appearance.tsx";
+import SiteHeader from "../components/SiteHeader.astro";
+import ThemeBoot from "../components/ThemeBoot.astro";
+import TokenCapture from "../components/TokenCapture.astro";
+import { BASE } from "../lib/paths";
+
+const home = `${BASE}/`;
+
+const colorRoles: { name: string; role: string }[] = [
+  { name: "--color-canvas", role: "Page surround behind the article" },
+  { name: "--color-surface", role: "Article / card surface" },
+  { name: "--color-surface-sunken", role: "Inset wells, code backgrounds" },
+  { name: "--color-surface-raised", role: "Popovers, menus, dialogs" },
+  { name: "--color-ink", role: "Primary body text" },
+  { name: "--color-ink-muted", role: "Secondary text, captions" },
+  { name: "--color-ink-subtle", role: "Eyebrows, placeholders" },
+  { name: "--color-border", role: "Default hairline" },
+  { name: "--color-border-strong", role: "Heading rules, emphasis lines" },
+  { name: "--color-accent", role: "Links, progressive actions" },
+  { name: "--color-accent-hover", role: "Accent on hover" },
+  { name: "--color-accent-subtle", role: "Accent fills, active backgrounds" },
+  { name: "--color-accent-line", role: "Accent hairlines" },
+  { name: "--color-on-accent", role: "Text on an accent fill" },
+  { name: "--color-redlink", role: "Broken / not-yet-created links" },
+  { name: "--color-visited", role: "Visited links" },
+  { name: "--color-focus", role: "Focus ring" },
+  { name: "--color-add-bg", role: "Diff add background" },
+  { name: "--color-add-ink", role: "Diff add text" },
+  { name: "--color-remove-bg", role: "Diff remove background" },
+  { name: "--color-remove-ink", role: "Diff remove text" },
+  { name: "--color-warn-bg", role: "Maintenance / warning banner" },
+  { name: "--color-warn-ink", role: "Warning text" },
+  { name: "--color-selection", role: "Text selection" },
+];
+
+const typeScale: { name: string; use: string }[] = [
+  { name: "--text-3xl", use: "Page title (h1)" },
+  { name: "--text-2xl", use: "Display" },
+  { name: "--text-xl", use: "Section heading (h2)" },
+  { name: "--text-lg", use: "Subheading (h3/h4)" },
+  { name: "--text-md", use: "Lead paragraph" },
+  { name: "--text-base", use: "Reading body" },
+  { name: "--text-ui", use: "Chrome / controls" },
+  { name: "--text-sm", use: "Small print" },
+  { name: "--text-xs", use: "Eyebrows, badges" },
+];
+
+const fontRoles: { name: string; use: string }[] = [
+  { name: "--font-display", use: "Headings" },
+  { name: "--font-body", use: "Reading body" },
+  { name: "--font-ui", use: "Chrome and controls" },
+  { name: "--font-mono", use: "Code and identifiers" },
+];
+
+const shapeTokens: { name: string; use: string }[] = [
+  { name: "--measure", use: "Reading column width" },
+  { name: "--space-section", use: "Gap between sections" },
+  { name: "--space-card", use: "Card padding" },
+  { name: "--gap-chrome", use: "Chrome control gap" },
+  { name: "--radius-sm", use: "Small corner" },
+  { name: "--radius-lg", use: "Card corner" },
+  { name: "--radius-pill", use: "Pill / chip corner" },
+  { name: "--border-w", use: "Hairline width" },
+];
+---
+
+<!doctype html>
+<html lang="en" data-skin="wikigit" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Design tokens · Wikigit</title>
+    <ThemeBoot />
+    <TokenCapture />
+  </head>
+  <body>
+    <div class="app">
+      <a class="skip-link" href="#main">Skip to content</a>
+      <SiteHeader home={home} />
+
+      <main id="main" class="view-wrap design">
+        <div class="design-grid">
+          <div class="design-doc">
+            <header class="design-intro">
+              <h1>Design tokens</h1>
+              <p>
+                Every visual decision is a <strong>semantic role</strong>, never a raw
+                value in component code. <code>[data-skin]</code> sets the type, spacing,
+                shape and base hues; <code>[data-skin][data-theme="dark"]</code> overrides
+                the colour roles. Two skins ship — <strong>Wikigit</strong> (the product's
+                own look) and <strong>Wiki</strong> (a near 1:1 Vector 2022 / Codex
+                replica). Flip the controls on the right to watch the tokens below
+                re-resolve live.
+              </p>
+            </header>
+
+            <section class="design-sec">
+              <h2>Colour roles</h2>
+              <div class="design-swatches">
+                {
+                  colorRoles.map((t) => (
+                    <div class="design-swatch">
+                      <span class="ds-chip" style={`background:var(${t.name})`} />
+                      <div class="ds-meta">
+                        <code class="ds-name">{t.name}</code>
+                        <span class="ds-role">{t.role}</span>
+                      </div>
+                    </div>
+                  ))
+                }
+              </div>
+            </section>
+
+            <section class="design-sec">
+              <h2>Type scale</h2>
+              <div class="design-type">
+                {
+                  typeScale.map((t) => (
+                    <div class="design-type-row">
+                      <span class="dt-sample" style={`font-size:var(${t.name})`}>
+                        The open reference
+                      </span>
+                      <span class="dt-meta">
+                        <code>{t.name}</code> · {t.use}
+                      </span>
+                    </div>
+                  ))
+                }
+              </div>
+            </section>
+
+            <section class="design-sec">
+              <h2>Type families</h2>
+              <div class="design-type">
+                {
+                  fontRoles.map((t) => (
+                    <div class="design-type-row">
+                      <span class="dt-sample dt-font" style={`font-family:var(${t.name})`}>
+                        Wikigit · the open reference 0123
+                      </span>
+                      <span class="dt-meta">
+                        <code>{t.name}</code> · {t.use}
+                      </span>
+                    </div>
+                  ))
+                }
+              </div>
+            </section>
+
+            <section class="design-sec">
+              <h2>Space &amp; shape</h2>
+              <table class="design-table">
+                <tbody>
+                  {
+                    shapeTokens.map((t) => (
+                      <tr>
+                        <td>
+                          <code>{t.name}</code>
+                        </td>
+                        <td>{t.use}</td>
+                      </tr>
+                    ))
+                  }
+                </tbody>
+              </table>
+            </section>
+
+            <p class="design-note">
+              Defined in <code>src/styles/tokens.css</code>. Page defaults come from
+              <code>config.appearance</code>; a page may override them with
+              <code>appearance:</code> frontmatter, and a reader's saved choice wins over
+              both.
+            </p>
+          </div>
+
+          <aside class="design-rail">
+            <Appearance client:load />
+          </aside>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

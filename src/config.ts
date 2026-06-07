@@ -24,4 +24,20 @@ export const config = {
     { code: "fr", name: "Français" },
     { code: "de", name: "Deutsch" },
   ],
+  // Default Appearance (Vector-2022 right-rail panel). A page may override any
+  // field via `appearance:` frontmatter; a reader's own saved choice wins over
+  // both. `theme: "auto"` follows the OS (resolved client-side, pre-paint).
+  appearance: {
+    skin: "wikigit",
+    theme: "light",
+    width: "standard",
+    textsize: "standard",
+  } satisfies AppearanceDefaults,
 };
+
+export interface AppearanceDefaults {
+  skin: "wikigit" | "wiki";
+  theme: "auto" | "light" | "dark";
+  width: "standard" | "wide";
+  textsize: "small" | "standard" | "large";
+}
