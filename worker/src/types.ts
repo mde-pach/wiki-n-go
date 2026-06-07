@@ -37,6 +37,11 @@ export interface Env {
   OAUTH_CLIENT_ID?: string;
   OAUTH_CLIENT_SECRET?: string;
   SESSION_SECRET?: string;
+  // Shared hosted instance (giscus model). "1"/"true" → derive the target repo
+  // from the request (X-Wiki-Repo header / ?repo=), validate it against the App's
+  // installs, and namespace KV per repo. Requires the GitHub App credential.
+  // Unset (default) → single-tenant: always env's repo, request repo ignored.
+  MULTI_TENANT?: string;
 }
 
 export interface EditBody {

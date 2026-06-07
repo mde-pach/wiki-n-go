@@ -20,6 +20,13 @@ ALLOWED_ORIGIN = "https://mde-pach.github.io,http://localhost:4321"
 # Talk topics post to this Discussions category; its node id (and the repo id)
 # are derived at runtime, so a fork only names the category here.
 DISCUSSION_CATEGORY = "General"
+# Shared hosted instance (the giscus model): one operator-run Worker serving any
+# repo that installs the App. Off by default (single-tenant: always the repo
+# above). Set MULTI_TENANT = "1" to derive the target repo from each request
+# (the site sends an `X-Wiki-Repo: owner/name` header), validate it against the
+# App's installs, and namespace KV per repo so tenants stay isolated. Requires
+# the GitHub App credential (the per-repo install token is what makes it work).
+# MULTI_TENANT = "1"
 # Optional GitHub sign-in is configured entirely via repo secrets/variables, no
 # edits here: OAUTH_CLIENT_ID is a repo variable injected at deploy (`--var`),
 # OAUTH_CLIENT_SECRET a repo secret, SESSION_SECRET auto-generated. See README.

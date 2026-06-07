@@ -27,6 +27,7 @@ import { grant, listEditors, revoke } from "./handlers/rights";
 import { listSuppressed, suppress, unsuppress } from "./handlers/suppress";
 import { corsHeaders, HttpError, json, message, ndjsonStream } from "./http";
 import { whoami } from "./identity";
+import { resolveTenant } from "./tenant";
 import type {
   BanBody,
   CommentBody,
@@ -55,6 +56,15 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const headers = corsHeaders(env, request);
     if (request.method === "OPTIONS") return new Response(null, { headers });
+
+    // Scope env to the request's target repo (no-op single-tenant). A bad/unknown
+    // repo is rejected here with a clean status before any route runs.
+    try {
+      env = await resolveTenant(env, request);
+    } catch (err) {
+      const status = err instanceof HttpError ? err.status : 500;
+      return json({ error: message(err) }, status, headers);
+    }
 
     const url = new URL(request.url);
     const q = url.searchParams;
