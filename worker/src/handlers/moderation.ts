@@ -13,8 +13,10 @@ import {
   type RollbackBody,
   SHA_RE,
   SLUG_RE,
+  TAG_RE,
+  type TagBody,
 } from "../types";
-import { isInSiteRef, refIdentity } from "./content";
+import { addTag, isInSiteRef, refIdentity } from "./content";
 import { removeIndexEntry, updateIndexEntry } from "./index-cache";
 
 // Mark a commit reviewed. Maintainer-only, by trust tier — no token needed
@@ -29,6 +31,32 @@ export async function patrol(
   await requireMaintainer(env, request, "Patrolling");
   await env.RATE_LIMIT?.put(`patrol:${sha}`, "1");
   return { ok: true };
+}
+
+// Add a maintenance/review tag to a commit's KV tag set so it shows in
+// RecentChanges + the curation toolbar. Maintainer-only; read-merges with any
+// filter/3RR tags already stored (see addTag). Audited like the other actions.
+export async function tag(
+  env: Env,
+  request: Request,
+  body: TagBody,
+): Promise<{ ok: true; tag: string }> {
+  const sha = String(body.sha ?? "");
+  const label = String(body.tag ?? "");
+  if (!SHA_RE.test(sha)) throw new HttpError(400, "Invalid revision.");
+  if (!TAG_RE.test(label)) throw new HttpError(400, "Invalid tag.");
+  const writer = await requireMaintainer(env, request, "Tagging");
+  await addTag(env, sha, label);
+  await appendAudit(
+    env,
+    `${env.REPO_OWNER}/${env.REPO_NAME}`,
+    writer.name,
+    writer.email,
+    "tag",
+    sha.slice(0, 7),
+    label,
+  );
+  return { ok: true, tag: label };
 }
 
 // Merge (squash → live) or close a pending edit. Maintainer-only.

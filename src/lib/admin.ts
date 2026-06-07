@@ -57,6 +57,10 @@ export async function deletePage(slug: string): Promise<void> {
   await postJson<{ ok: true }>("/delete", { slug });
 }
 
+export async function tagChange(sha: string, tag: string): Promise<void> {
+  await postJson<{ ok: true }>("/tag", { sha, tag });
+}
+
 export async function listEditors(): Promise<{ editors: string[]; owner: string }> {
   return getJson<{ editors: string[]; owner: string }>("/editors", { auth: true });
 }

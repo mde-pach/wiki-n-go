@@ -11,6 +11,7 @@ export interface Curation {
   author?: string;
   isAnon?: boolean;
   risk?: number;
+  tags: string[];
 }
 
 // Build curation state from a change row a caller already has (the New-pages
@@ -23,6 +24,7 @@ export function curationFromChange(slug: string, c: Change): Curation {
     author: c.author,
     isAnon: c.isAnon,
     risk: c.risk,
+    tags: c.tags,
   };
 }
 
@@ -47,5 +49,6 @@ export async function loadCuration(slug: string): Promise<Curation> {
     author: c?.author,
     isAnon: c?.isAnon,
     risk: c?.risk,
+    tags: c?.tags ?? [],
   };
 }

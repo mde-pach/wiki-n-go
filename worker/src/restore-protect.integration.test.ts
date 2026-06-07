@@ -143,6 +143,36 @@ describe("POST /protect", () => {
   });
 });
 
+describe("POST /tag", () => {
+  it("merges a tag into the commit's KV set, preserving existing tags", async () => {
+    stubGitHub({ maintainer: await anonName() });
+    const kv = fakeKV();
+    await kv.put("tag:abc1234", JSON.stringify(["edit-war"]));
+    const res = await worker.fetch(
+      post("/tag", { sha: "abc1234", tag: "spam" }),
+      makeEnv(kv),
+    );
+    expect(res.status).toBe(200);
+    expect(JSON.parse(kv._map.get("tag:abc1234") ?? "[]")).toEqual([
+      "edit-war",
+      "spam",
+    ]);
+  });
+
+  it("rejects a non-maintainer and an invalid tag", async () => {
+    stubGitHub({ maintainer: null });
+    expect(
+      (await worker.fetch(post("/tag", { sha: "abc1234", tag: "spam" }), makeEnv()))
+        .status,
+    ).toBe(403);
+    stubGitHub({ maintainer: await anonName() });
+    expect(
+      (await worker.fetch(post("/tag", { sha: "abc1234", tag: "BAD TAG" }), makeEnv()))
+        .status,
+    ).toBe(400);
+  });
+});
+
 describe("GET /patrol-status", () => {
   it("reports patrolled from the KV flag on the latest commit", async () => {
     stubGitHub({ maintainer: null, commitSha: "c1" });

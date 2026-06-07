@@ -1918,6 +1918,21 @@ html[data-textsize="large"] {
 .cur-action {
   white-space: nowrap;
 }
+.cur-tagger {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.cur-tagmenu {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-left: 0.5rem;
+  border-left: var(--border-w) solid var(--color-border);
+}
+.cur-tagopt {
+  font-size: 0.85em;
+}
 .cur-approve {
   font-size: 0.85em;
   color: var(--color-add-ink);

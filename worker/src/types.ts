@@ -76,6 +76,11 @@ export interface PatrolBody {
   sha?: unknown;
 }
 
+export interface TagBody {
+  sha?: unknown;
+  tag?: unknown;
+}
+
 export interface ReviewBody {
   number?: unknown;
   action?: unknown; // "merge" | "close"
@@ -123,4 +128,6 @@ export const MAX_CONTENT_BYTES = 100_000;
 export const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/;
 export const NODE_ID_RE = /^[A-Za-z0-9_=-]+$/;
 export const SHA_RE = /^[0-9a-f]{7,40}$/;
+// A change-tag token (matches the filter/3RR/automod style, e.g. `edit-war`).
+export const TAG_RE = /^[a-z][a-z0-9-]{0,30}$/;
 export const MAX_TITLE_LEN = 120;
