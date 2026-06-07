@@ -41,6 +41,24 @@ Point [`src/config.ts`](./src/config.ts) at your content repo (`repoOwner` /
 `repoName`). For a GitHub Pages project site, set `site` + `base` in
 [`astro.config.mjs`](./astro.config.mjs).
 
+### Optional: edge-SSR for SEO
+
+By default the reader is **pure static** (great for GitHub Pages), so crawlers
+that don't run JS see an empty shell. To server-render the content route for SEO
+without giving up the no-rebuild model, build with `EDGE_SSR` set:
+
+```bash
+EDGE_SSR=cloudflare bun run build   # or EDGE_SSR=netlify
+```
+
+This adds the matching Astro adapter and makes **only** the article route render
+on demand at the edge — still fetching content from jsDelivr@sha at request time
+(no rebuild). Crawlers get real HTML with the revision line, `<meta description>`,
+and OG/canonical tags, and `noindex`-until-patrolled is resolved server-side.
+Every other page stays static, and an unset `EDGE_SSR` is byte-for-byte the
+GitHub Pages build. On Cloudflare, enable the **`nodejs_compat`** compatibility
+flag for the Worker/Pages project.
+
 ## Enable editing — the `/setup` wizard
 
 There is **one** way to wire up editing: open **`/setup`** on your site and follow

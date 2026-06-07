@@ -7,20 +7,23 @@ import TocMobile from "../components/TocMobile.tsx";
 import WikiPage from "../components/WikiPage.tsx";
 import { config } from "../config";
 import PageShell from "../layouts/PageShell.astro";
-import { decorateHeadingsHtml, emphasizeLeadHtml, parsePage } from "../lib/markdown";
+import { fetchMarkdown, PageNotFoundError } from "../lib/content";
+import { decorateArticleHtml, parsePage } from "../lib/markdown";
 import { contentSlugs, rawPage } from "../lib/pages";
 import {
   BASE,
   contentSlugForRoute,
   isLangHome,
-  langOf,
   prettify,
   readHref,
   slugifyPath,
   userLogin,
 } from "../lib/paths";
-import { markRedLinksHtml } from "../lib/wikilink";
+import { fetchPageSlugs, pageNoindex } from "../lib/ssr";
 
+// Prerendered (static) build only — ignored when EDGE_SSR makes this route
+// on demand (see astro.config.mjs). The edge path resolves any slug at request
+// time, so it needs no path list.
 export function getStaticPaths() {
   return [
     { params: { slug: undefined } },
@@ -33,16 +36,28 @@ export function getStaticPaths() {
 const { slug } = Astro.params;
 const pageSlug = contentSlugForRoute(slug);
 
-const raw = rawPage(pageSlug);
+// Static path: render from the build-time content glob. Edge-SSR path: fetch the
+// latest content + slug set from the CDN/Worker at request time (no rebuild).
+// The decorate + render pipeline below is identical for both.
+const ssr = !Astro.isPrerendered;
+let raw: string | undefined;
+let slugs: Set<string>;
+if (ssr) {
+  slugs = await fetchPageSlugs();
+  try {
+    raw = await fetchMarkdown(pageSlug);
+  } catch (err) {
+    if (err instanceof PageNotFoundError) raw = undefined;
+    else raw = rawPage(pageSlug); // transient fetch error → build-time fallback
+  }
+} else {
+  raw = rawPage(pageSlug);
+  slugs = new Set(contentSlugs());
+}
+
 const parsed = raw ? parsePage(raw) : null;
 const html = parsed
-  ? emphasizeLeadHtml(
-      decorateHeadingsHtml(
-        markRedLinksHtml(parsed.html, new Set(contentSlugs()), langOf(pageSlug)),
-        pageSlug,
-      ),
-      parsed.title,
-    )
+  ? decorateArticleHtml(parsed.html, slugs, pageSlug, parsed.title)
   : undefined;
 
 const redirectTo = parsed?.meta?.redirect ? slugifyPath(parsed.meta.redirect) : null;
@@ -51,13 +66,30 @@ const redirectUrl =
     ? `${readHref(redirectTo)}?redirectedfrom=${encodeURIComponent(pageSlug)}`
     : null;
 
+// On the edge path, finish request-time concerns before rendering: a real
+// server-side redirect for crawlers, a 404 status for missing pages, a real
+// noindex-until-patrolled, and a short edge cache (request-time fresh, so the
+// client island skips its refetch — no double-fetch).
+let noindex = false;
+if (ssr) {
+  if (redirectUrl && Astro.url.searchParams.get("redirect") !== "no") {
+    return Astro.redirect(redirectUrl, 301);
+  }
+  if (!parsed) Astro.response.status = 404;
+  noindex = parsed ? await pageNoindex(pageSlug) : true;
+  Astro.response.headers.set(
+    "Cache-Control",
+    "public, max-age=0, s-maxage=30, stale-while-revalidate=600",
+  );
+}
+
 // A built `user/<login>` page also gets the auto-rendered contributions panel.
 const profileLogin = userLogin(pageSlug);
 const contributor =
   profileLogin && !profileLogin.startsWith("anon-") ? profileLogin : null;
 ---
 
-<PageShell slug={pageSlug} view="read" title={parsed?.title || prettify(pageSlug)} categories={parsed?.meta?.tags} description={parsed?.meta?.description} appearance={parsed?.meta?.appearance}>
+<PageShell slug={pageSlug} view="read" title={parsed?.title || prettify(pageSlug)} categories={parsed?.meta?.tags} description={parsed?.meta?.description} appearance={parsed?.meta?.appearance} ssr={ssr} noindex={noindex}>
   {
     redirectUrl && (
       <script
@@ -73,7 +105,7 @@ const contributor =
     <div class="col-main">
       <TocMobile initialItems={parsed?.headings ?? []} client:load />
       <Infobox slug={pageSlug} meta={parsed?.meta} client:load />
-      <WikiPage slug={pageSlug} initialHtml={html} initialRaw={raw} meta={parsed?.meta} client:load />
+      <WikiPage slug={pageSlug} initialHtml={html} initialRaw={raw} meta={parsed?.meta} fresh={ssr} missing={ssr && !parsed} client:load />
       {contributor && <Contributions login={contributor} client:load />}
     </div>
     <div class="col-info">

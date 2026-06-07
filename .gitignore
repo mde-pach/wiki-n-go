@@ -1,5 +1,6 @@
 node_modules/
 dist/
+.netlify/
 .design/
 .astro/
 .claude/worktrees/

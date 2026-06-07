@@ -22,11 +22,18 @@ export default function WikiPage(props: {
   // A profile page only the owner/maintainer may create → suppress the "Create
   // it →" invite for everyone else (they'd be refused anyway).
   noCreate?: boolean;
+  // Edge-SSR: initialHtml/initialRaw were fetched at request time, so skip the
+  // on-mount refetch (no double-fetch). The static path leaves this off and
+  // refetches the latest so a no-rebuild content edit shows without a deploy.
+  fresh?: boolean;
+  // Edge-SSR resolved that this slug has no page, so render the "not found"
+  // state server-side (the static path never renders a missing page here).
+  missing?: boolean;
 }) {
   const slug = () => props.slug ?? slugFromLocation();
   const [html, setHtml] = createSignal(props.initialHtml);
   const [meta, setMeta] = createSignal<PageMeta>(props.meta ?? {});
-  const [notFound, setNotFound] = createSignal(false);
+  const [notFound, setNotFound] = createSignal(props.missing ?? false);
   const [err, setErr] = createSignal<string>();
   const [redirectedFrom, setRedirectedFrom] = createSignal<string>();
   const [revOf, setRevOf] = createSignal<string>();
@@ -70,6 +77,7 @@ export default function WikiPage(props: {
     if (html()) decorate(); // server-rendered content: build the TOC + red links now
     const rev = params.get("rev");
     if (rev) return showRevision(rev); // historical view; skip the latest fetch
+    if (props.fresh) return; // SSR rendered request-time-fresh content already
     try {
       const raw = await fetchMarkdown(slug());
       if (raw === props.initialRaw) return; // unchanged since build → keep SSR content (no shift)

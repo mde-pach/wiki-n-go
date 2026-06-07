@@ -5,10 +5,10 @@ import footnote from "markdown-it-footnote";
 import { citeTemplate } from "./citetemplate";
 import { figures } from "./figures";
 import { type PageMeta, parseFrontmatter } from "./frontmatter";
-import { BASE, slugifyLabel } from "./paths";
+import { BASE, langOf, slugifyLabel } from "./paths";
 import { transclusion } from "./transclude";
 import { escapeRegExp } from "./util";
-import { mention, wikilink } from "./wikilink";
+import { markRedLinksHtml, mention, wikilink } from "./wikilink";
 
 // Shared markdown-it instance (no DOMPurify, so it runs at build/SSR too).
 export const md = new MarkdownIt({ html: false, linkify: true, typographer: true })
@@ -165,5 +165,21 @@ export function decorateHeadingsHtml(html: string, slug: string): string {
           : `<a class="section-edit" href="${BASE}/edit/${slug}?section=${encodeURIComponent(id)}">edit</a>`;
       return `<${tag} id="${id}"${attrs}>${toggle}${inner}${edit}</${tag}>`;
     },
+  );
+}
+
+// The full article-decoration pipeline shared by the static page, the edge-SSR
+// page, and the client renderer: resolve red links for the reading language,
+// bake heading toggles + `[edit]` links, then emphasize the lead term. One rule
+// in one place so every render path produces identical first-paint HTML.
+export function decorateArticleHtml(
+  html: string,
+  slugs: Set<string>,
+  slug: string,
+  title: string,
+): string {
+  return emphasizeLeadHtml(
+    decorateHeadingsHtml(markRedLinksHtml(html, slugs, langOf(slug)), slug),
+    title,
   );
 }
