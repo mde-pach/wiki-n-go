@@ -114,7 +114,7 @@ near 1:1 replica of Wikipedia (Vector 2022 / Codex tokens).
 | Tailwind + centralized tokens (design `tokens.css`) | ✅ | P0 |
 | Light / dark mode | ✅ | P0 |
 | Swappable skins (Wikigit / Wiki) | ✅ | P1 |
-| Theme + skin toggle (temporary; final UI in chrome port) | 🟡 | P0 |
+| Theme + skin toggle → Appearance right-rail panel (Vector-2022); final UI | ✅ | P0 |
 | Width control (Standard/Wide) | ✅ | P1 |
 | Config-/frontmatter-driven theming | ✅ | P1 |
 
