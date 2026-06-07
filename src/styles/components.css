@@ -823,6 +823,112 @@ html[data-textsize="large"] {
   accent-color: var(--color-accent);
 }
 
+/* ---- /design token reference --------------------------------------------- */
+.design .design-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  gap: 2.4rem;
+  align-items: start;
+}
+.design-intro h1 {
+  margin: 0 0 0.4rem;
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+}
+.design-intro p {
+  max-width: var(--measure);
+  color: var(--color-ink-muted);
+  line-height: var(--leading-body);
+}
+.design-sec {
+  margin-top: var(--space-section);
+}
+.design-sec h2 {
+  font-size: var(--text-xl);
+  border-bottom: var(--border-w) solid var(--color-border-strong);
+  padding-bottom: 0.3rem;
+  margin-bottom: 1rem;
+}
+.design-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.9rem;
+}
+.design-swatch {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.design-swatch .ds-chip {
+  flex: none;
+  width: 2.6rem;
+  height: 2.6rem;
+  border: var(--border-w) solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+.design-swatch .ds-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.design-swatch .ds-name {
+  font-size: var(--text-sm);
+  color: var(--color-ink);
+}
+.design-swatch .ds-role {
+  font-size: var(--text-xs);
+  color: var(--color-ink-subtle);
+}
+.design-type-row {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.35rem 0;
+  border-bottom: var(--border-w) solid var(--color-border);
+}
+.design-type-row .dt-sample {
+  flex: 1;
+  min-width: 0;
+  color: var(--color-ink);
+  line-height: var(--leading-tight);
+}
+.design-type-row .dt-sample.dt-font {
+  font-size: var(--text-md);
+}
+.design-type-row .dt-meta {
+  flex: none;
+  font-size: var(--text-xs);
+  color: var(--color-ink-subtle);
+}
+.design-table {
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+.design-table td {
+  padding: 0.3rem 1.4rem 0.3rem 0;
+  border-bottom: var(--border-w) solid var(--color-border);
+  color: var(--color-ink-muted);
+}
+.design-note {
+  margin-top: var(--space-section);
+  font-size: var(--text-sm);
+  color: var(--color-ink-subtle);
+}
+.design-rail {
+  position: sticky;
+  top: calc(var(--header-h) + 18px);
+}
+@media (max-width: 900px) {
+  .design .design-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .design-rail {
+    position: static;
+    order: -1;
+  }
+}
+
 /* ---- Table of contents --------------------------------------------------- */
 .toc {
   position: sticky;

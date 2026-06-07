@@ -9,7 +9,7 @@ import PatrolMeta from "../components/PatrolMeta.tsx";
 import Search from "../components/Search.tsx";
 import ThemeBoot from "../components/ThemeBoot.astro";
 import TokenCapture from "../components/TokenCapture.astro";
-import { config } from "../config";
+import { type AppearanceDefaults, config } from "../config";
 import { gitRevisions } from "../lib/git";
 import { translationGroup, translations } from "../lib/i18n";
 import {
@@ -30,8 +30,9 @@ interface Props {
   title?: string;
   categories?: string[];
   description?: string;
+  appearance?: Partial<AppearanceDefaults>;
 }
-const { slug, view, title, categories, description } = Astro.props;
+const { slug, view, title, categories, description, appearance } = Astro.props;
 
 const revisions = gitRevisions(slug);
 const read = readHref(slug);
@@ -79,7 +80,7 @@ const alternates = translations(slug).filter((l) => !l.current);
       ))
     }
     <title>{display} · Wikigit</title>
-    <ThemeBoot />
+    <ThemeBoot appearance={appearance} />
     <ClientRouter />
     <TokenCapture />
   </head>

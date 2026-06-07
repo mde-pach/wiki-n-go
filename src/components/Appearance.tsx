@@ -44,10 +44,13 @@ export default function Appearance() {
   };
 
   onMount(() => {
-    setTextsize(localStorage.getItem("wng-textsize") || "standard");
-    setWidth(document.documentElement.dataset.width ?? "standard");
-    setSkin(document.documentElement.dataset.skin ?? "wikigit");
-    setColor(localStorage.getItem("wng-theme") || "light");
+    const d = document.documentElement.dataset;
+    setTextsize(d.textsize ?? "standard");
+    setWidth(d.width ?? "standard");
+    setSkin(d.skin ?? "wikigit");
+    // The applied theme is light/dark; the radio shows the *preference* (which
+    // may be "auto"): saved choice, else this page's default from ThemeBoot.
+    setColor(localStorage.getItem("wng-theme") || pageDefaultTheme());
     setCollapsed(localStorage.getItem("wng-appearance") === "collapsed");
 
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -105,6 +108,15 @@ function pick(
     localStorage.setItem(store, v);
     set(v);
   };
+}
+
+function pageDefaultTheme(): string {
+  const meta = document.querySelector('meta[name="wng-appearance"]');
+  try {
+    return JSON.parse(meta?.getAttribute("content") ?? "{}").theme ?? "light";
+  } catch {
+    return "light";
+  }
 }
 
 function resolveColor(pref: string): string {

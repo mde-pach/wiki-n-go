@@ -1,20 +1,62 @@
 ---
-// Pre-paint: apply saved skin/theme/width/text-size to <html> before first paint
-// so there's no flash of the SSR defaults. Re-applies across View Transitions.
+// Pre-paint: apply the resolved Appearance to <html> before first paint so
+// there's no flash. Precedence: a reader's saved choice > this page's
+// frontmatter override > the config default. The page-default chain is emitted
+// as a <meta> the persistent script reads from each incoming document, so
+// per-page frontmatter defaults survive View Transitions (the closure can't).
+import { type AppearanceDefaults, config } from "../config";
+
+interface Props {
+  appearance?: Partial<AppearanceDefaults>;
+}
+const { appearance } = Astro.props;
+const defaults: AppearanceDefaults = { ...config.appearance, ...appearance };
 ---
+<meta name="wng-appearance" content={JSON.stringify(defaults)} />
 <script is:inline>
   (() => {
-    const skins = ["wikigit", "wiki"];
+    const ALLOW = {
+      skin: ["wikigit", "wiki"],
+      theme: ["auto", "light", "dark"],
+      width: ["standard", "wide"],
+      textsize: ["small", "standard", "large"],
+    };
+    const STORE = {
+      skin: "wng-skin",
+      theme: "wng-theme",
+      width: "wng-width",
+      textsize: "wng-textsize",
+    };
+    const FALLBACK = {
+      skin: "wikigit",
+      theme: "light",
+      width: "standard",
+      textsize: "standard",
+    };
+    const defaultsOf = (doc) => {
+      try {
+        return JSON.parse(doc.querySelector('meta[name="wng-appearance"]').content);
+      } catch {
+        return {};
+      }
+    };
+    const pref = (key, defs) => {
+      const saved = localStorage.getItem(STORE[key]);
+      if (saved && ALLOW[key].includes(saved)) return saved;
+      if (ALLOW[key].includes(defs[key])) return defs[key];
+      return FALLBACK[key];
+    };
     const apply = (doc) => {
+      const defs = defaultsOf(doc);
       const d = doc.documentElement;
-      const saved = localStorage.getItem("wng-skin");
-      d.dataset.skin = skins.includes(saved) ? saved : "wikigit";
-      const pref = localStorage.getItem("wng-theme") || "light";
-      const dark = pref === "dark" ||
-        (pref === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
+      d.dataset.skin = pref("skin", defs);
+      d.dataset.width = pref("width", defs);
+      d.dataset.textsize = pref("textsize", defs);
+      const theme = pref("theme", defs);
+      const dark =
+        theme === "dark" ||
+        (theme === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
       d.dataset.theme = dark ? "dark" : "light";
-      d.dataset.width = localStorage.getItem("wng-width") || "standard";
-      d.dataset.textsize = localStorage.getItem("wng-textsize") || "standard";
     };
     apply(document);
     const ready = () => document.documentElement.classList.add("ready");
