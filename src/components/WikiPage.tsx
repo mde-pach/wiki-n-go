@@ -1,7 +1,9 @@
 import { createSignal, onMount, Show } from "solid-js";
+import { Portal } from "solid-js/web";
 import { fetchMarkdown, fetchMarkdownAt, PageNotFoundError } from "../lib/content";
 import { decorate as decorateArticle } from "../lib/decorate";
-import type { PageMeta } from "../lib/frontmatter";
+import { findSection, type SectionSpan } from "../lib/editor-section";
+import { type PageMeta, splitFrontmatter, withFrontmatter } from "../lib/frontmatter";
 import { pageSet } from "../lib/manifest";
 import {
   decorateHeadingsHtml,
@@ -12,7 +14,19 @@ import {
 import { BASE, langOf, prettify, readHref, slugFromLocation } from "../lib/paths";
 import { errMessage } from "../lib/util";
 import { markRedLinksHtml } from "../lib/wikilink";
+import FocusedEditor from "./editor/FocusedEditor";
 import { Icons } from "./Icons";
+
+// A section `[edit]` that's been opened in place: the editor is portaled into
+// `mountEl` (inserted right after the heading) so it edits the section without
+// leaving the read page.
+interface SectionEdit {
+  mountEl: HTMLElement;
+  doc: string;
+  data: Record<string, unknown>;
+  body: string;
+  span: SectionSpan;
+}
 
 export default function WikiPage(props: {
   slug?: string;
@@ -37,6 +51,11 @@ export default function WikiPage(props: {
   const [err, setErr] = createSignal<string>();
   const [redirectedFrom, setRedirectedFrom] = createSignal<string>();
   const [revOf, setRevOf] = createSignal<string>();
+  // The latest raw markdown in hand, so a section `[edit]` can slice it without
+  // a refetch. Tracks the SSR content first, then whatever the client fetches.
+  const [raw, setRaw] = createSignal(props.initialRaw);
+  const [sectionEdit, setSectionEdit] = createSignal<SectionEdit>();
+  let reloadAfterEdit = false;
   let body: HTMLDivElement | undefined;
 
   // Render markdown with red links already resolved, so missing-target links
@@ -71,6 +90,17 @@ export default function WikiPage(props: {
     void decorateArticle(body, { slug: slug() });
   }
 
+  function render(latest: string, title: string, m: PageMeta, html: string) {
+    setRaw(latest);
+    setMeta(m);
+    setHtml(html);
+    const heading = title || slug();
+    document.title = heading;
+    const el = document.querySelector(".page-title");
+    if (el) el.textContent = heading;
+    queueMicrotask(decorate);
+  }
+
   onMount(async () => {
     const params = new URLSearchParams(window.location.search);
     setRedirectedFrom(params.get("redirectedfrom") ?? undefined);
@@ -79,22 +109,65 @@ export default function WikiPage(props: {
     if (rev) return showRevision(rev); // historical view; skip the latest fetch
     if (props.fresh) return; // SSR rendered request-time-fresh content already
     try {
-      const raw = await fetchMarkdown(slug());
-      if (raw === props.initialRaw) return; // unchanged since build → keep SSR content (no shift)
-      const { title, html, meta } = await renderResolved(raw);
-      setMeta(meta);
-      setHtml(html);
-      const heading = title || slug();
-      document.title = heading;
-      const el = document.querySelector(".page-title");
-      if (el) el.textContent = heading;
-      queueMicrotask(decorate);
+      const latest = await fetchMarkdown(slug());
+      setRaw(latest);
+      if (latest === props.initialRaw) return; // unchanged since build → keep SSR content (no shift)
+      const { title, html, meta } = await renderResolved(latest);
+      render(latest, title, meta, html);
     } catch (e) {
       if (props.initialHtml) return; // page existed at build; keep it on a transient error
       if (e instanceof PageNotFoundError) setNotFound(true);
       else setErr(errMessage(e));
     }
   });
+
+  // A section `[edit]` opens a focused editor in place rather than navigating
+  // to the full-page editor. Intercept only plain left-clicks so middle-click /
+  // modified-click and no-JS still follow the baked `/edit?section=` href (the
+  // "edit whole page" escape hatch is also linked inside the focused editor).
+  function onArticleClick(e: MouseEvent) {
+    if (e.defaultPrevented || e.button !== 0) return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const link = (e.target as HTMLElement).closest<HTMLAnchorElement>("a.section-edit");
+    if (!link || !body?.contains(link)) return;
+    if (revOf()) return; // editing targets the live page, not a historic revision
+    const id = new URL(link.href, location.href).searchParams.get("section");
+    const doc = raw();
+    if (!id || !doc) return; // nothing in hand → let the link navigate to /edit
+    const { data, body: md } = splitFrontmatter(doc);
+    const span = findSection(md, id);
+    const heading = link.closest<HTMLElement>("h2, h3");
+    if (!span || !heading) return;
+    e.preventDefault();
+    closeSectionEdit();
+    const mountEl = document.createElement("div");
+    mountEl.className = "section-edit-host";
+    heading.insertAdjacentElement("afterend", mountEl);
+    setSectionEdit({ mountEl, doc, data, body: md, span });
+  }
+
+  function closeSectionEdit() {
+    const open = sectionEdit();
+    if (!open) return;
+    open.mountEl.remove();
+    setSectionEdit(undefined);
+    if (reloadAfterEdit) {
+      reloadAfterEdit = false;
+      void loadLatest();
+    }
+  }
+
+  // After a live section publish, pull the fresh page so the read view reflects
+  // it (no rebuild — same fetch path as mount, minus the unchanged short-circuit).
+  async function loadLatest() {
+    try {
+      const latest = await fetchMarkdown(slug());
+      const { title, html, meta } = await renderResolved(latest);
+      render(latest, title, meta, html);
+    } catch {
+      /* transient — keep the current content */
+    }
+  }
 
   return (
     <article class="prose article">
@@ -148,9 +221,27 @@ export default function WikiPage(props: {
           <div
             ref={(el) => {
               body = el;
+              el.addEventListener("click", onArticleClick);
             }}
             innerHTML={html()}
           />
+        </Show>
+        <Show when={sectionEdit()}>
+          {(s) => (
+            <Portal mount={s().mountEl}>
+              <FocusedEditor
+                slug={slug()}
+                original={s().doc}
+                source={s().body}
+                span={s().span}
+                reconstruct={(b) => withFrontmatter(s().data, b)}
+                onClose={closeSectionEdit}
+                onPublished={(r) => {
+                  if (r.live) reloadAfterEdit = true;
+                }}
+              />
+            </Portal>
+          )}
         </Show>
       </Show>
     </article>

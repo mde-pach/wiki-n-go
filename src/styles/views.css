@@ -226,6 +226,75 @@
   font-size: 0.95em;
 }
 
+/* ---- IN-PAGE FOCUSED SECTION EDIT --------------------------------------- */
+/* A section `[edit]` opens this in place, right under the heading. It reuses
+   the full editor's panes/controls but stays compact — it edits one section,
+   not a whole page, so the tall fixed pane heights are dropped. */
+.section-edit-host {
+  margin: 0.6rem 0 1.4rem;
+}
+.focused-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+.focused-edit-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.focused-edit-head h3 {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-ink-subtle);
+}
+.focused-edit-head .fe-heading {
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-ink);
+}
+.fe-whole {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+.focused-edit .editor-pane {
+  min-height: 0;
+}
+.focused-edit .editor-textarea {
+  padding: 0.7rem 0.85rem;
+  min-height: 8.5rem;
+}
+.fe-preview {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+}
+.fe-preview > summary {
+  cursor: pointer;
+  color: var(--color-ink-muted);
+  padding: 0.25rem 0;
+  user-select: none;
+}
+.fe-preview .preview-scroll {
+  border: var(--border-w) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  padding: 0.8rem 1rem;
+  margin-top: 0.4rem;
+  max-height: 22rem;
+  overflow-y: auto;
+}
+.fe-publish {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
 /* ---- HISTORY / DIFF VIEW ------------------------------------------------- */
 .history-toolbar {
   display: flex;
