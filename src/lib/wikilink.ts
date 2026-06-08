@@ -1,5 +1,5 @@
 import type MarkdownIt from "markdown-it";
-import { BASE, resolveWikiSlug, slugifyPath, userHref } from "./paths";
+import { BASE, readHref, resolveWikiSlug, slugifyPath, userHref } from "./paths";
 
 // `[[Target]]` / `[[Target|Label]]` → internal link carrying a data-slug, which
 // the reader uses to flag red links (pages that don't exist yet).
@@ -35,7 +35,7 @@ export function wikilink(md: MarkdownIt): void {
 
     if (!silent) {
       const open = state.push("link_open", "a", 1);
-      open.attrSet("href", `${BASE}/${slug}`);
+      open.attrSet("href", readHref(slug));
       open.attrSet("class", "wikilink");
       open.attrSet("data-slug", slug);
       state.push("text", "", 0).content = (label ?? target).trim();
@@ -112,7 +112,7 @@ export function markRedLinksHtml(
       const { slug, red } = resolveWikiSlug(base, exists, lang);
       const cls = red ? "wikilink is-red" : "wikilink";
       const title = red ? ' title="Page does not exist yet — click to create"' : "";
-      return `<a href="${BASE}/${slug}" class="${cls}" data-slug="${base}"${title}>`;
+      return `<a href="${readHref(slug)}" class="${cls}" data-slug="${base}"${title}>`;
     },
   );
 }

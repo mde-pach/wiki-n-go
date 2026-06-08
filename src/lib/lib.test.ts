@@ -119,6 +119,20 @@ describe("markRedLinksHtml", () => {
     expect(out).toContain('href="/coffee" class="wikilink" data-slug="coffee"');
     expect(out).not.toContain("is-red");
   });
+
+  it("routes a link to a language home through readHref, not /<lang>/index (W4)", () => {
+    const html = md.render("[[index|Accueil]]");
+    const out = markRedLinksHtml(html, new Set(["fr/index"]), "fr");
+    // fr/index exists, but it is served at /fr — never /fr/index (a 404 route)
+    expect(out).toContain('href="/fr" class="wikilink" data-slug="index"');
+    expect(out).not.toContain("/fr/index");
+  });
+
+  it("routes a link to the default home to / not /index (W4)", () => {
+    const html = md.render("[[index|Home]]");
+    const out = markRedLinksHtml(html, new Set(["index"]), "en");
+    expect(out).toContain('href="/" class="wikilink" data-slug="index"');
+  });
 });
 
 describe("parseDiff", () => {

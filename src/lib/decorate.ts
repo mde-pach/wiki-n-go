@@ -1,7 +1,7 @@
 import { fetchMarkdown, PageNotFoundError } from "./content";
 import { pageSet } from "./manifest";
 import { renderMarkdown, splitTitle } from "./markdown";
-import { BASE, langOf, prettify, resolveWikiSlug } from "./paths";
+import { BASE, langOf, prettify, readHref, resolveWikiSlug } from "./paths";
 import { attachPagePreviews } from "./previews";
 
 export type DecorateContext = { slug: string };
@@ -240,7 +240,7 @@ export async function markRedLinks(root: HTMLElement, lang: string): Promise<voi
     const base = a.dataset.slug;
     if (!base) continue;
     const { slug, red } = resolveWikiSlug(base, pages, lang);
-    a.setAttribute("href", `${BASE}/${slug}`);
+    a.setAttribute("href", readHref(slug));
     a.classList.toggle("is-red", red);
     if (red) a.title = "Page does not exist yet — click to create";
     else a.removeAttribute("title");
