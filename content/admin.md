@@ -1,11 +1,15 @@
 ---
-title: The admin area
+kicker: Guide
 description: Your control panel for reviewing edits, protecting pages, and keeping things tidy.
+protection: auto
+tags:
+  - Documentation
+  - Running a wiki
 ---
 
 # The admin area
 
-The **admin area** is the single place where you and your fellow maintainers run the day-to-day of the wiki. It's only visible to maintainers, and it gathers every tool from [Managing changes](managing.md) into one dashboard.
+The **admin area** is the single place where you and your fellow maintainers run the day-to-day of the wiki. It's only visible to maintainers, and it gathers every tool from [[managing|Managing changes]] into one dashboard.
 
 You'll find it at the `/admin` address of your wiki, or linked from the page tools when you're signed in as a maintainer.
 
@@ -29,4 +33,4 @@ Most maintainers settle into a simple rhythm:
 2. Clear the **Review queue** — approve the good, set aside the rest.
 3. Welcome and check **New pages**.
 
-On a quiet wiki that's a couple of minutes now and then. The flags and the auto-moderator handle the obvious cases so your attention goes to the edits that actually need a human.
+On a quiet wiki that's a couple of minutes now and then. The flags and the auto-moderator handle the obvious cases, so your attention goes to the edits that actually need a human.

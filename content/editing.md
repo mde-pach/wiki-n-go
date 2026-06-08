@@ -1,11 +1,16 @@
 ---
-title: Editing pages
-description: Change and create pages right in your browser — no setup, no account needed.
+kicker: Guide
+description: How to make, preview, and publish a change.
+protection: auto
+translationKey: editing
+tags:
+  - Documentation
+  - Editing
 ---
 
 # Editing pages
 
-Editing a Wikigit page is as simple as editing a document. Open a page, click **Edit**, make your change, and save. There's nothing to install, and unless you've turned that off, people don't even need an account.
+Editing a Wikigit page is as simple as editing a document: open a page, click **Edit**, make your change, and save. There's nothing to install and nothing to learn first — if you can write an email, you can edit a wiki.
 
 ## Make an edit
 
@@ -14,11 +19,7 @@ Editing a Wikigit page is as simple as editing a document. Open a page, click **
 3. Add a short **summary** of what you changed — it helps others follow the page's history.
 4. Click to publish. You'll see a side-by-side preview of exactly what's changing before it goes live.
 
-That's it. Depending on your settings, the change either appears immediately or waits for a quick review (see [Managing changes](managing.md)).
-
-## You don't have to sign in
-
-Anyone can edit anonymously — no account, no email. Anonymous editors are shown by a short nickname instead of a name. If you'd rather have your edits credited to you, you can [sign in](sign-in.md), but it's never required just to help out.
+That's it. Depending on your settings, the change either appears immediately or waits for a quick review (see [[managing|Managing changes]]). Whoever made it is credited — by their name if they're [[sign-in|signed in]], or by a nickname if they're not.
 
 ## Your work is saved as you go
 
@@ -43,8 +44,8 @@ Nothing is ever truly lost. Every page keeps its full history.
 ## What happens when you save
 
 - If you're trusted (or editing isn't restricted), your change **goes live right away**.
-- If you're new or anonymous on a protected page, your change is **submitted for review** and a maintainer approves it. Either way, your work is saved and credited.
+- If you're new on a protected page, your change is **submitted for review** and a maintainer approves it. Either way, your work is saved and credited.
 
 You'll see a small progress indicator while it publishes, and then your change is on the page.
 
-→ Next: **[Formatting](formatting.md)** to make your pages look good.
+→ Next: [[formatting|Formatting]] to make your pages look good.

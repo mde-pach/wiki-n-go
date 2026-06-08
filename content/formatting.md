@@ -1,11 +1,15 @@
 ---
-title: Formatting
+kicker: Guide
 description: Headings, links, pictures, references, and more — with examples you can copy.
+protection: auto
+tags:
+  - Documentation
+  - Editing
 ---
 
 # Formatting
 
-Wikigit pages are written in **Markdown**, a simple way to format text by typing a few plain symbols. You don't need to memorize it — the editor previews your page as you go, and the basics below cover almost everything.
+Wikigit pages are written in [[w:Markdown|Markdown]], a simple way to format text by typing a few plain symbols. You don't need to memorize it — the editor previews your page as you go, and the basics below cover almost everything.
 
 ## The basics
 
@@ -37,7 +41,7 @@ See [[Getting started]] for more.
 Want different link text? Add it after a bar:
 
 ```
-See our [[Getting started|quick start guide]].
+See our [[getting-started|quick start guide]].
 ```
 
 If a page doesn't exist yet, its link shows up **red**. Clicking a red link offers to create that page — a handy way to grow your wiki.
@@ -48,7 +52,7 @@ To link to **Wikipedia**, put `w:` in front:
 The [[w:Coffee|coffee]] article on Wikipedia.
 ```
 
-For any other website, use normal Markdown:
+For any other website, use a normal link:
 
 ```
 [Visit the site](https://example.com)
@@ -89,7 +93,7 @@ Type `@` and a contributor's name to link to them — for example `@some-editor`
 To pull one page's content into another (handy for a shared notice or a snippet you reuse), put its name in double braces on its own line:
 
 ```
-{{shared-notice}}
+{{shared/free-and-yours}}
 ```
 
 ## A few tips
@@ -98,4 +102,4 @@ To pull one page's content into another (handy for a shared notice or a snippet 
 - Keep one idea per paragraph; short paragraphs read better on screens.
 - Preview as you write — the editor shows the finished page beside your text.
 
-For page-level options like the summary box, categories, and notices, see **[Settings](settings.md)**.
+For page-level options like the summary, categories, and notices, see [[settings|Settings]].

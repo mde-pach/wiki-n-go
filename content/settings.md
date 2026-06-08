@@ -1,6 +1,10 @@
 ---
-title: Settings
+kicker: Reference
 description: The options on a single page, and the settings for your whole wiki.
+protection: auto
+tags:
+  - Documentation
+  - Reference
 ---
 
 # Settings
@@ -19,7 +23,7 @@ When you edit a page, a **Properties** panel holds that page's options. You fill
 | **Label** | A small word above the title, such as "Article" or "Guide". |
 | **Header image** | A picture shown with the page and used when the page is shared. |
 | **Quick facts** | The boxed table of facts beside the opening — dates, values, links. |
-| **Categories** | The topics this page belongs to (see [Organizing](organizing.md)). |
+| **Categories** | The topics this page belongs to (see [[organizing|Organizing your wiki]]). |
 | **Who can edit** | The page's protection level — leave it open, or limit edits to trusted editors or maintainers. |
 | **Page look** | Override the default style, light/dark, width, or text size for just this page. |
 | **Redirect to** | Send anyone who opens this page straight to another one. |
@@ -35,7 +39,7 @@ These live in a short **settings file** in your GitHub copy. You change values i
 - **Default look** — the style, light/dark, width, and text size visitors start with.
 - **Home page** — which page is your front page (normally `index`).
 - **Languages** — the languages your wiki supports.
-- **Where your pages live** and **where the editor service lives** — the two connection settings, filled in for you during [setup](create-your-wiki.md).
+- **Where your pages live** and **where the editor service lives** — the two connection settings, filled in for you during [[create-your-wiki|setup]].
 
 ## How edits are handled (maintainer settings)
 
@@ -46,4 +50,4 @@ A few wiki-wide choices control how open your wiki is. They come with sensible d
 - **Bot check** — an optional, invisible check that stops automated spam on anonymous edits.
 - **Auto-moderator** — whether obvious vandalism is undone automatically (off by default).
 
-These are explained in plain terms in [Managing changes](managing.md).
+These are explained in plain terms in [[managing|Managing changes]].

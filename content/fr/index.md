@@ -1,70 +1,43 @@
 ---
-hatnote: Page d'accueil du projet Wikigit. Nouveau ? Commencez par Démarrer.
-description: Wikigit est un wiki collaboratif qui s'affiche sans reconstruction et s'édite sur le site — sans compte ni jeton.
-kicker: Accueil du projet
+kicker: Documentation
+description: Wikigit est un wiki que vous pouvez mettre en place en quelques minutes et faire écrire par tous — gratuit à héberger, et qui vous appartient.
 protection: auto
 translationKey: index
 tags:
-  - Référence
-  - Logiciel de wiki
+  - Documentation
+  - Démarrer
 infobox:
-  Type: Logiciel de wiki
-  Lecture: depuis un CDN, sans reconstruction
-  Édition: sur le site, sans compte
-  Backend: un seul Worker Cloudflare
-  Stockage: un dépôt GitHub
+  Type: Moteur de wiki
+  Mise en place: Quelques clics
+  Hébergement: Gratuit
+  Votre contenu: Des fichiers qui vous appartiennent
+  Édition: Dans le navigateur
   Licence:
-    v: MIT (logiciel)
+    v: MIT
     mono: true
 banner:
   kind: info
-  text: Ceci est une démonstration vivante — chaque page est un fichier Markdown dans un dépôt GitHub, et chacun peut l'éditer.
+  text: Ce site est un Wikigit qui tourne sur Wikigit — chaque page ici est un simple fichier que vous pouvez modifier.
 ---
 
 # Bienvenue sur Wikigit
 
-**Wikigit** est un [[w:Wiki|wiki]] collaboratif fondé sur une idée simple :
-laisser [[w:Git|git]] et [[w:GitHub|GitHub]] servir de base de données, et faire
-de ce site la seule interface. Les pages s'affichent instantanément sans jamais
-reconstruire le site, et chacun peut éditer une page **directement sur le site** —
-sans compte ni jeton, à la manière de [[w:Wikipédia|Wikipédia]].
+**Wikigit** est un wiki — un site web qu'un groupe de personnes construit ensemble, une page à la fois. Pensez à un manuel communautaire, un guide de jeu, une base de connaissances d'équipe, ou une encyclopédie comme [[w:Wikipedia|Wikipédia]]. Toute personne que vous autorisez peut ajouter et améliorer des pages, directement dans son navigateur.
 
-Tout ce que vous lisez est un fichier Markdown dans un dépôt GitHub public.
-Quand ce fichier change, cette page change — sans étape de publication ni
-reconstruction à attendre.
+Ce qui le distingue, c'est le peu de choses à gérer. Vous pouvez en créer un en quelques minutes, sans écrire la moindre ligne de code.
 
-## L'idée centrale
+## Ce que vous obtenez
 
-Un wiki classique fait tourner un serveur, une base de données et son propre
-éditeur. Wikigit n'en fait presque rien. Il **compose des systèmes qui existent
-déjà** :
+- **Gratuit à héberger.** Votre wiki tourne sur des services gratuits — aucun serveur à louer, aucune facture mensuelle.
+- **Aucune base de données à gérer.** Vos pages sont de simples fichiers texte.
+- **Modification dans le navigateur.** On clique sur *Modifier*, on change, on enregistre — rien à installer.
+- **Rien n'est jamais perdu.** Chaque modification est conservée, et toute page revient à une version antérieure en un clic.
+- **Il vous appartient.** Votre contenu vit dans votre propre compte [[w:GitHub|GitHub]] — rien n'est verrouillé.
 
-- **git** conserve chaque version de chaque page (l'historique).
-- **GitHub** stocke les fichiers et héberge les discussions.
-- **Un [[concepts|CDN]] gratuit** distribue les pages dans le monde entier.
-- **Un petit [[concepts|Worker]]** transforme « quelqu'un a tapé une
-  modification » en un changement enregistré.
+## Pour commencer
 
-Le résultat : un wiki complet — lecture, édition, historique, discussions,
-modération — avec [[fonctionnement|presque aucune infrastructure à gérer]].
+- [[create-your-wiki|Créer votre wiki]] — la mise en place, étape par étape *(en anglais)*.
+- [[editing|Modifier des pages]] — écrire et publier une modification *(en anglais)*.
+- [[faq|Questions fréquentes]] *(en anglais)*.
 
-## Par où commencer
-
-| Vous voulez… | Allez à |
-|---|---|
-| Lire et éditer votre première page | [[demarrer|Démarrer]] |
-| Comprendre les rouages | [[fonctionnement|Comment ça marche]] |
-| Apprendre le vocabulaire en clair | [[concepts|Concepts expliqués]] |
-
-## Essayez tout de suite
-
-Cliquez sur **Éditer** en haut de cette page. Vous verrez le Markdown qui l'a
-produite, avec un aperçu en direct à côté du texte. Changez un mot, écrivez un
-court résumé, et publiez — votre modification devient un commit dans le dépôt, et
-la page se met à jour **sans reconstruction**.
-
-## Voir aussi
-
-- [[demarrer|Démarrer]] — faites votre première modification.
-- [[fonctionnement|Comment ça marche]] — l'architecture en une page.
-- [[concepts|Concepts expliqués]] — le vocabulaire, sans jargon.
+*Cette page existe aussi en anglais — utilisez le sélecteur de langue en haut pour basculer.*

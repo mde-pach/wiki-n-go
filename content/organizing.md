@@ -1,6 +1,10 @@
 ---
-title: Organizing your wiki
+kicker: Guide
 description: Naming pages, grouping them into categories, and tidying up as your wiki grows.
+protection: auto
+tags:
+  - Documentation
+  - Editing
 ---
 
 # Organizing your wiki
@@ -13,7 +17,7 @@ A page's name becomes its web address. "Getting started" lives at `/getting-star
 
 ## Categories
 
-Categories group related pages so readers can browse by topic. Add a page to one or more categories in its settings (see [Settings](settings.md)), and it shows up as a chip at the bottom of the page. Clicking a category lists everything in it.
+Categories group related pages so readers can browse by topic. Add a page to one or more categories in its settings (see [[settings|Settings]]), and it shows up as a chip at the bottom of the page. Clicking a category lists everything in it.
 
 Categories can:
 
@@ -40,7 +44,7 @@ Both keep the full history intact.
 
 ## Multiple languages
 
-A page can exist in several languages as separate, linked pages. A language bar lets readers switch between them and offers to start a translation for any language that's missing. To turn languages on for your wiki, see **[Make it yours](customize.md)**.
+A page can exist in several languages as separate, linked pages. A language bar lets readers switch between them and offers to start a translation for any language that's missing. To turn languages on for your wiki, see [[customize|Make it yours]].
 
 ## Finding things to fix
 

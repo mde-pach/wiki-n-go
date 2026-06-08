@@ -1,6 +1,10 @@
 ---
-title: Discussions
+kicker: Guide
 description: Talk pages for asking questions and working things out, alongside every wiki page.
+protection: auto
+tags:
+  - Documentation
+  - Editing
 ---
 
 # Discussions
@@ -13,10 +17,7 @@ Every page has a companion **discussion** area — a place to ask a question, su
 - **Start a topic** with a title and your first message.
 - **Reply** to keep a conversation in one thread; topics can go as deep as they need to.
 - Each topic shows how many replies it has and when it was last active, so it's easy to see what's lively.
-
-## Signing in is optional
-
-Like editing, you can join a discussion anonymously — shown by a short nickname — or [sign in](sign-in.md) to post under your name and picture. Either way, every message has its own link you can share.
+- Every message has its own link you can share.
 
 ## When to use it instead of editing
 
@@ -24,4 +25,4 @@ Like editing, you can join a discussion anonymously — shown by a short nicknam
 - You want to flag a problem without fixing it yourself.
 - Two people disagree about wording and want to settle it before changing the page.
 
-For straightforward improvements, just [edit](editing.md) — that's what a wiki is for. Discussions are for the conversations around the edits.
+For straightforward improvements, just [[editing|edit]] — that's what a wiki is for. Discussions are for the conversations around the edits.
