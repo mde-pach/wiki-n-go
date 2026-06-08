@@ -16,11 +16,32 @@ export function allowedOrigins(env: Env): string[] {
     .filter(Boolean);
 }
 
+// An ALLOWED_ORIGIN entry is either an exact origin (`https://wikigit.org`) or a
+// wildcard (`https://*.wikigit.org`) matching any subdomain — the latter lets one
+// multi-tenant Worker serve every `*.wikigit.org` instance without listing each.
+function matchOrigin(entry: string, origin: string): boolean {
+  if (entry === origin) return true;
+  if (!entry.includes("*.")) return false;
+  try {
+    const o = new URL(origin);
+    const base = new URL(entry.replace("*.", ""));
+    return o.protocol === base.protocol && o.host.endsWith(`.${base.host}`);
+  } catch {
+    return false;
+  }
+}
+
+// Empty allowlist = allow any (dev / unconfigured default).
+export function originAllowed(env: Env, origin: string): boolean {
+  const allowed = allowedOrigins(env);
+  return allowed.length === 0 || allowed.some((entry) => matchOrigin(entry, origin));
+}
+
 export function corsHeaders(env: Env, request: Request): Record<string, string> {
   const allowed = allowedOrigins(env);
   const origin = request.headers.get("Origin") ?? "";
   const allow =
-    allowed.length === 0 ? "*" : allowed.includes(origin) ? origin : allowed[0];
+    allowed.length === 0 ? "*" : originAllowed(env, origin) ? origin : allowed[0];
   return {
     "Access-Control-Allow-Origin": allow,
     Vary: "Origin",

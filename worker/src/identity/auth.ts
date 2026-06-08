@@ -1,5 +1,5 @@
 import { b64urlDecode, b64urlEncode, hmacSign, timingSafeEq } from "../crypto";
-import { allowedOrigins, HttpError } from "../http";
+import { allowedOrigins, HttpError, originAllowed } from "../http";
 import type { Env } from "../types";
 import { getProvider, type ProviderId, providerStatus } from "./providers";
 
@@ -106,16 +106,13 @@ export function authStatus(env: Env): {
 }
 
 // Guard the post-sign-in redirect against open-redirect: the return URL must
-// live on a configured site origin.
+// live on a configured site origin (exact or `*.wikigit.org` wildcard).
 function isAllowedReturn(env: Env, ret: string): boolean {
-  let u: URL;
   try {
-    u = new URL(ret);
+    return originAllowed(env, new URL(ret).origin);
   } catch {
     return false;
   }
-  const allowed = allowedOrigins(env);
-  return allowed.length === 0 || allowed.includes(u.origin);
 }
 
 // `?provider=` picks the provider (default github); the callback path is shared

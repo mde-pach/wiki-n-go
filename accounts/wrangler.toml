@@ -4,13 +4,11 @@ compatibility_date = "2026-06-01"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
-# Sender for the sign-in code. Must be on a domain you've verified in Cloudflare
-# Email Routing (required before the send binding works).
-EMAIL_FROM = "login@accounts.wikigit.example"
-# The Engine *Worker* origin(s) whose /auth/callback may complete a sign-in — this
-# is the OpenAuth redirect_uri allowlist. NOT the site origin (the Engine guards
-# the site return URL itself). Comma-separated; include your dev worker too.
-ALLOWED_ORIGIN = "https://wiki-n-go.maxime-depachtere-80f.workers.dev,http://localhost:8787"
+# Sender for the sign-in code. Must be on a domain verified in Cloudflare Email
+# Routing (required before the send binding works).
+EMAIL_FROM = "no_reply@wikigit.org"
+# No redirect allowlist: any https instance may sign in (see the `allow` callback
+# in src/index.ts for why that's safe). A consent screen is the future gate.
 
 # OpenAuth flow + refresh-token storage AND our account records. No id → Wrangler
 # auto-provisions on first deploy. Note: accounts live here, so unlike the Engine's

@@ -1,5 +1,17 @@
+import type { WikigitUser } from "../../../shared/wikigit-identity";
 import { HttpError } from "../http";
 import type { Env } from "../types";
+
+// The canonical Wikigit account service. Defaulted so every instance gets
+// "Sign in with Wikigit" with zero config; set WIKIGIT_ISSUER="" to opt out, or
+// to your own issuer to self-host. CLIENT_ID is just a stable label (public).
+const DEFAULT_WIKIGIT_ISSUER = "https://auth.wikigit.org";
+const DEFAULT_WIKIGIT_CLIENT_ID = "wikigit";
+
+const wikigitIssuer = (env: Env): string =>
+  env.WIKIGIT_ISSUER ?? DEFAULT_WIKIGIT_ISSUER;
+const wikigitClientId = (env: Env): string =>
+  env.WIKIGIT_CLIENT_ID ?? DEFAULT_WIKIGIT_CLIENT_ID;
 
 // Sign-in providers the Worker can consume. GitHub is plain OAuth2 (identity via
 // api.github.com/user); Wikigit is our OpenAuth issuer (the `accounts/` Worker) —
@@ -72,11 +84,11 @@ const github: Provider = {
 // Wikigit sign-in actually runs.
 const wikigit: Provider = {
   id: "wikigit",
-  configured: (env) => Boolean(env.WIKIGIT_ISSUER && env.WIKIGIT_CLIENT_ID),
+  // Empty issuer = explicit opt-out; otherwise the default makes it always on.
+  configured: (env) => Boolean(wikigitIssuer(env)),
   authorizeUrl(env, redirectUri, state) {
-    const issuer = (env.WIKIGIT_ISSUER as string).replace(/\/+$/, "");
-    const u = new URL(`${issuer}/authorize`);
-    u.searchParams.set("client_id", env.WIKIGIT_CLIENT_ID as string);
+    const u = new URL(`${wikigitIssuer(env).replace(/\/+$/, "")}/authorize`);
+    u.searchParams.set("client_id", wikigitClientId(env));
     u.searchParams.set("redirect_uri", redirectUri);
     u.searchParams.set("response_type", "code");
     u.searchParams.set("state", state);
@@ -93,16 +105,17 @@ const wikigit: Provider = {
       user: object({ id: string(), email: string(), handle: string() }),
     });
     const client = createClient({
-      clientID: env.WIKIGIT_CLIENT_ID as string,
-      issuer: env.WIKIGIT_ISSUER as string,
+      clientID: wikigitClientId(env),
+      issuer: wikigitIssuer(env),
     });
     const exchanged = await client.exchange(code, redirectUri);
     if (exchanged.err) throw new HttpError(502, "Sign-in exchange failed.");
     const verified = await client.verify(subjects, exchanged.tokens.access);
     if (verified.err)
       throw new HttpError(502, "Could not verify your Wikigit identity.");
-    const { id, handle } = verified.subject.properties;
-    return { provider: "wikigit", login: handle, id: 0, avatar: "", sub: id };
+    // Typed against the shared contract so a schema drift is a compile error.
+    const user: WikigitUser = verified.subject.properties;
+    return { provider: "wikigit", login: user.handle, id: 0, avatar: "", sub: user.id };
   },
 };
 
