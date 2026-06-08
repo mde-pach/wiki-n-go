@@ -27,7 +27,7 @@ jobs:
       # keep the github.io URL.
       - name: Set custom domain
         if: ${{ vars.PAGES_CNAME != '' }}
-        run: echo "${{ vars.PAGES_CNAME }}" > public/CNAME
+        run: mkdir -p public && echo "${{ vars.PAGES_CNAME }}" > public/CNAME
       - name: Build Astro site
         uses: withastro/action@v3
         env:
