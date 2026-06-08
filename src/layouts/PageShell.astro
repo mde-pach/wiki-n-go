@@ -11,7 +11,7 @@ import ThemeBoot from "../components/ThemeBoot.astro";
 import TokenCapture from "../components/TokenCapture.astro";
 import { type AppearanceDefaults, config } from "../config";
 import { classifyTags } from "../lib/categories";
-import { translationGroup, translations } from "../lib/i18n";
+import { translationGroup, translations, wikiLanguages } from "../lib/i18n";
 import {
   adminHref,
   BASE,
@@ -142,6 +142,7 @@ const canonical = new URL(read, Astro.site).href;
                   slug={slug}
                   translationKey={group.key}
                   initialSiblings={group.slugs}
+                  wikiLangs={wikiLanguages()}
                   client:load
                 />
               )

@@ -557,6 +557,15 @@
   border-radius: var(--radius-sm);
   padding: 1px 5px;
 }
+.langbar-sep {
+  margin-top: 0.3rem;
+  padding: 0.4em 0.6em 0.2em;
+  border-top: var(--border-w) solid var(--color-border);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-ink-subtle);
+}
 
 .tabbar {
   display: flex;

@@ -8,44 +8,76 @@ interface Entry {
   lang: string;
   name: string;
   href: string;
-  exists: boolean;
   current: boolean;
 }
 
-// One entry per configured language: existing translations link to the page;
-// missing ones get a "create" link seeded with the shared key, so the new page
-// joins the group on save ("translate this page").
-function entries(siblings: string[], current: string, key: string): Entry[] {
+function createHref(lang: string, key: string): string {
+  const createSlug = lang === config.defaultLang ? key : `${lang}/${key}`;
+  return `${BASE}/edit/${createSlug}?translationKey=${encodeURIComponent(key)}`;
+}
+
+// Existing translations of this article — switch links, ordered by config.
+function existing(siblings: string[], current: string): Entry[] {
   const bySlug = new Map(siblings.map((s) => [langOf(s), s]));
-  return config.languages.map((l) => {
+  return config.languages.flatMap((l) => {
     const slug = bySlug.get(l.code);
-    const createSlug = l.code === config.defaultLang ? key : `${l.code}/${key}`;
-    return {
+    if (!slug) return [];
+    return [
+      { lang: l.code, name: l.name, href: readHref(slug), current: slug === current },
+    ];
+  });
+}
+
+// Languages already present elsewhere in the wiki but not yet for this article:
+// the likely-to-be-extended set, offered as inline "add" links (W5).
+function extend(siblings: string[], present: Set<string>, key: string): Entry[] {
+  const have = new Set(siblings.map(langOf));
+  return config.languages
+    .filter((l) => present.has(l.code) && !have.has(l.code))
+    .map((l) => ({
       lang: l.code,
       name: l.name,
-      href: slug
-        ? readHref(slug)
-        : `${BASE}/edit/${createSlug}?translationKey=${encodeURIComponent(key)}`,
-      exists: Boolean(slug),
-      current: slug === current,
-    };
-  });
+      href: createHref(l.code, key),
+      current: false,
+    }));
+}
+
+// Languages not yet anywhere in the wiki: the distinct "translate to a new
+// language" path, kept out of the main switch list (W5).
+function fresh(present: Set<string>, key: string): Entry[] {
+  return config.languages
+    .filter((l) => !present.has(l.code))
+    .map((l) => ({
+      lang: l.code,
+      name: l.name,
+      href: createHref(l.code, key),
+      current: false,
+    }));
 }
 
 export default function LangBar(props: {
   slug: string;
   translationKey: string;
   initialSiblings: string[];
+  wikiLangs: string[];
 }) {
-  // The Worker index reflects translations created since the last build (no
-  // rebuild), so merge them in on the client; SSR uses the build-time siblings.
-  const [live] = createResource(
-    () => !isServer,
-    async () => (await getLinkGraph())?.translations?.[props.translationKey],
+  // The Worker index reflects pages + translations created since the last build
+  // (no rebuild); merge them in on the client, SSR uses the build-time seeds.
+  const [graph] = createResource(
+    () => (isServer ? undefined : true),
+    () => getLinkGraph(),
   );
-  const siblings = () => live() ?? props.initialSiblings;
-  const items = () => entries(siblings(), props.slug, props.translationKey);
-  const count = () => items().filter((i) => i.exists).length;
+  const siblings = () =>
+    graph()?.translations?.[props.translationKey] ?? props.initialSiblings;
+  const present = () => {
+    const g = graph();
+    return g ? new Set(Object.keys(g.titles).map(langOf)) : new Set(props.wikiLangs);
+  };
+
+  const switches = () => existing(siblings(), props.slug);
+  const extras = () => extend(siblings(), present(), props.translationKey);
+  const newer = () => fresh(present(), props.translationKey);
+  const count = () => switches().length;
 
   return (
     <details class="langbar">
@@ -65,23 +97,44 @@ export default function LangBar(props: {
         </span>
       </summary>
       <ul class="langbar-menu">
-        <For each={items()}>
+        <For each={switches()}>
           {(i) => (
             <li>
               <a
                 href={i.href}
                 lang={i.lang}
-                classList={{ "is-missing": !i.exists }}
                 aria-current={i.current ? "page" : undefined}
               >
                 {i.name}
-                <Show when={!i.exists}>
-                  <span class="langbar-add">add</span>
-                </Show>
               </a>
             </li>
           )}
         </For>
+        <For each={extras()}>
+          {(i) => (
+            <li>
+              <a href={i.href} lang={i.lang} class="is-missing">
+                {i.name}
+                <span class="langbar-add">add</span>
+              </a>
+            </li>
+          )}
+        </For>
+        <Show when={newer().length > 0}>
+          <li class="langbar-sep" aria-hidden="true">
+            Translate to a new language
+          </li>
+          <For each={newer()}>
+            {(i) => (
+              <li>
+                <a href={i.href} lang={i.lang} class="is-missing">
+                  {i.name}
+                  <span class="langbar-add">add</span>
+                </a>
+              </li>
+            )}
+          </For>
+        </Show>
       </ul>
     </details>
   );

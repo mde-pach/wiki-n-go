@@ -13,6 +13,15 @@ export interface LangLink {
 const langName = (code: string) =>
   config.languages.find((l) => l.code === code)?.name ?? code;
 
+// Build/SSR: the language codes that actually have at least one page, ordered by
+// the configured list. Seeds the LangBar's "extend a language already in the wiki"
+// set, kept distinct from the "translate to a new language" path (W5). The client
+// reconciles it against the live link graph.
+export function wikiLanguages(): string[] {
+  const present = new Set(contentSlugs().map(langOf));
+  return config.languages.map((l) => l.code).filter((c) => present.has(c));
+}
+
 // Parsed once from the eager content glob: every page that declares a
 // translationKey, paired with it. Pages without a key aren't grouped.
 let keyed: { slug: string; key: string }[] | null = null;
