@@ -12,6 +12,16 @@ export default function PageMeta(props: {
   });
   const last = () => hist()?.[0];
   const historyHref = `${props.base}/history/${props.slug}`;
+  const editedOn = (iso?: string) => {
+    const d = new Date(iso ?? "");
+    return Number.isNaN(d.getTime())
+      ? ""
+      : d.toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        });
+  };
 
   return (
     <div class="page-meta">
@@ -25,7 +35,7 @@ export default function PageMeta(props: {
             {last()?.author}
           </a>
           <span class="dot">·</span>
-          <a href={historyHref}>{new Date(last()?.date ?? "").toLocaleDateString()}</a>
+          <a href={historyHref}>{editedOn(last()?.date)}</a>
           <span class="dot">·</span>
           <a href={historyHref}>{hist()?.length} revisions</a>
         </Show>
