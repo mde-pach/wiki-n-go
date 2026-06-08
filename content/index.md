@@ -1,6 +1,7 @@
 ---
 kicker: Documentation
-description: Wikigit is a wiki you can set up in a few minutes and let anyone help write — free to run, and yours to keep.
+description: Wikigit is a wiki you can set up in a few minutes and let anyone
+  help write — free to run, and yours to keep.
 protection: auto
 translationKey: index
 tags:
@@ -17,7 +18,8 @@ infobox:
     mono: true
 banner:
   kind: info
-  text: This site is a Wikigit running on Wikigit — every page here is an ordinary file you can edit.
+  text: This site is a Wikigit running on Wikigit — every page here is an ordinary
+    file you can edit.
 ---
 
 # Welcome to Wikigit
@@ -28,6 +30,7 @@ What sets it apart is how little there is to run and worry about. You can set on
 
 ## What you get
 
+test
 - **Free to host.** Your wiki runs on free services — no server to rent, no monthly bill.
 - **No database to manage.** Your pages are ordinary text files. Nothing can quietly break.
 - **Edit in the browser.** People click *Edit*, make a change, and save — nothing to install.
