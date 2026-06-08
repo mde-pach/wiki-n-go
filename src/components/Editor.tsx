@@ -4,6 +4,7 @@ import { isServer } from "solid-js/web";
 import { config } from "../config";
 import { type EditResult, type Progress, submitEdit } from "../lib/api";
 import { fetchMarkdown, fetchMarkdownAt, PageNotFoundError } from "../lib/content";
+import { renderMermaid } from "../lib/decorate";
 import { diffLines } from "../lib/diff";
 import {
   clearDraft,
@@ -200,6 +201,23 @@ export default function Editor(props: { slug?: string; initialContent?: string }
 
   const preview = () =>
     isServer ? "" : renderMarkdown(body() || "_Nothing to preview yet._");
+
+  // The published page renders ```mermaid fences via a client pass; mirror just
+  // that pass on the preview so diagrams (and other client-rendered extensions)
+  // show identically instead of as a raw code block (T8). A MutationObserver on
+  // the preview re-runs the pass whenever its HTML changes, debounced so a fast
+  // typist doesn't re-run the diagram engine on every keystroke.
+  let mermaidTimer: number | undefined;
+  const setPreviewRef = (el: HTMLDivElement) => {
+    if (isServer) return;
+    const run = () => {
+      clearTimeout(mermaidTimer);
+      mermaidTimer = window.setTimeout(() => void renderMermaid(el), 150);
+    };
+    new MutationObserver(run).observe(el, { childList: true, subtree: true });
+    run();
+  };
+
   const cancelHref = () => readHref(slug());
   const delta = () => content().length - original().length;
 
@@ -295,7 +313,11 @@ export default function Editor(props: { slug?: string; initialContent?: string }
               <span class="live-dot" />
               <span class="pane-name">Preview</span>
             </div>
-            <div class="preview-scroll prose" innerHTML={preview()} />
+            <div
+              class="preview-scroll prose"
+              ref={setPreviewRef}
+              innerHTML={preview()}
+            />
           </div>
         </div>
 
