@@ -25,6 +25,10 @@ jobs:
       - name: Build Astro site
         run: bun run build
         env:
+          # Server-render the content route on demand so the first paint is the
+          # latest content (no build-time stale-then-fresh flash). Other routes
+          # stay prerendered; see astro.config.mjs.
+          EDGE_SSR: cloudflare
           SITE_URL: ${{ vars.SITE_URL || format('https://{0}.github.io', github.repository_owner) }}
           BASE_PATH: ${{ vars.BASE_PATH || format('/{0}', github.event.repository.name) }}
           PUBLIC_REPO_OWNER: ${{ github.repository_owner }}
