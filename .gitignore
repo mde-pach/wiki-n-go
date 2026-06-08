@@ -3,6 +3,7 @@ dist/
 .netlify/
 .design/
 .astro/
+.wrangler/
 .claude/worktrees/
 .DS_Store
 *.log
