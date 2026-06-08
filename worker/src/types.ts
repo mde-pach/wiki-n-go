@@ -12,7 +12,7 @@ export interface Env {
   CONTENT_DIR: string;
   ALLOWED_ORIGIN: string;
   RATE_LIMIT?: KVNamespace; // unset until a KV namespace is bound; rate limiting then activates
-  TURNSTILE_SECRET?: string; // unset until a Turnstile widget is wired; bot check then activates
+  POW_BITS?: string; // proof-of-work difficulty (leading zero bits) for anon writes; default 18, "0" disables
   // Discussion target. Both IDs are derived at runtime from REPO_OWNER/REPO_NAME
   // + DISCUSSION_CATEGORY (so a fork needs no manual lookup); set them only to
   // override the derivation.

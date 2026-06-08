@@ -3,7 +3,6 @@ import { gh } from "../github";
 import { HttpError } from "../http";
 import { resolve } from "../identity";
 import { invalidateContent } from "../kv";
-import { runFilters } from "../moderation";
 import { commitPayload, getCurrentFile } from "../repo";
 import { editorTier, frontmatter, pageTier, TIER_RANK, type Tier } from "../trust";
 import type { Env, MergeBody, SplitBody } from "../types";
@@ -12,9 +11,9 @@ import { userPageOwner } from "./content";
 
 // Merge and split are content-lifecycle operations built from the same pieces as
 // move (gated direct commits + a redirect stub) and gated like a normal edit:
-// the anonymous path clears Turnstile + bans + the rate limit via resolve(),
-// every edit is run through the abuse filter, and trust tiers decide whether the
-// caller may touch the affected pages (insufficient tier → 403, as with move).
+// the anonymous path clears the bot check + bans + the rate limit via resolve(),
+// and trust tiers decide whether the caller may touch the affected pages
+// (insufficient tier → 403, as with move).
 // The client composes the page bodies — including `merged_from`/`split_from`
 // frontmatter — so the Worker only validates, gates, and commits.
 
@@ -78,10 +77,6 @@ export async function mergePages(env: Env, request: Request, body: MergeBody) {
     "Merging these pages",
   );
 
-  const verdict = await runFilters(env, tier, target.raw, content);
-  if (verdict.action === "disallow")
-    throw new HttpError(422, verdict.message ?? "This merge was blocked by a filter.");
-
   const author = { name: writer.name, email: writer.email };
   await gh(env, `/repos/${repo}/contents/${toPath}`, {
     method: "PUT",
@@ -142,16 +137,6 @@ export async function splitPage(env: Env, request: Request, body: SplitBody) {
     higherTier(pageTier(env, frontmatter(source.raw)), pageTier(env, {})),
     "Splitting this page",
   );
-
-  const [vNew, vTrim] = await Promise.all([
-    runFilters(env, tier, "", toContent),
-    runFilters(env, tier, source.raw, fromContent),
-  ]);
-  if (vNew.action === "disallow" || vTrim.action === "disallow")
-    throw new HttpError(
-      422,
-      vNew.message ?? vTrim.message ?? "This split was blocked by a filter.",
-    );
 
   const author = { name: writer.name, email: writer.email };
   await gh(env, `/repos/${repo}/contents/${toPath}`, {

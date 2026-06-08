@@ -40,7 +40,7 @@ function stubGitHub(o: Opts) {
     if (url.includes("raw.githubusercontent.com") && url.includes("bans.json"))
       return Response.json(o.rawBans ?? o.bans ?? []);
     if (url.includes("raw.githubusercontent.com"))
-      return new Response("", { status: 404 }); // filters.json etc.
+      return new Response("", { status: 404 }); // bans.json etc.
     if (url.includes("/commits")) return new Response("[]"); // trust stats
     throw new Error(`unexpected fetch: ${url}`);
   });
@@ -50,6 +50,7 @@ function makeEnv(): Env {
   return {
     GITHUB_TOKEN: "t",
     HASH_SECRET: "s",
+    POW_BITS: "0",
     REPO_OWNER: "o",
     REPO_NAME: "r",
     BRANCH: "main",

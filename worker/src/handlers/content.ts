@@ -11,7 +11,7 @@ import { type CommitItem, gh, ghHeaders } from "../github";
 import { HttpError } from "../http";
 import { resolve, type Writer } from "../identity";
 import { invalidateContent, kvGetJson, kvPutJson } from "../kv";
-import { autopatrol, bumpEditWar, runFilters } from "../moderation";
+import { autopatrol, bumpEditWar } from "../moderation";
 import { commitPayload, getCurrentFile } from "../repo";
 import { revertCommit } from "../revert";
 import { revertRisk } from "../risk";
@@ -251,7 +251,7 @@ interface EditContext {
   writer: Writer;
   tier: Tier;
   current: { sha: string; raw: string } | null;
-  verdict: Awaited<ReturnType<typeof runFilters>>;
+  tags: string[];
 }
 
 export interface EditOutcome {
@@ -295,7 +295,7 @@ export async function prepareEdit(
   // that matches the slug. Not even maintainers edit profile *content* (an
   // `ip_hash` can't own one, so anon is out too); maintainers moderate a bad
   // profile through the dedicated delete/rollback endpoints instead of rewriting
-  // someone's page. Still the ordinary edit path (Turnstile, PR); the owner
+  // someone's page. Still the ordinary edit path (proof-of-work, PR); the owner
   // publishes their own page live.
   const owner = userPageOwner(slug);
   const isOwner =
@@ -319,17 +319,14 @@ export async function prepareEdit(
   enforceFieldPermissions(env, tier, oldMeta, frontmatter(content));
   const required = pageTier(env, oldMeta);
 
-  const verdict = await runFilters(env, tier, current?.raw ?? "", content);
-  if (verdict.action === "disallow")
-    throw new HttpError(422, verdict.message ?? "This edit was blocked by a filter.");
-
+  const tags: string[] = [];
   // 3RR: trusted tiers are exempt; everyone else's rapid re-edits to one page
   // get the `edit-war` flag (review badge + revert-risk bump).
   if (
     TIER_RANK[tier] < TIER_RANK.extended &&
     (await bumpEditWar(env, writer.name, slug))
   )
-    verdict.tags.push("edit-war");
+    tags.push("edit-war");
 
   const ctx: EditContext = {
     repo,
@@ -340,7 +337,7 @@ export async function prepareEdit(
     writer,
     tier,
     current,
-    verdict,
+    tags,
   };
   return { ctx, trusted: isOwner || TIER_RANK[tier] >= TIER_RANK[required] };
 }
@@ -428,7 +425,7 @@ async function openOrReusePr(
   env: Env,
   ctx: EditContext,
 ): Promise<{ number: number; branch: string; htmlUrl: string }> {
-  const { repo, path, slug, summary, writer, current, verdict } = ctx;
+  const { repo, path, slug, summary, writer, current, tags } = ctx;
   const author = writer.name;
   const branch = editBranch(writer, slug);
 
@@ -475,7 +472,7 @@ async function openOrReusePr(
         base: env.BRANCH,
         body:
           `Proposed in-site by \`${author}\`.` +
-          (verdict.tags.length ? `\n\nFilter tags: ${verdict.tags.join(", ")}` : ""),
+          (tags.length ? `\n\nTags: ${tags.join(", ")}` : ""),
       }),
     },
   );
@@ -494,15 +491,15 @@ async function finishPublish(
   await invalidateContent(env, ctx.writer.name, { keepIndex: true });
   await updateIndexEntry(env, ctx.slug, ctx.content);
   await autopatrol(env, ctx.tier, sha);
-  if (ctx.verdict.tags.length)
-    await env.RATE_LIMIT?.put(`tag:${sha}`, JSON.stringify(ctx.verdict.tags));
+  if (ctx.tags.length)
+    await env.RATE_LIMIT?.put(`tag:${sha}`, JSON.stringify(ctx.tags));
   await deleteBranch(env, ctx.repo, branch);
 }
 
 const AUTOMOD_WINDOW_S = 86_400; // per-page revert-cap window (24h), like 3RR
 
-// Merge `tag` into a commit's KV tag set (preserving any filter tags already
-// stored), so RecentChanges shows it. Read-merge, not overwrite.
+// Merge `tag` into a commit's KV tag set (preserving any tags already stored),
+// so RecentChanges shows it. Read-merge, not overwrite.
 export async function addTag(env: Env, sha: string, tag: string): Promise<void> {
   if (!env.RATE_LIMIT) return;
   const raw = await env.RATE_LIMIT.get(`tag:${sha}`);
@@ -527,7 +524,7 @@ async function autoModerate(env: Env, ctx: EditContext, sha: string): Promise<bo
     deletions: detail.deletions,
     isAnon: ctx.writer.isAnon,
     created: detail.created.length > 0,
-    tags: ctx.verdict.tags,
+    tags: ctx.tags,
   });
   const capKey = `automod:${ctx.slug}`;
   const pageReverts = Number.parseInt((await env.RATE_LIMIT?.get(capKey)) ?? "0", 10);

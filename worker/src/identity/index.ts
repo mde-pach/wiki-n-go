@@ -1,7 +1,7 @@
 import { isBanned } from "../bans";
 import { ipHash } from "../crypto";
 import { HttpError } from "../http";
-import { enforceRateLimit, verifyTurnstile } from "../moderation";
+import { enforceRateLimit, verifyPow } from "../moderation";
 import { multiTenant } from "../tenant";
 import { editorTier, type Tier } from "../trust";
 import type { Env } from "../types";
@@ -59,8 +59,8 @@ export function writerFor(session: Session | null, anonHash: string): Writer {
 
 // The request's identity: a verified GitHub/Wikigit session, else the anonymous
 // pseudonym. With `gate`, this is a write: a signed-in session skips the bot
-// check (sign-in already proved a human) while the anonymous path keeps
-// Turnstile, and both reject bans and enforce the per-identity rate limit.
+// check (sign-in already proved a human) while the anonymous path must clear the
+// proof-of-work, and both reject bans and enforce the per-identity rate limit.
 // Without it, it's a read-only actor lookup (whoami, patrol, review) — no gate.
 export async function resolve(
   env: Env,
@@ -74,7 +74,7 @@ export async function resolve(
   const hashInput = multiTenant(env) ? `${env.REPO_OWNER}/${env.REPO_NAME}\n${ip}` : ip;
   const writer = writerFor(session, await ipHash(env.HASH_SECRET, hashInput));
   if (!gate) return writer;
-  if (!session) await verifyTurnstile(env, ip, gate.token ? String(gate.token) : "");
+  if (!session) await verifyPow(env, gate.token ? String(gate.token) : "");
   if (await isBanned(env, writer.key, gate.path))
     throw new HttpError(
       403,

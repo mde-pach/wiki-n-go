@@ -14,7 +14,10 @@ export const config = {
   homeSlug: "index",
   workerUrl:
     env.PUBLIC_WORKER_URL || "https://wiki-n-go.maxime-depachtere-80f.workers.dev",
-  turnstileSiteKey: env.PUBLIC_TURNSTILE_SITE_KEY || "0x4AAAAAADe7QjsOFAA6Fc8O",
+  // Self-hosted proof-of-work bot check (no third-party service): anonymous
+  // writes solve a SHA-256 puzzle of this many leading zero bits before the
+  // Worker accepts them. Must match the Worker's POW_BITS; `0` disables it.
+  powBits: Number(env.PUBLIC_POW_BITS || "18"),
   // Interlanguage (M8). The default language is languageless: its pages keep bare
   // slugs (`/coffee`), other languages are URL-prefixed (`/fr/cafe`). The codes
   // here double as the reserved slug prefixes that mark a page's language.

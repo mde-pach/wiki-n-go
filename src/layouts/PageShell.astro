@@ -105,6 +105,14 @@ const canonical = new URL(read, Astro.site).href;
     <title>{display} · Wikigit</title>
     <ThemeBoot appearance={appearance} />
     <ClientRouter />
+    {/* Keep in-site navigation (no full reload) but swap pages instantly — a
+        regular wiki feel, not a cross-fade. */}
+    <style is:global>
+      ::view-transition-old(root),
+      ::view-transition-new(root) {
+        animation: none;
+      }
+    </style>
     <TokenCapture />
   </head>
   <body>

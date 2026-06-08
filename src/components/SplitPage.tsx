@@ -1,6 +1,5 @@
 import { createMemo, createResource, createSignal, For, Show } from "solid-js";
 import { isServer } from "solid-js/web";
-import { config } from "../config";
 import { fetchMarkdown } from "../lib/content";
 import { listSections } from "../lib/editor-section";
 import { splitFrontmatter } from "../lib/frontmatter";
@@ -23,7 +22,7 @@ export default function SplitPage() {
   const [title, setTitle] = createSignal("");
   const [summary, setSummary] = createSignal("");
   const [done, setDone] = createSignal<string>();
-  const { busy, error, setError, run, mount } = useSubmit();
+  const { busy, error, setError, run } = useSubmit();
   const toSlug = createMemo(() => slugifyPath(title()));
   // The chosen section, defaulting to the first once the page loads.
   const chosen = createMemo(() => section() || sections()[0]?.slug || "");
@@ -110,9 +109,6 @@ export default function SplitPage() {
                     onInput={(e) => setSummary(e.currentTarget.value)}
                   />
                 </label>
-                <Show when={config.turnstileSiteKey}>
-                  <div class="editor-widget" ref={(el) => mount?.(el)} />
-                </Show>
                 <div class="editor-actions">
                   <button
                     type="button"

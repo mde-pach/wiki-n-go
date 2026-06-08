@@ -1,5 +1,3 @@
-import { evaluateFilters, type FilterConfig } from "./filters";
-import { repoJson } from "./github";
 import { HttpError } from "./http";
 import { asTier, TIER_RANK, type Tier } from "./trust";
 import type { Env } from "./types";
@@ -40,23 +38,63 @@ export async function bumpEditWar(
   return count > threeRrMax(env);
 }
 
-export async function verifyTurnstile(
-  env: Env,
-  ip: string,
-  token: string,
-): Promise<void> {
-  if (!env.TURNSTILE_SECRET) return;
-  if (!token) throw new HttpError(400, "Missing challenge token.");
-  const form = new FormData();
-  form.append("secret", env.TURNSTILE_SECRET);
-  form.append("response", token);
-  form.append("remoteip", ip);
-  const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-    method: "POST",
-    body: form,
-  });
-  const data = (await res.json()) as { success?: boolean };
-  if (!data.success) throw new HttpError(403, "Bot check failed.");
+// Self-hosted proof-of-work bot check (replaces Cloudflare Turnstile — no
+// third-party service or keys). The browser mints a `<ts>.<salt>.<nonce>` token
+// whose SHA-256 has POW_BITS leading zero bits; that search costs real CPU, so
+// bulk automated edits get expensive while a single human edit is ~half a
+// second. We only re-hash once to verify. `POW_BITS=0` disables the check.
+const POW_WINDOW_MS = 120_000;
+const POW_SKEW_MS = 60_000;
+
+export function powBits(env: Env): number {
+  const n = Number.parseInt(env.POW_BITS ?? "", 10);
+  return Number.isFinite(n) ? n : 18;
+}
+
+function leadingZeroBits(hash: Uint8Array): number {
+  let bits = 0;
+  for (const byte of hash) {
+    if (byte === 0) {
+      bits += 8;
+      continue;
+    }
+    return bits + Math.clz32(byte) - 24;
+  }
+  return bits;
+}
+
+export async function verifyPow(env: Env, token: string): Promise<void> {
+  const bits = powBits(env);
+  if (bits <= 0) return;
+  if (!token) throw new HttpError(400, "Missing proof-of-work.");
+  const [tsStr, salt] = token.split(".");
+  const ts = Number.parseInt(tsStr ?? "", 10);
+  const now = Date.now();
+  if (
+    !salt ||
+    !Number.isFinite(ts) ||
+    ts > now + POW_SKEW_MS ||
+    now - ts > POW_WINDOW_MS
+  )
+    throw new HttpError(403, "Proof-of-work expired — please try again.");
+
+  const hash = new Uint8Array(
+    await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token)),
+  );
+  if (leadingZeroBits(hash) < bits)
+    throw new HttpError(403, "Proof-of-work check failed.");
+
+  // Single-use within its freshness window, so a solved token can't be replayed
+  // across many submits. KV is eventually consistent — coarse, like the rate
+  // limit — and simply unavailable (no replay guard) until a namespace is bound.
+  if (env.RATE_LIMIT) {
+    const key = `pow:${tsStr}.${salt}`;
+    if (await env.RATE_LIMIT.get(key))
+      throw new HttpError(403, "Proof-of-work already used — please try again.");
+    await env.RATE_LIMIT.put(key, "1", {
+      expirationTtl: Math.ceil(POW_WINDOW_MS / 1000),
+    });
+  }
 }
 
 // Fixed-window per-source limit. KV is eventually consistent, so this is coarse
@@ -70,22 +108,4 @@ export async function enforceRateLimit(env: Env, author: string): Promise<void> 
   await env.RATE_LIMIT.put(key, String(count + 1), {
     expirationTtl: RATE_LIMIT_WINDOW_S,
   });
-}
-
-// Pre-publish abuse filter. Trusted tiers are exempt (abuse concentrates in
-// open-tier edits); everyone else's edit is scored against filters.json.
-export async function runFilters(
-  env: Env,
-  tier: Tier,
-  oldRaw: string,
-  newContent: string,
-) {
-  const cfg = await repoJson<FilterConfig>(env, "filters.json");
-  if (!cfg) return { action: "allow" as const, tags: [] as string[] };
-  if (
-    cfg.exemptTier &&
-    TIER_RANK[tier] >= TIER_RANK[asTier(cfg.exemptTier, "maintainer")]
-  )
-    return { action: "allow" as const, tags: [] as string[] };
-  return evaluateFilters(cfg, { oldRaw, newContent });
 }

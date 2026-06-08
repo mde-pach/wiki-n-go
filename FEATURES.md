@@ -102,7 +102,7 @@ and undo/thank/tag actions; Newer/Older pagination.
 | Show diff before submit | confirm dialog shows size delta **+ a full side-by-side/unified diff** of the pending edit (`diffLines` → `DiffView`, computed client-side; long unchanged runs collapsed) | ✅ | P1 |
 | Edit-conflict detection | git 3-way merge on the auto-merged PR; overlapping conflict → PR stays in the review queue (see §K) | ✅ | P1 |
 | Submit progress feedback | publish phase streams NDJSON milestones (open PR → publish → go live) → live progress bar in the editor | ✅ | P1 |
-| Anti-bot (already have) | Turnstile | ✅ | — |
+| Anti-bot (already have) | In-browser proof-of-work (replaced Turnstile) | ✅ | — |
 
 ## H. Theming / appearance (our "Appearance" menu)
 Design token system adopted from `.design/` (single source of truth): two skins
@@ -157,7 +157,7 @@ only **one** level), reusing the same marker trick as `anon-<hash>`.
 - ✅ References/footnotes + citation hover tooltips; captioned figures.
 - ✅ Frontmatter layer: infobox, categories (chips + `/category/<tag>`), hatnotes, maintenance banners.
 - ✅ Per-section `[edit]` links; live preview; edit-summary; History (`/history` + `/diff`).
-- ✅ Moderation: Turnstile, rate-limit, `bans.json`, slug hardening. Foundation: Tailwind tokens + skins, `/pages` manifest.
+- ✅ Moderation: proof-of-work bot check, rate-limit, `bans.json`, slug hardening. Foundation: Tailwind tokens + skins, `/pages` manifest.
 - ✅ SSR (no client blink): server-rendered content + revision line, red links resolved before paint, clean TOC.
 - ✅ Reading UX: collapsible sections, wikilink hover previews, interwiki `[[w:…]]` links, lead-term emphasis, draft persistence.
 - ✅ Help namespace (`/help` · editing · formatting); main-menu nav drawer; lazy-loaded Mermaid diagrams.
@@ -199,7 +199,7 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 | Edit summary · minor-edit flag | commit message / PR title; `Minor:` trailer or label | 🟡 | P1 |
 | **Undo** one edit · **restore to revision** | Worker `POST /restore {slug, rev}` writes the page's content at `rev` (History-row "restore", maintainer); undo-latest = restore the prior row | 🟡 | P1 |
 | **Rollback** (1-click revert a contributor's trailing run) | maintainer-gated Worker `POST /rollback` restores each page a commit touched to its pre-commit state (per-commit; trailing-run TODO) | 🟡 | P1 |
-| CAPTCHA only for risky/untrusted edits (autoconfirmed exempt) | Turnstile on **anonymous** edits; **any signed-in GitHub user is exempt** (`if (!session)`), not just trusted tiers | 🟡 | P1 |
+| CAPTCHA only for risky/untrusted edits (autoconfirmed exempt) | Proof-of-work on **anonymous** edits; **any signed-in GitHub user is exempt** (`if (!session)`), not just trusted tiers | 🟡 | P1 |
 
 ## L. Trust tiers & page protection (earned autonomy)
 | Wikipedia mechanism | Ours | St | Pri |
@@ -218,9 +218,9 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 | Live patrol stream (EventStreams) | Worker SSE/webhook fan-out of commit/merge events | ⬜ | P2 |
 | **Patrol flag / autopatrol**; new pages **noindex** until reviewed | per-edit "reviewed" bit + maintainer **patrol queue**; **autopatrol** = edits at tier ≥ `AUTOPATROL_TIER` (default extended) land pre-patrolled; unpatrolled pages get `noindex` (client island → `GET /patrol-status`, fail-open; the optional edge-SSR variant resolves it **server-side** in the head, still fail-open) | ✅ | P1 |
 | **New Pages Patrol** + Page Curation toolbar | New-pages queue (M6) + a **Page Curation toolbar** (`PageCuration`): one maintainer-gated reviewer overlay — approve (patrol) · **tag** (one-click maintenance/review tags via `POST /tag`) · message author (→ talk) · contributions · roll back · propose-delete, with patrol state + the revert-risk badge + applied tags inline. Mounts on each New-pages row **and** on any page's read view; optimistic UI over the patrol/tag/rollback/delete endpoints (message links to the in-site talk flow). Separate file-creation PR queue still TODO | 🟡 | P1 |
-| **AbuseFilter** (rules: tag/warn/throttle/disallow/auto-ban, pre-publish) | Worker rule engine over the diff (`filters.json`, CODEOWNERS-gated) — **the workhorse of immediate-publish safety** | ⬜ | P0 |
+| **AbuseFilter** (rules: tag/warn/throttle/disallow/auto-ban, pre-publish) | ~~Worker rule engine over the diff (`filters.json`)~~ — **built, then removed (2026-06-08); spam handling moves elsewhere** | ⬜ | P0 |
 | Spam/title/link blacklists | versioned blocklist files the Worker checks (refuse spam-domain / bad-title PRs) | ⬜ | P1 |
-| Change **tags** (`mw-blank`, `mw-reverted`, mobile…) | filter `tags` (`filters.json`) + `edit-war` (3RR) labels on each change → drive the RC badges/filters; maintainers also **tag manually** from the curation toolbar (`POST /tag`, read-merged into the same `tag:<sha>` KV set, audited) | 🟡 | P1 |
+| Change **tags** (`mw-blank`, `mw-reverted`, mobile…) | `edit-war` (3RR) labels on each change → drive the RC badges/filters; maintainers also **tag manually** from the curation toolbar (`POST /tag`, read-merged into the same `tag:<sha>` KV set, audited) | 🟡 | P1 |
 | **Revert-risk score** (Lift Wing / language-agnostic model, ~80%) | heuristic 0–100 (`risk.ts`: byte/removal ratio, anon, page-creation, tags) on `/changes` → **high-risk badge + filter**; ML model + link-churn later | 🟡 | P1 |
 | **Automoderator / ClueBot** (configurable auto-revert + FP reporting + dashboard) | post-publish: a freshly auto-merged edit scoring ≥ `AUTOMOD_REVERT_SCORE` (off unless set) from a below-`AUTOMOD_EXEMPT_TIER` author is auto-reverted by an `automoderator` bot through the **shared reversible rollback path** (`revertCommit`, a normal commit — never a force-push); a per-page 24 h `AUTOMOD_REVERT_CAP` stops the bot edit-warring; every revert is recorded in `audit-log.jsonl` + an `auto-reverted` tag, with recourse via re-edit/talk and **one-click maintainer undo** in the `/admin` **Automoderator** view. Pure `decideAutoRevert` unit-tested | ✅ | P2 |
 | **3RR** (>3 reverts/24h → block) | per-author-per-page 24 h KV counter (`THREE_RR_MAX`, default 3) flags the 4th rapid edit `edit-war` → review badge + risk bump (tag, not block; trusted tiers exempt) | 🟡 | P1 |
@@ -323,7 +323,7 @@ Cross-refs point at the relevant A–Q row so we extend, not duplicate.
 ## T. Editing
 | # | Item | Type | St | Pri | Ref |
 |---|---|---|---|---|---|
-| T1 | **Hide Turnstile from the user** — keep anti-bot under the hood; on failure print an error; if not yet verified, hold the submission in a waiting state rather than exposing the widget. | 🐛/✨ | ✅ | P0 | §G, §M |
+| T1 | **Anti-bot stays under the hood** — the in-browser proof-of-work runs silently during submit (covered by the busy state) and only surfaces an error on failure; there's no widget to expose. Superseded the earlier "hide the Turnstile widget" approach. | 🐛/✨ | ✅ | P0 | §G, §M |
 | T2 | **Refresh on the edit page wipes the content** — persist the draft (local/session) across reloads. `lib/draft` restores on mount, persists on change, clears on submit. | 🐛 | ✅ | P0 | §G |
 | T3 | **Hatnote shows as raw markdown in the editor** — preview the hat correctly (rendered), don't surface it inline in the md. Hatnote is a `PageProperties` field; the preview renders the body only (frontmatter split off). | 🐛 | ✅ | P1 | §D |
 | T4 | **Help/docs pages** (own namespace): how it works, how to contribute, a markdown primer for non-technical editors, and a reference of available md plugins + their syntax — surfaced near the editor. Shipped `help/` (index · editing · formatting) + editor hint. `2cc750d` | ✨ | ✅ | P1 | §P (help/ ns) |

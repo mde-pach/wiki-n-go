@@ -17,7 +17,7 @@ import { MarkdownToolbar } from "./MarkdownToolbar";
 // the read page. On save it splices the edited slice back into the source,
 // reconstructs the *whole* document, and submits it through the exact same
 // pipeline as the full-page editor (`submitEdit`). There is no second write
-// path: trust/Turnstile/filter/diff-preview/deterministic-branch publish are
+// path: trust/proof-of-work/diff-preview/deterministic-branch publish are
 // all the Worker's, reached identically.
 export default function FocusedEditor(props: {
   slug: string;
@@ -41,7 +41,7 @@ export default function FocusedEditor(props: {
   const [progress, setProgress] = createSignal<Progress>();
   const [modal, setModal] = createSignal(false);
   const { who } = useWhoami();
-  const { busy, error, setError, run, mount } = useSubmit();
+  const { busy, error, setError, run } = useSubmit();
   let ta: HTMLTextAreaElement | undefined;
 
   const content = () =>
@@ -138,9 +138,6 @@ export default function FocusedEditor(props: {
               {(w) => <span class="tier-badge"> · {w().tier}</span>}
             </Show>
           </div>
-          <Show when={config.turnstileSiteKey}>
-            <div class="editor-widget" ref={(el) => mount?.(el)} />
-          </Show>
           <div class="editor-actions">
             <button
               type="button"

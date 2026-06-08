@@ -2085,12 +2085,6 @@ html[data-textsize="large"] {
   transition: width 0.4s ease;
 }
 
-/* Turnstile (interaction-only) renders inline in the publish panel — empty
-   until a challenge is actually needed, so it only adds space when it appears. */
-.editor-widget:not(:empty) {
-  margin: 0.85rem 0 0;
-}
-
 /* ---- Discussion / Talk thread ------------------------------------------- */
 .discussion {
   font-family: var(--font-ui);

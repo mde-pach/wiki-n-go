@@ -60,7 +60,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   const [draftSaved, setDraftSaved] = createSignal(0);
   let ta: HTMLTextAreaElement | undefined;
 
-  const { busy, error, setError, run, mount } = useSubmit();
+  const { busy, error, setError, run } = useSubmit();
   const content = () => withFrontmatter(assemble(extra(), fields), body());
 
   // A `user/<login>` profile is editable only by its owner (mirrors the Worker
@@ -369,9 +369,6 @@ export default function Editor(props: { slug?: string; initialContent?: string }
               </p>
             </Show>
           </div>
-          <Show when={config.turnstileSiteKey}>
-            <div class="editor-widget" ref={(el) => mount?.(el)} />
-          </Show>
           <Show when={busy() && progress()}>
             {(p) => (
               <div class="publish-progress" role="status" aria-live="polite">

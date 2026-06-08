@@ -1,6 +1,5 @@
 import { createMemo, createSignal, Show } from "solid-js";
 import { isServer } from "solid-js/web";
-import { config } from "../config";
 import { fetchMarkdown } from "../lib/content";
 import { composeMerge, mergePages } from "../lib/lifecycle";
 import { prettify, readHref, slugifyPath } from "../lib/paths";
@@ -12,7 +11,7 @@ export default function MergePage() {
   const [target, setTarget] = createSignal("");
   const [summary, setSummary] = createSignal("");
   const [done, setDone] = createSignal<string>();
-  const { busy, error, setError, run, mount } = useSubmit();
+  const { busy, error, setError, run } = useSubmit();
   const toSlug = createMemo(() => slugifyPath(target()));
 
   function submit() {
@@ -76,9 +75,6 @@ export default function MergePage() {
                   onInput={(e) => setSummary(e.currentTarget.value)}
                 />
               </label>
-              <Show when={config.turnstileSiteKey}>
-                <div class="editor-widget" ref={(el) => mount?.(el)} />
-              </Show>
               <div class="editor-actions">
                 <button
                   type="button"

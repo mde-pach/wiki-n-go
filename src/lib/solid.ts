@@ -1,8 +1,7 @@
 import { type Accessor, createResource, createSignal, type Resource } from "solid-js";
 import { isServer } from "solid-js/web";
-import { config } from "../config";
 import { getWhoami, type WhoAmI } from "./api";
-import { createTurnstile, type Turnstile } from "./turnstile";
+import { solvePow } from "./pow";
 import { errMessage } from "./util";
 
 // createResource that never runs during SSR. Pass a source accessor for resources
@@ -36,37 +35,44 @@ export interface Submit {
   run: (action: (token: string | undefined) => Promise<void>) => Promise<void>;
 }
 
-// The shared "call the Worker" flow: flip busy, clear the error, fetch a Turnstile
-// token if configured, run the action, surface any error, reset the widget on
-// failure. `mount` is undefined when Turnstile isn't configured.
-export function useSubmit(): Submit & { mount: Turnstile["mount"] | undefined } {
+// The shared "call the Worker" flow: flip busy, clear the error, solve the
+// proof-of-work bot check (a no-op string when it's off), run the action, and
+// surface any error. The PoW costs a little CPU here so the Worker doesn't have
+// to trust an unauthenticated write blindly.
+export function useSubmit(): Submit {
   const [busy, setBusy] = createSignal(false);
   const [error, setError] = createSignal<string>();
-  const turnstile = config.turnstileSiteKey
-    ? createTurnstile(config.turnstileSiteKey)
-    : null;
 
   async function run(action: (token: string | undefined) => Promise<void>) {
     setBusy(true);
     setError(undefined);
     try {
-      const token = turnstile ? await turnstile.getToken() : undefined;
+      const token = (await solvePow()) || undefined;
       await action(token);
     } catch (e) {
       setError(errMessage(e));
-      turnstile?.reset();
     } finally {
       setBusy(false);
     }
   }
 
-  return { busy, error, setError, run, mount: turnstile?.mount };
+  return { busy, error, setError, run };
 }
+
+// Identity is the same for every island on the page and stable across an in-site
+// navigation (the Worker reads it from the cookie). Share one in-flight request
+// so the curation bar, auth button, etc. don't each fetch it — and so the bar
+// resolves from cache (no flash) when you move between pages. A full reload
+// (sign-in/out) drops the module and re-fetches.
+let whoamiOnce: Promise<WhoAmI> | undefined;
 
 export function useWhoami(): {
   who: Resource<WhoAmI>;
   isMaintainer: Accessor<boolean>;
 } {
-  const who = clientResource(getWhoami);
+  const who = clientResource(() => {
+    whoamiOnce ??= getWhoami();
+    return whoamiOnce;
+  });
   return { who, isMaintainer: () => who()?.tier === "maintainer" };
 }

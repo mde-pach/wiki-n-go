@@ -34,7 +34,7 @@ function stubGitHub(files: Record<string, string>) {
         : Response.json({ sha: "srcsha", content: btoa(raw) });
     }
     if (url.includes("raw.githubusercontent.com"))
-      return new Response("", { status: 404 }); // bans.json / filters.json / trusted-editors.json
+      return new Response("", { status: 404 }); // bans.json / trusted-editors.json
     if (url.includes("/commits")) return new Response("[]"); // trust stats → 0 edits
     throw new Error(`unexpected fetch: ${url}`);
   });
@@ -44,6 +44,7 @@ function makeEnv(): Env {
   return {
     GITHUB_TOKEN: "t",
     HASH_SECRET: "s",
+    POW_BITS: "0",
     REPO_OWNER: "o",
     REPO_NAME: "r",
     BRANCH: "main",

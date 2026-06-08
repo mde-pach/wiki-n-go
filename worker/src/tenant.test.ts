@@ -18,6 +18,7 @@ function fakeKV() {
 const baseEnv = (extra: Partial<Env> = {}): Env =>
   ({
     HASH_SECRET: "s",
+    POW_BITS: "0",
     REPO_OWNER: "owner",
     REPO_NAME: "repo",
     BRANCH: "main",

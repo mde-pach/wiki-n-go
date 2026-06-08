@@ -14,7 +14,7 @@ Discussions, and Actions are the database; this app is the interface.
   commit SHA), rendered client-side. No rebuild when content changes.
 - **Edit** — in-site editor → one Cloudflare Worker → opens a PR as
   `anon-<ip_hash>`, or (for trusted editors / open pages) commits live.
-  Rate-limited, bot-checked (Turnstile), ban-able.
+  Rate-limited, bot-checked (in-browser proof-of-work), ban-able.
 - **Discuss** — anonymous comments via the Worker → GitHub Discussions,
   threaded, one topic per thread (no GitHub login required to post).
 
@@ -95,8 +95,10 @@ repo.
 
 ### Optional add-ons (set as Worker variables/secrets in the Cloudflare dashboard)
 
-- **Bot check** — create a Turnstile widget; set the Worker secret
-  `TURNSTILE_SECRET` and the site variable `TURNSTILE_SITE_KEY`.
+- **Bot check** — on by default, no setup: anonymous writes solve a small
+  in-browser proof-of-work (no third-party service). Tune the difficulty with
+  the Worker variable `POW_BITS` (leading zero bits, default `18`; `0` disables);
+  set the matching site variable `POW_BITS` so the build solves to the same bar.
 - **GitHub sign-in** — see below; set `OAUTH_CLIENT_ID` (variable),
   `OAUTH_CLIENT_SECRET` and a random `SESSION_SECRET` (secrets) on the Worker.
 
@@ -125,5 +127,5 @@ repo. Signed-in users follow the same trust gate as anonymous ones.
 ## Roadmap
 
 See [`SPEC.md`](./SPEC.md). Done: reader, anonymous editing, moderation
-(rate-limit + bans + Turnstile), discussions, optional GitHub sign-in for
-attribution.
+(rate-limit + bans + proof-of-work bot check), discussions, optional GitHub
+sign-in for attribution.

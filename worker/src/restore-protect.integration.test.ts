@@ -59,6 +59,7 @@ function makeEnv(kv = fakeKV()): Env {
   return {
     GITHUB_TOKEN: "t",
     HASH_SECRET: "s",
+    POW_BITS: "0",
     REPO_OWNER: "o",
     REPO_NAME: "r",
     BRANCH: "main",

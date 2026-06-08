@@ -32,6 +32,7 @@ function makeEnv(kv: KVNamespace): Env {
     GITHUB_APP_ID: "1",
     GITHUB_APP_PRIVATE_KEY: PKCS1_PEM,
     HASH_SECRET: "s",
+    POW_BITS: "0",
     REPO_OWNER: "operator",
     REPO_NAME: "default",
     BRANCH: "main",
