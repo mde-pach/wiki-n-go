@@ -6,7 +6,7 @@ translationKey: create-your-wiki
 tags:
   - Documentation
   - Getting started
-hatnote: New to Wikigit? Start at the [[index|home page]].
+hatnote: New to Wikigit? Start at the home page.
 infobox:
   Time needed: About 10 minutes
   Coding: None
