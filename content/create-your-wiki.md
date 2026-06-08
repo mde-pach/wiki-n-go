@@ -1,20 +1,22 @@
 ---
-kicker: Guide
 description: Set up your own Wikigit in a few clicks — no coding required.
-protection: auto
 translationKey: create-your-wiki
-tags:
-  - Documentation
-  - Getting started
-hatnote: New to Wikigit? Start at the home page.
 infobox:
   Time needed: About 10 minutes
   Coding: None
   You'll need: A GitHub and a Cloudflare account
   Cost: Free
+kicker: Guide
+hatnote: New to Wikigit? Start at the home page.
+protection: auto
+tags:
+  - Documentation
+  - Getting started
 ---
 
 # Create your wiki
+
+Hello
 
 Setting up a Wikigit takes about ten minutes and a few clicks. You'll need a free [[w:GitHub|GitHub]] account (where your pages will live) and a free Cloudflare account (which runs the part that saves edits). No coding required — the setup pages fill in the technical bits for you.
 
