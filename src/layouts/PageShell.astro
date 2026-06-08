@@ -21,6 +21,7 @@ import {
   prettify,
   readHref,
   reviewHref,
+  setupHref,
   type View,
 } from "../lib/paths";
 import { fetchRevisions } from "../lib/ssr";
@@ -250,6 +251,8 @@ const canonical = new URL(read, Astro.site).href;
             <a href={reviewHref}>Pending review</a>
             <span class="sep">·</span>
             <a href={adminHref}>Admin</a>
+            <span class="sep">·</span>
+            <a href={setupHref}>Setup</a>
           </div>
           <div class="footer-bottom">
             <p class="fb-license">

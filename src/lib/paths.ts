@@ -89,6 +89,7 @@ export function categoryHref(tag: string): string {
 export const changesHref = `${BASE}/changes`;
 export const reviewHref = `${BASE}/review`;
 export const adminHref = `${BASE}/admin`;
+export const setupHref = `${BASE}/setup`;
 
 // Profile page for a GitHub login, stored as content at `user/<login>`. Logins
 // are case-insensitive on GitHub, so the slug is canonicalised to lowercase.
