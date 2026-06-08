@@ -19,6 +19,9 @@ concurrency:
 
 jobs:
   build:
+    # GitHub Pages is the fork-and-go default. The flagship sets CF_PAGES_PROJECT
+    # and deploys via deploy-cf-pages.yml instead, so this skips there.
+    if: ${{ vars.CF_PAGES_PROJECT == '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

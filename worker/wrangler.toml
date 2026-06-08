@@ -16,7 +16,7 @@ REPO_NAME = "wiki-n-go"
 BRANCH = "main"
 CONTENT_DIR = "content"
 HOME_SLUG = "index"
-ALLOWED_ORIGIN = "https://mde-pach.github.io,http://localhost:4321"
+ALLOWED_ORIGIN = "https://wikigit.org,https://*.wikigit.org,http://localhost:4321"
 # Talk topics post to this Discussions category; its node id (and the repo id)
 # are derived at runtime, so a fork only names the category here.
 DISCUSSION_CATEGORY = "General"
