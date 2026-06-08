@@ -1154,7 +1154,14 @@ html[data-textsize="large"] {
   height: 96px;
 }
 .preview-body {
+  display: block;
   padding: 0.8rem 0.95rem 0.95rem;
+  color: inherit;
+  text-decoration: none;
+}
+a.preview-body:hover .pv-foot,
+a.preview-body:focus-visible .pv-foot {
+  color: var(--color-accent);
 }
 .preview-body .pv-title {
   font-family: var(--font-display);

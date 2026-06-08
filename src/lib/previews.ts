@@ -1,6 +1,6 @@
 import { fetchMarkdown, PageNotFoundError } from "./content";
 import { splitTitle } from "./markdown";
-import { BASE, prettify } from "./paths";
+import { BASE, prettify, readHref } from "./paths";
 
 type Card = { kind: "page"; title: string; snippet: string } | { kind: "missing" };
 
@@ -75,6 +75,14 @@ export function attachPagePreviews(root: HTMLElement): void {
     hideTimer = window.setTimeout(remove, 200);
   };
   const cancelHide = () => clearTimeout(hideTimer);
+  // Clicking a link (or navigating away) before the card appears must drop the
+  // pending show + any in-flight fetch, else it pops in on the next page against
+  // the now-detached link's geometry, stranded at the top-left (X1).
+  const cancel = () => {
+    clearTimeout(showTimer);
+    clearTimeout(hideTimer);
+    remove();
+  };
 
   const place = (a: HTMLAnchorElement) => {
     if (!card) return;
@@ -90,7 +98,7 @@ export function attachPagePreviews(root: HTMLElement): void {
   };
 
   const show = (a: HTMLAnchorElement, slug: string, data: Card) => {
-    if (active !== slug) return;
+    if (active !== slug || !a.isConnected) return;
     remove();
     active = slug;
     card = document.createElement("div");
@@ -100,9 +108,9 @@ export function attachPagePreviews(root: HTMLElement): void {
         ? `<div class="preview-redbox"><span class="pv-redrow">Page not created yet</span>` +
           `<p>There's no page named “${esc(prettify(slug))}” yet.</p>` +
           `<a href="${BASE}/edit/${esc(slug)}">Create this page →</a></div>`
-        : `<div class="preview-body"><div class="pv-title">${esc(data.title)}</div>` +
+        : `<a class="preview-body" href="${esc(readHref(slug))}"><div class="pv-title">${esc(data.title)}</div>` +
           `<div class="pv-snip">${esc(data.snippet)}</div>` +
-          `<div class="pv-foot">Read full page →</div></div>`;
+          `<div class="pv-foot">Read full page →</div></a>`;
     card.addEventListener("mouseenter", cancelHide);
     card.addEventListener("mouseleave", scheduleHide);
     document.body.appendChild(card);
@@ -127,7 +135,13 @@ export function attachPagePreviews(root: HTMLElement): void {
       if (active === slug && !card) active = undefined;
       scheduleHide();
     });
+    a.addEventListener("click", cancel);
   }
+
+  // SPA swap (view transitions) or a hard navigation — drop any pending card so
+  // it can't render against the outgoing page. Re-registered per render.
+  document.addEventListener("astro:before-swap", cancel, { once: true });
+  window.addEventListener("pagehide", cancel, { once: true });
 }
 
 function esc(s: string): string {
