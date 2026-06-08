@@ -22,16 +22,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # A custom domain is opt-in per deployment: set the PAGES_CNAME repo var and
+      # the build ships a CNAME so Pages serves that host. Forks leave it unset and
+      # keep the github.io URL.
+      - name: Set custom domain
+        if: ${{ vars.PAGES_CNAME != '' }}
+        run: echo "${{ vars.PAGES_CNAME }}" > public/CNAME
       - name: Build Astro site
         uses: withastro/action@v3
         env:
           # Repo identity + URLs derived from context, so a fork needs no config
-          # edits. WORKER_URL is a repo variable (set once, or auto-set by the
-          # worker deploy); the rest are optional and gate their features.
-          # config.ts / astro.config.mjs fall back to this repo's values when
-          # any of these are unset.
-          SITE_URL: https://${{ github.repository_owner }}.github.io
-          BASE_PATH: /${{ github.event.repository.name }}
+          # edits. SITE_URL/BASE_PATH default to the github.io pattern; set the
+          # repo vars to override for a custom domain. WORKER_URL is a repo
+          # variable; the rest are optional and gate their features.
+          SITE_URL: ${{ vars.SITE_URL || format('https://{0}.github.io', github.repository_owner) }}
+          BASE_PATH: ${{ vars.BASE_PATH || format('/{0}', github.event.repository.name) }}
           PUBLIC_REPO_OWNER: ${{ github.repository_owner }}
           PUBLIC_REPO_NAME: ${{ github.event.repository.name }}
           PUBLIC_WORKER_URL: ${{ vars.WORKER_URL }}
