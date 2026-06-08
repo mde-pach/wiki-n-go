@@ -4,7 +4,7 @@
     "module": "es2022",
     "moduleResolution": "bundler",
     "lib": ["es2022"],
-    "types": ["@cloudflare/workers-types"],
+    "types": ["bun-types", "node"],
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true

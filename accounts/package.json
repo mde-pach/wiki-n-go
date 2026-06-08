@@ -3,17 +3,19 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "start": "bun run src/index.ts",
+    "dev": "bun run --watch src/index.ts",
     "typecheck": "tsc --noEmit"
-  },
-  "devDependencies": {
-    "@cloudflare/workers-types": "^4",
-    "typescript": "^5",
-    "wrangler": "^4"
   },
   "dependencies": {
     "@openauthjs/openauth": "^0.4.3",
+    "nodemailer": "^6",
     "valibot": "^1"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/nodemailer": "^6",
+    "bun-types": "^1",
+    "typescript": "^5"
   }
 }

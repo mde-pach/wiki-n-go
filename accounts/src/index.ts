@@ -1,90 +1,18 @@
 import { issuer } from "@openauthjs/openauth";
 import { CodeProvider } from "@openauthjs/openauth/provider/code";
-import { CloudflareStorage } from "@openauthjs/openauth/storage/cloudflare";
+import { MemoryStorage } from "@openauthjs/openauth/storage/memory";
 import { CodeUI } from "@openauthjs/openauth/ui/code";
 import type { WikigitUser } from "../../shared/wikigit-identity";
+import { sendCode } from "./email";
 import { subjects } from "./subjects";
 
-interface Env {
-  AUTH_KV: KVNamespace;
-  EMAIL: { send(msg: OutgoingEmail): Promise<{ messageId: string }> };
-  EMAIL_FROM: string;
-}
-
-// The new Cloudflare Email Sending binding (no MIME assembly, no API key).
-interface OutgoingEmail {
-  to: string;
-  from: string;
-  subject: string;
-  text: string;
-  html?: string;
-}
-
-export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    // Built per-request: a Worker only sees its bindings inside fetch, and the
-    // issuer/providers need them (KV storage, the email sender).
-    return issuer({
-      subjects,
-      storage: CloudflareStorage({ namespace: env.AUTH_KV }),
-      // Passwordless: email a 6-digit code (CodeUI renders the enter-email +
-      // enter-code screens; we only supply delivery). The whole "magic link".
-      providers: {
-        code: CodeProvider(
-          CodeUI({
-            sendCode: async (claims, code) => {
-              await sendCode(env, String(claims.email), code);
-            },
-          }),
-        ),
-      },
-      // Any https instance (or localhost in dev) may complete a sign-in. This is
-      // safe without per-instance registration: the auth code is bound to the
-      // caller's redirect_uri and each Engine only finishes a flow it started, so
-      // an assertion can't be replayed at another instance — the worst case is a
-      // site learning a handle, which a consent screen (TODO) will gate.
-      allow: async (info) => {
-        try {
-          const u = new URL(info.redirectURI);
-          return u.protocol === "https:" || u.hostname === "localhost";
-        } catch {
-          return false;
-        }
-      },
-      success: async (response, value) => {
-        if (value.provider !== "code") throw new Error("Unsupported provider");
-        const email = String(value.claims.email).toLowerCase();
-        return response.subject("user", await findOrCreateAccount(env, email));
-      },
-    }).fetch(request, env, ctx);
-  },
-};
-
-async function sendCode(env: Env, email: string, code: string): Promise<void> {
-  await env.EMAIL.send({
-    to: email,
-    from: env.EMAIL_FROM,
-    subject: `Your Wikigit sign-in code: ${code}`,
-    text: `Your Wikigit sign-in code is ${code}.\n\nIt expires shortly. If you didn't request it, ignore this email.`,
-  });
-}
-
-// The verified email is the identity; a stable id is minted once and never
-// changes. TODO(handle): derived from the email local-part, so it isn't unique
-// yet (two alice@… collide) — add a handle picker + reservation before the
-// handle keys anything. Until then the Engine keys `wg:` off `id`, not `handle`.
-async function findOrCreateAccount(env: Env, email: string): Promise<WikigitUser> {
-  const key = `user:${email}`;
-  const existing = await env.AUTH_KV.get<WikigitUser>(key, "json");
-  if (existing) return existing;
-  const account: WikigitUser = {
-    id: crypto.randomUUID(),
-    email,
-    handle: deriveHandle(email),
-  };
-  await env.AUTH_KV.put(key, JSON.stringify(account));
-  return account;
-}
+// File-backed store on a persistent volume: OpenAuth's signing/encryption keys,
+// its tokens, AND our account records all survive restarts — so keys don't
+// rotate (which would invalidate every issued token) and sign-ins persist.
+// Single-instance; swap for Redis/Postgres if this ever needs to scale out.
+const store = MemoryStorage({
+  persist: process.env.STORE_PATH ?? "/data/auth-store.json",
+});
 
 function deriveHandle(email: string): string {
   const base = email
@@ -94,3 +22,53 @@ function deriveHandle(email: string): string {
     .replace(/^-+|-+$/g, "");
   return base || "user";
 }
+
+// The verified email is the identity; a stable id is minted once. TODO(handle):
+// derived from the local-part, so not yet unique — the Engine keys `wg:` off `id`.
+async function findOrCreateAccount(email: string): Promise<WikigitUser> {
+  const existing = (await store.get(["user", email])) as WikigitUser | undefined;
+  if (existing) return existing;
+  const account: WikigitUser = {
+    id: crypto.randomUUID(),
+    email,
+    handle: deriveHandle(email),
+  };
+  await store.set(["user", email], account);
+  return account;
+}
+
+const app = issuer({
+  subjects,
+  storage: store,
+  // Passwordless: email a 6-digit code (CodeUI renders the screens; we deliver).
+  providers: {
+    code: CodeProvider(
+      CodeUI({
+        sendCode: async (claims, code) => {
+          await sendCode(String(claims.email), code);
+        },
+      }),
+    ),
+  },
+  // Any https instance (or localhost) may complete a sign-in — safe without
+  // per-instance registration because the code is bound to the caller's
+  // redirect_uri and each Engine only finishes a flow it started. Consent screen: TODO.
+  allow: async (info) => {
+    try {
+      const u = new URL(info.redirectURI);
+      return u.protocol === "https:" || u.hostname === "localhost";
+    } catch {
+      return false;
+    }
+  },
+  success: async (response, value) => {
+    if (value.provider !== "code") throw new Error("Unsupported provider");
+    const email = String(value.claims.email).toLowerCase();
+    return response.subject("user", await findOrCreateAccount(email));
+  },
+});
+
+export default {
+  port: Number(process.env.PORT ?? 3000),
+  fetch: app.fetch,
+};
