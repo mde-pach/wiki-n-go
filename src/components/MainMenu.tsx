@@ -1,5 +1,5 @@
 import { createEffect, createSignal, For, onCleanup, onMount, Show } from "solid-js";
-import { isServer } from "solid-js/web";
+import { isServer, Portal } from "solid-js/web";
 import { config } from "../config";
 import { BASE, changesHref, readHref } from "../lib/paths";
 import { Icons } from "./Icons";
@@ -56,39 +56,41 @@ export default function MainMenu() {
       </button>
 
       <Show when={open()}>
-        <div class="menu-overlay">
-          <button
-            type="button"
-            class="menu-scrim"
-            aria-label="Close menu"
-            onClick={() => setOpen(false)}
-          />
-          <nav class="menu-drawer" aria-label="Main menu">
-            <div class="menu-drawer-head">
-              <span class="menu-drawer-title">Navigate</span>
-              <button
-                type="button"
-                class="btn-icon"
-                aria-label="Close menu"
-                onClick={() => setOpen(false)}
-              >
-                <Icons.Close />
-              </button>
-            </div>
-            <ul class="menu-links">
-              <For each={links}>
-                {(l) => (
-                  <li>
-                    <a class="menu-link" href={l.href}>
-                      <span class="menu-link-label">{l.label}</span>
-                      <span class="menu-link-desc">{l.desc}</span>
-                    </a>
-                  </li>
-                )}
-              </For>
-            </ul>
-          </nav>
-        </div>
+        <Portal>
+          <div class="menu-overlay">
+            <button
+              type="button"
+              class="menu-scrim"
+              aria-label="Close menu"
+              onClick={() => setOpen(false)}
+            />
+            <nav class="menu-drawer" aria-label="Main menu">
+              <div class="menu-drawer-head">
+                <span class="menu-drawer-title">Navigate</span>
+                <button
+                  type="button"
+                  class="btn-icon"
+                  aria-label="Close menu"
+                  onClick={() => setOpen(false)}
+                >
+                  <Icons.Close />
+                </button>
+              </div>
+              <ul class="menu-links">
+                <For each={links}>
+                  {(l) => (
+                    <li>
+                      <a class="menu-link" href={l.href}>
+                        <span class="menu-link-label">{l.label}</span>
+                        <span class="menu-link-desc">{l.desc}</span>
+                      </a>
+                    </li>
+                  )}
+                </For>
+              </ul>
+            </nav>
+          </div>
+        </Portal>
       </Show>
     </>
   );
