@@ -24,12 +24,32 @@ const links: Link[] = [
 
 // Vector-2022-style main-menu drawer: a left slide-out with the wiki's global
 // navigation, surfacing destinations that aren't on the per-page tab bar.
+const CLOSE_MS = 180;
+
 export default function MainMenu() {
   const [open, setOpen] = createSignal(false);
+  // `closing` plays the reverse slide before unmounting so dismissing animates
+  // out the same way it animated in, instead of vanishing instantly (W7).
+  const [closing, setClosing] = createSignal(false);
+  let closeTimer: number | undefined;
+
+  const show = () => {
+    clearTimeout(closeTimer);
+    setClosing(false);
+    setOpen(true);
+  };
+  const dismiss = () => {
+    if (closing()) return;
+    setClosing(true);
+    closeTimer = window.setTimeout(() => {
+      setOpen(false);
+      setClosing(false);
+    }, CLOSE_MS);
+  };
 
   onMount(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") dismiss();
     };
     window.addEventListener("keydown", onKey);
     onCleanup(() => window.removeEventListener("keydown", onKey));
@@ -50,19 +70,19 @@ export default function MainMenu() {
         class="btn-icon menu-btn"
         aria-label="Main menu"
         aria-expanded={open()}
-        onClick={() => setOpen(true)}
+        onClick={show}
       >
         <Icons.Menu />
       </button>
 
       <Show when={open()}>
         <Portal>
-          <div class="menu-overlay">
+          <div class="menu-overlay" classList={{ closing: closing() }}>
             <button
               type="button"
               class="menu-scrim"
               aria-label="Close menu"
-              onClick={() => setOpen(false)}
+              onClick={dismiss}
             />
             <nav class="menu-drawer" aria-label="Main menu">
               <div class="menu-drawer-head">
@@ -71,7 +91,7 @@ export default function MainMenu() {
                   type="button"
                   class="btn-icon"
                   aria-label="Close menu"
-                  onClick={() => setOpen(false)}
+                  onClick={dismiss}
                 >
                   <Icons.Close />
                 </button>
