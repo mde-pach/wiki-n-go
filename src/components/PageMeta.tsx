@@ -12,15 +12,13 @@ export default function PageMeta(props: {
   });
   const last = () => hist()?.[0];
   const historyHref = `${props.base}/history/${props.slug}`;
+  // Format from the ISO date's own Y-M-D parts (the author's calendar day), not
+  // via toLocaleDateString — that's locale-dependent, so the build (en-US) and
+  // the reader's browser (e.g. fr) render different strings and the date visibly
+  // flips on hydration. A pure string slice is identical on server and client.
   const editedOn = (iso?: string) => {
-    const d = new Date(iso ?? "");
-    return Number.isNaN(d.getTime())
-      ? ""
-      : d.toLocaleDateString(undefined, {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        });
+    const m = (iso ?? "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : "";
   };
 
   return (
