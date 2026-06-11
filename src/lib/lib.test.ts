@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 import { diffStats, parseDiff, splitDiff, wordDiff } from "./diff";
 import { computeGraph, graphStats, mostLinked } from "./linkgraph";
 import { emphasizeLeadHtml, md, parsePage, splitTitle } from "./markdown";
-import { prettify, slugifyLabel, slugifyPath } from "./paths";
+import {
+  contentSlugForRoute,
+  prettify,
+  slugifyLabel,
+  slugifyPath,
+  viewHref,
+} from "./paths";
 import { search, splitHighlight, toPlainText } from "./search";
 import { markRedLinksHtml } from "./wikilink";
 
@@ -289,6 +295,26 @@ describe("slugifyPath", () => {
   it("lowercases, dashes spaces, keeps slashes for nested paths", () => {
     expect(slugifyPath("Getting Started")).toBe("getting-started");
     expect(slugifyPath("Sandbox/Play Ground")).toBe("sandbox/play-ground");
+  });
+});
+
+describe("viewHref (collapse home/lang-home — W4)", () => {
+  it("home → /edit (never /edit/index, which Cloudflare Pages 308-strips)", () => {
+    expect(viewHref("edit", "index")).toBe("/edit");
+    expect(viewHref("history", "index")).toBe("/history");
+    expect(viewHref("talk", "index")).toBe("/talk");
+  });
+  it("language home → /edit/<lang> (not /edit/fr/index)", () => {
+    expect(viewHref("edit", "fr/index")).toBe("/edit/fr");
+  });
+  it("an ordinary page keeps its slug", () => {
+    expect(viewHref("edit", "create-your-wiki")).toBe("/edit/create-your-wiki");
+  });
+  it("round-trips with contentSlugForRoute (the route param ↔ content slug)", () => {
+    // /edit → undefined param → home content slug
+    expect(contentSlugForRoute(undefined)).toBe("index");
+    // /edit/fr → "fr" param → fr home content slug
+    expect(contentSlugForRoute("fr")).toBe("fr/index");
   });
 });
 

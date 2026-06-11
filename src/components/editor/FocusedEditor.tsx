@@ -5,7 +5,7 @@ import { type EditResult, type Progress, submitEdit } from "../../lib/api";
 import { diffLines } from "../../lib/diff";
 import { type SectionSpan, spliceSection } from "../../lib/editor-section";
 import { renderMarkdown } from "../../lib/markdown";
-import { BASE } from "../../lib/paths";
+import { viewHref } from "../../lib/paths";
 import { useSubmit, useWhoami } from "../../lib/solid";
 import DiffView from "../DiffView";
 import { ErrorNote } from "../ui";
@@ -94,7 +94,7 @@ export default function FocusedEditor(props: {
         <h3>
           Editing section <span class="fe-heading">{props.span.heading}</span>
         </h3>
-        <a class="fe-whole" href={`${BASE}/edit/${props.slug}`}>
+        <a class="fe-whole" href={viewHref("edit", props.slug)}>
           Edit whole page →
         </a>
       </div>

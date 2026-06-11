@@ -19,6 +19,7 @@ import {
   readHref,
   slugifyPath,
   userLogin,
+  viewHref,
 } from "../lib/paths";
 import { fetchPageSlugs, pageNoindex } from "../lib/ssr";
 
@@ -101,7 +102,7 @@ const contributor =
   }
   <main id="main" class="read-grid">
     <div class="col-toc">
-      <Toc editHref={`${BASE}/edit/${pageSlug}`} initialItems={parsed?.headings ?? []} client:load />
+      <Toc editHref={viewHref("edit", pageSlug)} initialItems={parsed?.headings ?? []} client:load />
     </div>
     <div class="col-main">
       <TocMobile initialItems={parsed?.headings ?? []} client:load />

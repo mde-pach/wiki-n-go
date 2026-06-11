@@ -23,6 +23,7 @@ import {
   reviewHref,
   setupHref,
   type View,
+  viewHref,
 } from "../lib/paths";
 import { fetchRevisions } from "../lib/ssr";
 
@@ -51,9 +52,9 @@ const revisions = ssr
 const read = readHref(slug);
 const href = {
   read,
-  edit: `${BASE}/edit/${slug}`,
-  history: `${BASE}/history/${slug}`,
-  talk: `${BASE}/talk/${slug}`,
+  edit: viewHref("edit", slug),
+  history: viewHref("history", slug),
+  talk: viewHref("talk", slug),
 };
 const viewTabs = [
   ["read", "Read"],
@@ -150,7 +151,7 @@ const canonical = new URL(read, Astro.site).href;
             }
           </div>
           <div class="page-meta-slot">
-            <PageMeta slug={slug} base={BASE} initial={revisions} client:load />
+            <PageMeta slug={slug} initial={revisions} client:load />
           </div>
           {view === "read" && !ssr && <PatrolMeta slug={slug} client:idle />}
           <nav class="tabbar" aria-label="Page navigation">

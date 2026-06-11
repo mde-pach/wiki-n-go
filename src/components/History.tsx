@@ -3,7 +3,7 @@ import { config } from "../config";
 import { restoreRevision } from "../lib/admin";
 import { type DLine, parseDiff } from "../lib/diff";
 import { getDiff, getHistory, type Revision } from "../lib/history";
-import { BASE, readHref, slugFromLocation } from "../lib/paths";
+import { readHref, slugFromLocation, viewHref } from "../lib/paths";
 import { clientResource, useWhoami } from "../lib/solid";
 import { errMessage } from "../lib/util";
 import DiffView from "./DiffView";
@@ -203,7 +203,7 @@ export default function History(props: { slug?: string }) {
                         fallback={
                           <a
                             class="rev-undo"
-                            href={`${BASE}/edit/${slug()}?revert=${r.sha}`}
+                            href={`${viewHref("edit", slug())}?revert=${r.sha}`}
                           >
                             undo
                           </a>

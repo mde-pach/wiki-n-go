@@ -3,13 +3,13 @@ import Editor from "../../components/Editor.tsx";
 import PageShell from "../../layouts/PageShell.astro";
 import { parsePage } from "../../lib/markdown";
 import { rawPage, staticPaths } from "../../lib/pages";
-import { BASE } from "../../lib/paths";
+import { BASE, contentSlugForRoute } from "../../lib/paths";
 
 export function getStaticPaths() {
   return staticPaths();
 }
 
-const { slug } = Astro.params;
+const slug = contentSlugForRoute(Astro.params.slug);
 const raw = rawPage(slug);
 const parsed = raw ? parsePage(raw) : null;
 ---

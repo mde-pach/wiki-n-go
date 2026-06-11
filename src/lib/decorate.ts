@@ -1,7 +1,7 @@
 import { fetchMarkdown, PageNotFoundError } from "./content";
 import { pageSet } from "./manifest";
 import { renderMarkdown, splitTitle } from "./markdown";
-import { BASE, langOf, prettify, readHref, resolveWikiSlug } from "./paths";
+import { BASE, langOf, prettify, readHref, resolveWikiSlug, viewHref } from "./paths";
 import { attachPagePreviews } from "./previews";
 
 export type DecorateContext = { slug: string };
@@ -122,7 +122,7 @@ export function addSectionEditLinks(root: HTMLElement, slug: string): void {
     const a = document.createElement("a");
     a.className = "section-edit";
     a.textContent = "edit";
-    a.href = `${BASE}/edit/${slug}?section=${encodeURIComponent(h.id)}`;
+    a.href = `${viewHref("edit", slug)}?section=${encodeURIComponent(h.id)}`;
     h.appendChild(a);
   }
 }

@@ -4,7 +4,7 @@ import { config } from "../config";
 import { deletePage, rollbackCommit, tagChange } from "../lib/admin";
 import { type Change, markPatrolled, RISK_HIGH } from "../lib/changes";
 import { type Curation, curationFromChange, loadCuration } from "../lib/curation";
-import { BASE, changesHref, prettify, userHref } from "../lib/paths";
+import { changesHref, prettify, userHref, viewHref } from "../lib/paths";
 import { useWhoami } from "../lib/solid";
 import { errMessage } from "../lib/util";
 import { ConfirmDialog } from "./editor/ConfirmDialog";
@@ -149,7 +149,7 @@ export default function PageCuration(props: {
               <Show
                 when={c().sha}
                 fallback={
-                  <a class="cur-action" href={`${BASE}/edit/${c().slug}`}>
+                  <a class="cur-action" href={viewHref("edit", c().slug)}>
                     tag
                   </a>
                 }
@@ -181,7 +181,7 @@ export default function PageCuration(props: {
                   </Show>
                 </span>
               </Show>
-              <a class="cur-action" href={`${BASE}/talk/${c().slug}`}>
+              <a class="cur-action" href={viewHref("talk", c().slug)}>
                 message author
               </a>
               <Show when={c().author}>

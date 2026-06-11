@@ -9,6 +9,14 @@ export function readHref(slug: string): string {
   return `${BASE}/${isLangHome(slug) ?? slug}`;
 }
 
+// Edit/history/talk URL for a content slug, collapsed like readHref so the home
+// is `/edit` (not `/edit/index`) and a language home is `/edit/fr` — never a
+// literal `/index` segment that Cloudflare Pages would 308-strip (W4).
+export function viewHref(view: "edit" | "history" | "talk", slug: string): string {
+  if (slug === config.homeSlug) return `${BASE}/${view}`;
+  return `${BASE}/${view}/${isLangHome(slug) ?? slug}`;
+}
+
 // Non-default language codes are the reserved slug prefixes (M8): the default
 // language is languageless, so a leading non-default code marks a translation.
 const PREFIX_LANGS = new Set(
@@ -120,12 +128,10 @@ export function parseRoute(): {
   }
   for (const v of ["edit", "history", "talk", "category"] as const) {
     if (path === v || path.startsWith(`${v}/`)) {
-      return {
-        view: v,
-        slug:
-          path.slice(v.length).replace(/^\/+/, "") ||
-          (v === "category" ? "" : config.homeSlug),
-      };
+      const rest = path.slice(v.length).replace(/^\/+/, "");
+      // Mirror the collapsed routes: `/edit` → home, `/edit/fr` → fr/index.
+      if (v === "category") return { view: v, slug: rest };
+      return { view: v, slug: contentSlugForRoute(rest || undefined) };
     }
   }
   return { view: "read", slug: contentSlugForRoute(path || undefined) };

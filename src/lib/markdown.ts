@@ -5,7 +5,7 @@ import footnote from "markdown-it-footnote";
 import { citeTemplate } from "./citetemplate";
 import { figures } from "./figures";
 import { type PageMeta, parseFrontmatter } from "./frontmatter";
-import { BASE, langOf, slugifyLabel } from "./paths";
+import { langOf, slugifyLabel, viewHref } from "./paths";
 import { transclusion } from "./transclude";
 import { escapeRegExp } from "./util";
 import { markRedLinksHtml, mention, wikilink } from "./wikilink";
@@ -162,7 +162,7 @@ export function decorateHeadingsHtml(html: string, slug: string): string {
       const edit =
         tag === "h4"
           ? ""
-          : `<a class="section-edit" href="${BASE}/edit/${slug}?section=${encodeURIComponent(id)}">edit</a>`;
+          : `<a class="section-edit" href="${viewHref("edit", slug)}?section=${encodeURIComponent(id)}">edit</a>`;
       return `<${tag} id="${id}"${attrs}>${toggle}${inner}${edit}</${tag}>`;
     },
   );

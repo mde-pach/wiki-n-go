@@ -1,17 +1,15 @@
 import { createResource, Show } from "solid-js";
 import { isServer } from "solid-js/web";
 import { getHistory, type Revision } from "../lib/history";
+import { viewHref } from "../lib/paths";
 
-export default function PageMeta(props: {
-  slug: string;
-  base: string;
-  initial?: Revision[];
-}) {
+export default function PageMeta(props: { slug: string; initial?: Revision[] }) {
   const [hist] = createResource(() => (isServer ? undefined : props.slug), getHistory, {
     initialValue: props.initial,
   });
   const last = () => hist()?.[0];
-  const historyHref = `${props.base}/history/${props.slug}`;
+  // Collapse the home → /history (not /history/index, which Pages 308-strips) — W4.
+  const historyHref = viewHref("history", props.slug);
   // Format from the ISO date's own Y-M-D parts (the author's calendar day), not
   // via toLocaleDateString — that's locale-dependent, so the build (en-US) and
   // the reader's browser (e.g. fr) render different strings and the date visibly

@@ -10,6 +10,7 @@ import {
   reviewHref,
   setupHref,
   userLogin,
+  viewHref,
 } from "../lib/paths";
 import { useWhoami } from "../lib/solid";
 import Appearance from "./Appearance";
@@ -47,7 +48,7 @@ export default function Route404() {
           <Show when={view === "read"}>
             <main id="main" class="read-grid">
               <div class="col-toc">
-                <Toc editHref={`${BASE}/edit/${slug}`} />
+                <Toc editHref={viewHref("edit", slug)} />
               </div>
               <div class="col-main">
                 <TocMobile />
@@ -105,9 +106,9 @@ export default function Route404() {
 function PageHead(props: { slug: string; view: string }) {
   const href = {
     read: readHref(props.slug),
-    edit: `${BASE}/edit/${props.slug}`,
-    history: `${BASE}/history/${props.slug}`,
-    talk: `${BASE}/talk/${props.slug}`,
+    edit: viewHref("edit", props.slug),
+    history: viewHref("history", props.slug),
+    talk: viewHref("talk", props.slug),
   };
   // A profile is the read view of its `user/<login>` page, so the Read tab is active.
   const active = props.view === "user" ? "read" : props.view;
@@ -142,7 +143,7 @@ function PageHead(props: { slug: string; view: string }) {
       <div class="page-head-inner">
         <h1 class="page-title">{title}</h1>
         <div class="page-meta-slot">
-          <PageMeta slug={props.slug} base={BASE} />
+          <PageMeta slug={props.slug} />
         </div>
         <nav class="tabbar" aria-label="Page navigation">
           <div class="tab-group tab-ns">

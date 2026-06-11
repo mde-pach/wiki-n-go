@@ -3,7 +3,7 @@ import { isServer } from "solid-js/web";
 import { config } from "../config";
 import { allCategories } from "../lib/categories";
 import { getLinkGraph, graphStats, type LinkGraph, mostLinked } from "../lib/linkgraph";
-import { BASE, categoryHref, prettify, readHref } from "../lib/paths";
+import { BASE, categoryHref, prettify, readHref, viewHref } from "../lib/paths";
 import { clientResource } from "../lib/solid";
 import { PagePicker } from "./special/PagePicker";
 import { ReportList } from "./special/ReportList";
@@ -279,7 +279,7 @@ export default function Special() {
                 </dl>
                 <p class="sp-info-links">
                   <a href={readHref(page())}>Read</a> ·{" "}
-                  <a href={`${BASE}/history/${page()}`}>History</a> ·{" "}
+                  <a href={viewHref("history", page())}>History</a> ·{" "}
                   <a href={`${BASE}/move?page=${page()}`}>Move/rename</a> ·{" "}
                   <a href={`${BASE}/merge?page=${page()}`}>Merge</a> ·{" "}
                   <a href={`${BASE}/split?page=${page()}`}>Split</a> ·{" "}
