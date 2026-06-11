@@ -76,7 +76,10 @@ export default function LangBar(props: {
 
   const switches = () => existing(siblings(), props.slug);
   const extras = () => extend(siblings(), present(), props.translationKey);
-  const newer = () => fresh(present(), props.translationKey);
+  // Only offer the generic "new language" path when a configured language isn't
+  // yet anywhere in the wiki — but never name it (W5: don't pre-suggest Deutsch).
+  const canAddLang = () => fresh(present(), props.translationKey).length > 0;
+  const newLangHref = `${BASE}/new?translationKey=${encodeURIComponent(props.translationKey)}`;
   const count = () => switches().length;
 
   return (
@@ -120,20 +123,10 @@ export default function LangBar(props: {
             </li>
           )}
         </For>
-        <Show when={newer().length > 0}>
-          <li class="langbar-sep" aria-hidden="true">
-            Translate to a new language
+        <Show when={canAddLang()}>
+          <li class="langbar-new">
+            <a href={newLangHref}>Translate this page into another language…</a>
           </li>
-          <For each={newer()}>
-            {(i) => (
-              <li>
-                <a href={i.href} lang={i.lang} class="is-missing">
-                  {i.name}
-                  <span class="langbar-add">add</span>
-                </a>
-              </li>
-            )}
-          </For>
         </Show>
       </ul>
     </details>

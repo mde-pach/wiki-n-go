@@ -321,6 +321,15 @@
     transform: none;
   }
 }
+/* Dismiss plays the open animation in reverse so closing matches opening (W7). */
+.menu-overlay.closing .menu-scrim {
+  animation: menu-fade 180ms ease forwards;
+  animation-direction: reverse;
+}
+.menu-overlay.closing .menu-drawer {
+  animation: menu-slide 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  animation-direction: reverse;
+}
 .menu-drawer-head {
   display: flex;
   align-items: center;
@@ -557,14 +566,14 @@
   border-radius: var(--radius-sm);
   padding: 1px 5px;
 }
-.langbar-sep {
+.langbar-new {
   margin-top: 0.3rem;
-  padding: 0.4em 0.6em 0.2em;
   border-top: var(--border-w) solid var(--color-border);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  padding-top: 0.3rem;
+}
+.langbar-new a {
   color: var(--color-ink-subtle);
+  font-size: var(--text-sm);
 }
 
 .tabbar {
@@ -1162,6 +1171,14 @@ html[data-textsize="large"] {
 a.preview-body:hover .pv-foot,
 a.preview-body:focus-visible .pv-foot {
   color: var(--color-accent);
+}
+.preview-body .pv-thumb {
+  float: right;
+  width: 84px;
+  height: 84px;
+  object-fit: cover;
+  margin: 0 0 0.4rem 0.6rem;
+  border-radius: var(--radius-sm);
 }
 .preview-body .pv-title {
   font-family: var(--font-display);
