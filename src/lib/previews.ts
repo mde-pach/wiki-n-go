@@ -2,9 +2,49 @@ import { fetchMarkdown, PageNotFoundError } from "./content";
 import { splitTitle } from "./markdown";
 import { BASE, prettify, readHref } from "./paths";
 
-type Card = { kind: "page"; title: string; snippet: string } | { kind: "missing" };
+type Card =
+  | { kind: "page"; title: string; snippet: string }
+  | { kind: "missing" }
+  | { kind: "wiki"; title: string; snippet: string; thumb?: string; url: string };
 
 const cache = new Map<string, Promise<Card>>();
+
+interface WikiSummary {
+  title?: string;
+  extract?: string;
+  thumbnail?: { source?: string };
+  content_urls?: { desktop?: { page?: string } };
+}
+
+// Wikipedia article preview for an interwiki `[[w:Title]]` link, from the public
+// REST summary API (CORS-enabled), cached per article (X3).
+const wikiCache = new Map<string, Promise<Card>>();
+function loadWiki(lang: string, title: string): Promise<Card> {
+  const k = `${lang}:${title}`;
+  let p = wikiCache.get(k);
+  if (!p) {
+    p = fetch(
+      `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`,
+    )
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json() as Promise<WikiSummary>;
+      })
+      .then((d): Card => {
+        const fallback = `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(title)}`;
+        return {
+          kind: "wiki",
+          title: d.title ?? title.replace(/_/g, " "),
+          snippet: (d.extract ?? "").trim(),
+          thumb: d.thumbnail?.source,
+          url: d.content_urls?.desktop?.page ?? fallback,
+        };
+      });
+    wikiCache.set(k, p);
+    p.catch(() => wikiCache.delete(k));
+  }
+  return p;
+}
 
 // Existence + excerpt come from the page's own Markdown on the CDN, so the
 // preview is correct even where the manifest/Worker isn't reachable; a 404 is
@@ -54,11 +94,48 @@ function excerpt(body: string): string {
   return text.length > 180 ? `${text.slice(0, 177).trimEnd()}…` : text;
 }
 
-// Hover card over an internal `[[wikilink]]` showing the target's title +
-// excerpt, or a "create it" prompt for a red link. Interwiki links (no
-// data-slug) are skipped.
+// One hoverable link: its internal slug (or "" for an interwiki Wikipedia link),
+// a stable key for the active-card guard, and the loader for its card.
+interface Hoverable {
+  a: HTMLAnchorElement;
+  key: string;
+  slug: string;
+  run: () => Promise<Card>;
+}
+
+function hoverables(root: HTMLElement): Hoverable[] {
+  const out: Hoverable[] = [];
+  for (const a of root.querySelectorAll<HTMLAnchorElement>("a.wikilink")) {
+    const slug = a.dataset.slug;
+    if (slug) {
+      out.push({ a, key: `p:${slug}`, slug, run: () => load(slug) });
+      continue;
+    }
+    if (!a.classList.contains("interwiki")) continue;
+    try {
+      const u = new URL(a.href);
+      if (!u.hostname.endsWith(".wikipedia.org")) continue;
+      const lang = u.hostname.split(".")[0];
+      const title = decodeURIComponent(u.pathname.replace(/^\/wiki\//, ""));
+      if (title)
+        out.push({
+          a,
+          key: `w:${lang}:${title}`,
+          slug: "",
+          run: () => loadWiki(lang, title),
+        });
+    } catch {
+      /* malformed href — skip */
+    }
+  }
+  return out;
+}
+
+// Hover card over an internal `[[wikilink]]` (title + excerpt, or a "create it"
+// prompt for a red link) and over an interwiki `[[w:Title]]` (the Wikipedia
+// article summary — X3).
 export function attachPagePreviews(root: HTMLElement): void {
-  const links = root.querySelectorAll<HTMLAnchorElement>("a.wikilink[data-slug]");
+  const links = hoverables(root);
   if (links.length === 0) return;
 
   let card: HTMLDivElement | undefined;
@@ -97,42 +174,58 @@ export function attachPagePreviews(root: HTMLElement): void {
     card.style.left = `${left}px`;
   };
 
-  const show = (a: HTMLAnchorElement, slug: string, data: Card) => {
-    if (active !== slug || !a.isConnected) return;
+  const cardHtml = (slug: string, data: Card): string => {
+    if (data.kind === "missing")
+      return (
+        `<div class="preview-redbox"><span class="pv-redrow">Page not created yet</span>` +
+        `<p>There's no page named “${esc(prettify(slug))}” yet.</p>` +
+        `<a href="${BASE}/edit/${esc(slug)}">Create this page →</a></div>`
+      );
+    if (data.kind === "wiki") {
+      const thumb = data.thumb
+        ? `<img class="pv-thumb" src="${esc(data.thumb)}" alt="" />`
+        : "";
+      return (
+        `<a class="preview-body" href="${esc(data.url)}" target="_blank" rel="noreferrer">${thumb}` +
+        `<div class="pv-title">${esc(data.title)}</div>` +
+        `<div class="pv-snip">${esc(data.snippet)}</div>` +
+        `<div class="pv-foot">Read on Wikipedia →</div></a>`
+      );
+    }
+    return (
+      `<a class="preview-body" href="${esc(readHref(slug))}"><div class="pv-title">${esc(data.title)}</div>` +
+      `<div class="pv-snip">${esc(data.snippet)}</div>` +
+      `<div class="pv-foot">Read full page →</div></a>`
+    );
+  };
+
+  const show = (a: HTMLAnchorElement, key: string, slug: string, data: Card) => {
+    if (active !== key || !a.isConnected) return;
     remove();
-    active = slug;
+    active = key;
     card = document.createElement("div");
     card.className = "preview-card";
-    card.innerHTML =
-      data.kind === "missing"
-        ? `<div class="preview-redbox"><span class="pv-redrow">Page not created yet</span>` +
-          `<p>There's no page named “${esc(prettify(slug))}” yet.</p>` +
-          `<a href="${BASE}/edit/${esc(slug)}">Create this page →</a></div>`
-        : `<a class="preview-body" href="${esc(readHref(slug))}"><div class="pv-title">${esc(data.title)}</div>` +
-          `<div class="pv-snip">${esc(data.snippet)}</div>` +
-          `<div class="pv-foot">Read full page →</div></a>`;
+    card.innerHTML = cardHtml(slug, data);
     card.addEventListener("mouseenter", cancelHide);
     card.addEventListener("mouseleave", scheduleHide);
     document.body.appendChild(card);
     place(a);
   };
 
-  for (const a of links) {
-    const slug = a.dataset.slug;
-    if (!slug) continue;
+  for (const { a, key, slug, run } of links) {
     a.addEventListener("mouseenter", () => {
       cancelHide();
       clearTimeout(showTimer);
-      active = slug;
+      active = key;
       showTimer = window.setTimeout(() => {
-        load(slug)
-          .then((data) => show(a, slug, data))
+        run()
+          .then((data) => show(a, key, slug, data))
           .catch(() => {});
       }, 280);
     });
     a.addEventListener("mouseleave", () => {
       clearTimeout(showTimer);
-      if (active === slug && !card) active = undefined;
+      if (active === key && !card) active = undefined;
       scheduleHide();
     });
     a.addEventListener("click", cancel);
