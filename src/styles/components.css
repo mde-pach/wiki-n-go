@@ -1993,6 +1993,22 @@ a.preview-body:focus-visible .pv-foot {
   color: var(--color-ink-muted);
   font-style: italic;
 }
+.cur-skeleton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.cur-sk-chip {
+  display: inline-block;
+  height: 0.85rem;
+  width: 3.2rem;
+}
+.cur-sk-chip:nth-child(2) {
+  width: 2.2rem;
+}
+.cur-sk-chip:nth-child(3) {
+  width: 4rem;
+}
 
 /* Hatnote: italic disambiguation note above the lead (Wikipedia convention). */
 .hatnote {

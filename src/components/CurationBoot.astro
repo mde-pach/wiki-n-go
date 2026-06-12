@@ -17,8 +17,11 @@
         slot.innerHTML =
           '<div class="curation cur-bar" role="group" aria-label="Page curation">' +
           '<span class="cur-label">Curation</span>' +
-          '<span class="cur-done">loading…</span>' +
-          "</div>";
+          '<span class="cur-skeleton" aria-hidden="true">' +
+          '<span class="skeleton cur-sk-chip"></span>' +
+          '<span class="skeleton cur-sk-chip"></span>' +
+          '<span class="skeleton cur-sk-chip"></span>' +
+          "</span></div>";
       }
     } catch {}
   })();

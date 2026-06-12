@@ -1,9 +1,22 @@
-import { createMemo, createResource, createSignal, For, onMount, Show } from "solid-js";
+import {
+  createEffect,
+  createMemo,
+  createResource,
+  createSignal,
+  For,
+  onMount,
+  Show,
+} from "solid-js";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
 import { deletePage, rollbackCommit, tagChange } from "../lib/admin";
-import { type Change, markPatrolled, RISK_HIGH } from "../lib/changes";
-import { type Curation, curationFromChange, loadCuration } from "../lib/curation";
+import { type Change, listChanges, markPatrolled, RISK_HIGH } from "../lib/changes";
+import {
+  type Curation,
+  curationFromChange,
+  enrichCuration,
+  loadPatrolStatus,
+} from "../lib/curation";
 import { changesHref, prettify, userHref, viewHref } from "../lib/paths";
 import { useWhoami } from "../lib/solid";
 import { errMessage } from "../lib/util";
@@ -35,12 +48,39 @@ export default function PageCuration(props: {
   // Drop the CurationBoot pre-paint shell; this island now owns the bar.
   onMount(() => document.getElementById("cur-pre")?.remove());
 
-  const [fetched, { refetch }] = createResource(
-    () => (!isServer && isMaintainer() && !props.change ? props.slug : undefined),
-    loadCuration,
+  // The fast patrol-status drives the bar so it's actionable after one round-trip.
+  const live = () => !isServer && isMaintainer() && !props.change;
+  const [status, { refetch: refetchStatus }] = createResource(
+    () => (live() ? props.slug : undefined),
+    loadPatrolStatus,
   );
-  const base = (): Curation | undefined =>
-    props.change ? curationFromChange(props.slug, props.change) : fetched();
+  // The recent-changes feed is slower and only enriches the bar (author/risk/
+  // tags), so it goes through a plain signal, not a resource: reading a pending
+  // resource suspends the whole island (Solid waits on every read resource), so
+  // the bar would otherwise sit behind the slow feed. A signal never suspends.
+  const [recent, setRecent] = createSignal<Change[]>();
+  let recentLoaded = false;
+  const loadRecent = () => {
+    recentLoaded = true;
+    listChanges()
+      .then(setRecent)
+      .catch(() => {});
+  };
+  createEffect(() => {
+    if (live() && !recentLoaded) loadRecent();
+  });
+  const refetch = () => {
+    refetchStatus();
+    recentLoaded = false;
+    loadRecent();
+  };
+  const base = (): Curation | undefined => {
+    if (props.change) return curationFromChange(props.slug, props.change);
+    const s = status();
+    if (!s) return undefined;
+    const changes = recent();
+    return changes ? enrichCuration(s, changes) : s;
+  };
 
   const [patrolledOpt, setPatrolledOpt] = createSignal<boolean>();
   const [tagsOpt, setTagsOpt] = createSignal<string[]>();
@@ -131,7 +171,16 @@ export default function PageCuration(props: {
       >
         <div class={cls()} role="group" aria-label="Page curation">
           <span class="cur-label">Curation</span>
-          <Show when={cur()} fallback={<span class="cur-done">loading…</span>}>
+          <Show
+            when={cur()}
+            fallback={
+              <span class="cur-skeleton" aria-hidden="true">
+                <span class="skeleton cur-sk-chip" />
+                <span class="skeleton cur-sk-chip" />
+                <span class="skeleton cur-sk-chip" />
+              </span>
+            }
+          >
             {(c) => (
               <>
                 <Show
