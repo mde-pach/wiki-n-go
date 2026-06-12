@@ -1,5 +1,6 @@
 import { createMemo, createResource, createSignal, For, Show } from "solid-js";
 import { isServer } from "solid-js/web";
+import { allLanguages } from "../lib/languages";
 import { BASE, prettify, readHref, slugifyPath } from "../lib/paths";
 import { getSearchDocs } from "../lib/search";
 import { PAGE_TEMPLATES } from "../lib/templates";
@@ -51,7 +52,7 @@ export default function NewPage() {
         title={translationKey ? "Translate this page" : "Create a new page"}
         sub={
           translationKey
-            ? "Enter the language and a title. The new page joins this article's translation group, and you can edit it like any other."
+            ? "Pick the language and a title. The new page joins this article's translation group, and you can edit it like any other."
             : "Pick a title and a starting point. You can rename or restructure the page at any time — nothing is final until you publish."
         }
       />
@@ -59,14 +60,22 @@ export default function NewPage() {
       <form class="new-form" onSubmit={create}>
         <Show when={translationKey}>
           <label class="field-label">
-            Language code
-            <input
+            Language
+            <select
               class="input"
               value={lang()}
-              placeholder="e.g. de, es, ja"
               autofocus
-              onInput={(e) => setLang(e.currentTarget.value)}
-            />
+              onChange={(e) => setLang(e.currentTarget.value)}
+            >
+              <option value="">Choose a language…</option>
+              <For each={allLanguages()}>
+                {(l) => (
+                  <option value={l.code}>
+                    {l.name} ({l.code})
+                  </option>
+                )}
+              </For>
+            </select>
           </label>
         </Show>
         <label class="field-label">

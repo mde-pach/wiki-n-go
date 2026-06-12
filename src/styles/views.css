@@ -852,6 +852,35 @@ a.dh-rev:hover {
   margin-left: auto;
 }
 
+.signin-scrim {
+  position: fixed;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: default;
+}
+.signin-modal {
+  position: relative;
+  max-width: 400px;
+}
+.provider-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.provider-btn {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 0.6em;
+  padding: 0.72em 0.95em;
+  font-size: var(--text-ui);
+}
+.provider-btn svg {
+  width: 1.2em;
+  height: 1.2em;
+}
+
 /* Stacked field labels wrapping their own input (view forms). */
 .move-form .field-label,
 .cite-result .field-label,

@@ -1,5 +1,6 @@
 import { config } from "../config";
 import { parseFrontmatter } from "./frontmatter";
+import { languageName } from "./languages";
 import { contentSlugs, rawPage } from "./pages";
 import { langOf } from "./paths";
 
@@ -9,9 +10,6 @@ export interface LangLink {
   slug: string;
   current: boolean;
 }
-
-const langName = (code: string) =>
-  config.languages.find((l) => l.code === code)?.name ?? code;
 
 // Build/SSR: the language codes that actually have at least one page, ordered by
 // the configured list. Seeds the LangBar's "extend a language already in the wiki"
@@ -44,13 +42,16 @@ export function translations(slug: string): LangLink[] {
   const mine = keyedSlugs().find((p) => p.slug === slug);
   if (!mine) return [];
   const order = config.languages.map((l) => l.code);
+  // Configured languages keep their listed order; any other language a page was
+  // started in (the picker now allows all of ISO 639-1) sorts after them.
+  const rank = (c: string) => order.indexOf(c) + 1 || order.length + 1;
   return keyedSlugs()
     .filter((p) => p.key === mine.key)
     .map((p) => {
       const lang = langOf(p.slug);
-      return { lang, name: langName(lang), slug: p.slug, current: p.slug === slug };
+      return { lang, name: languageName(lang), slug: p.slug, current: p.slug === slug };
     })
-    .sort((a, b) => order.indexOf(a.lang) - order.indexOf(b.lang));
+    .sort((a, b) => rank(a.lang) - rank(b.lang));
 }
 
 // Build/SSR-only: a page's translation group — its key and the slugs sharing it

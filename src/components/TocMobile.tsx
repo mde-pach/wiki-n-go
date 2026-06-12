@@ -15,7 +15,10 @@ export default function TocMobile(props: { initialItems?: Heading[] }) {
         <summary>
           <Icons.List style={{ width: "16px", height: "16px" }} />
           Contents
-          <Icons.Chevron class="chev" style={{ width: "16px", height: "16px" }} />
+          <Icons.Chevron
+            class="chev"
+            style={{ width: "20px", height: "20px", "stroke-width": "2.1" }}
+          />
         </summary>
         <ul class="toc-list">
           <For each={items()}>

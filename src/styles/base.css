@@ -269,9 +269,9 @@ hr {
   background: none;
   border: 0;
   padding: 0;
-  margin-right: 0.45rem;
-  width: 0.7em;
-  height: 0.7em;
+  margin-right: 0.5rem;
+  width: 1em;
+  height: 1em;
   cursor: pointer;
   color: var(--color-ink-subtle);
   vertical-align: middle;
@@ -281,11 +281,11 @@ hr {
 }
 .section-toggle::before {
   content: "";
-  width: 0.42em;
-  height: 0.42em;
-  border-right: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  transform: translateY(-0.12em) rotate(45deg);
+  width: 0.62em;
+  height: 0.62em;
+  border-right: 2.5px solid currentColor;
+  border-bottom: 2.5px solid currentColor;
+  transform: translateY(-0.16em) rotate(45deg);
   transition: transform var(--transition-fast);
 }
 .prose :is(h2, h3, h4).is-collapsed .section-toggle::before {

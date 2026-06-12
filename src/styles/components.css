@@ -658,6 +658,9 @@
   display: none;
 }
 .tab-tools .chev {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.1;
   transition: transform var(--transition-fast);
 }
 .tab-tools[open] > summary .chev {
@@ -1733,8 +1736,9 @@ a.preview-body:focus-visible .pv-foot {
   color: var(--color-ink-muted);
 }
 .rv-caret {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.1;
   flex: none;
   color: var(--color-ink-subtle);
   transition: transform var(--transition-fast);
@@ -2221,8 +2225,9 @@ a.preview-body:focus-visible .pv-foot {
   color: var(--color-ink);
 }
 .topic-caret {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.1;
   flex: none;
   color: var(--color-ink-subtle);
   transition: transform var(--transition-fast);
