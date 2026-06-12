@@ -1,12 +1,7 @@
 ---
-kicker: Documentation
 description: Wikigit is a wiki you can set up in a few minutes and let anyone
   help write — free to run, and yours to keep.
-protection: auto
 translationKey: index
-tags:
-  - Documentation
-  - Getting started
 infobox:
   Type: Wiki engine
   Set up in: A few clicks
@@ -16,6 +11,12 @@ infobox:
   License:
     v: MIT
     mono: true
+kicker: Documentation
+image: https://duckduckgo.com/i/0cc93634b2107d5b.png
+protection: auto
+tags:
+  - Documentation
+  - Getting started
 banner:
   kind: info
   text: This site is a Wikigit running on Wikigit — every page here is an ordinary
