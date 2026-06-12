@@ -1,6 +1,6 @@
 import { type Accessor, createResource, createSignal, type Resource } from "solid-js";
 import { isServer } from "solid-js/web";
-import { getWhoami, type WhoAmI } from "./api";
+import { getWhoami, type Tier, type WhoAmI } from "./api";
 import { solvePow } from "./pow";
 import { errMessage } from "./util";
 
@@ -66,13 +66,28 @@ export function useSubmit(): Submit {
 // (sign-in/out) drops the module and re-fetches.
 let whoamiOnce: Promise<WhoAmI> | undefined;
 
+// Last-known tier, cached like the avatar/providers chrome: lets maintainer-only
+// UI (the curation bar) paint on the first frame of a repeat visit instead of
+// waiting on the `/whoami` round-trip, then revalidate. Cleared on sign-out.
+const TIER_KEY = "wiki_tier";
+function cachedTier(): Tier | undefined {
+  if (typeof window === "undefined") return undefined;
+  return (localStorage.getItem(TIER_KEY) as Tier) || undefined;
+}
+
 export function useWhoami(): {
   who: Resource<WhoAmI>;
   isMaintainer: Accessor<boolean>;
 } {
   const who = clientResource(() => {
-    whoamiOnce ??= getWhoami();
+    whoamiOnce ??= getWhoami().then((w) => {
+      if (typeof window !== "undefined") localStorage.setItem(TIER_KEY, w.tier);
+      return w;
+    });
     return whoamiOnce;
   });
-  return { who, isMaintainer: () => who()?.tier === "maintainer" };
+  return {
+    who,
+    isMaintainer: () => (who()?.tier ?? cachedTier()) === "maintainer",
+  };
 }

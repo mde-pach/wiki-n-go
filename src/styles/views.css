@@ -321,11 +321,14 @@
   font-family: var(--font-ui);
   font-size: var(--text-sm);
 }
-.fe-preview > summary {
-  cursor: pointer;
-  color: var(--color-ink-muted);
+.fe-preview-label {
+  display: block;
+  color: var(--color-ink-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.78em;
+  font-weight: 600;
   padding: 0.25rem 0;
-  user-select: none;
 }
 .fe-preview .preview-scroll {
   border: var(--border-w) solid var(--color-border);

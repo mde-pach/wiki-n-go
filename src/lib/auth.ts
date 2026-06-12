@@ -94,5 +94,6 @@ export function login(
 
 export function logout(): void {
   localStorage.removeItem(KEY);
+  localStorage.removeItem("wiki_tier"); // drop the cached maintainer hint
   location.reload();
 }

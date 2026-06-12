@@ -29,8 +29,9 @@ export default function FocusedEditor(props: {
   // Rebuild the full document to submit from the edited source.
   reconstruct: (newSource: string) => string;
   onClose: () => void;
-  // Fires after a successful publish so the host can refresh live content.
-  onPublished?: (result: EditResult) => void;
+  // Fires after a successful publish with the full document just submitted, so
+  // the host can refresh the read view from the published bytes without a fetch.
+  onPublished?: (result: EditResult, content: string) => void;
 }) {
   if (!config.workerUrl) return null;
 
@@ -80,9 +81,10 @@ export default function FocusedEditor(props: {
     setModal(false);
     setProgress({ progress: 0, label: "Starting" });
     run(async (tok) => {
-      const r = await submitEdit(props.slug, content(), tok, summary(), setProgress);
+      const doc = content();
+      const r = await submitEdit(props.slug, doc, tok, summary(), setProgress);
       setResult(r);
-      props.onPublished?.(r);
+      props.onPublished?.(r, doc);
     });
   }
 
@@ -118,10 +120,10 @@ export default function FocusedEditor(props: {
           />
         </div>
 
-        <details class="fe-preview">
-          <summary>Preview</summary>
+        <div class="fe-preview">
+          <span class="fe-preview-label">Live preview</span>
           <div class="preview-scroll prose" innerHTML={preview()} />
-        </details>
+        </div>
 
         <div class="fe-publish">
           <input

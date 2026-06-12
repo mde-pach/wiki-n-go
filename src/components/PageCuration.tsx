@@ -126,88 +126,94 @@ export default function PageCuration(props: {
           </div>
         }
       >
-        <Show when={cur()}>
-          {(c) => (
-            <div class={cls()} role="group" aria-label="Page curation">
-              <span class="cur-label">Curation</span>
-              <Show
-                when={c().patrolled}
-                fallback={
-                  <button type="button" class="link-btn cur-approve" onClick={approve}>
-                    approve
-                  </button>
-                }
-              >
-                <span class="rc-badge reviewed">reviewed</span>
-              </Show>
-              <Show when={(c().risk ?? 0) >= RISK_HIGH}>
-                <span class="rc-tag risk" title={`revert-risk ${c().risk}`}>
-                  high risk
-                </span>
-              </Show>
-              <For each={tags()}>{(t) => <span class="rc-tag">{t}</span>}</For>
-              <Show
-                when={c().sha}
-                fallback={
-                  <a class="cur-action" href={viewHref("edit", c().slug)}>
-                    tag
+        <div class={cls()} role="group" aria-label="Page curation">
+          <span class="cur-label">Curation</span>
+          <Show when={cur()} fallback={<span class="cur-done">loading…</span>}>
+            {(c) => (
+              <>
+                <Show
+                  when={c().patrolled}
+                  fallback={
+                    <button
+                      type="button"
+                      class="link-btn cur-approve"
+                      onClick={approve}
+                    >
+                      approve
+                    </button>
+                  }
+                >
+                  <span class="rc-badge reviewed">reviewed</span>
+                </Show>
+                <Show when={(c().risk ?? 0) >= RISK_HIGH}>
+                  <span class="rc-tag risk" title={`revert-risk ${c().risk}`}>
+                    high risk
+                  </span>
+                </Show>
+                <For each={tags()}>{(t) => <span class="rc-tag">{t}</span>}</For>
+                <Show
+                  when={c().sha}
+                  fallback={
+                    <a class="cur-action" href={viewHref("edit", c().slug)}>
+                      tag
+                    </a>
+                  }
+                >
+                  <span class="cur-tagger">
+                    <button
+                      type="button"
+                      class="link-btn cur-action"
+                      aria-expanded={tagOpen()}
+                      onClick={() => setTagOpen((o) => !o)}
+                    >
+                      tag
+                    </button>
+                    <Show when={tagOpen()}>
+                      <span class="cur-tagmenu">
+                        <For each={TAG_PRESETS}>
+                          {(t) => (
+                            <button
+                              type="button"
+                              class="link-btn cur-tagopt"
+                              disabled={tags().includes(t)}
+                              onClick={() => applyTag(t)}
+                            >
+                              {t}
+                            </button>
+                          )}
+                        </For>
+                      </span>
+                    </Show>
+                  </span>
+                </Show>
+                <a class="cur-action" href={viewHref("talk", c().slug)}>
+                  message author
+                </a>
+                <Show when={c().author}>
+                  <a class="cur-action" href={contribHref(c())}>
+                    contributions
                   </a>
-                }
-              >
-                <span class="cur-tagger">
+                </Show>
+                <Show when={c().sha}>
                   <button
                     type="button"
-                    class="link-btn cur-action"
-                    aria-expanded={tagOpen()}
-                    onClick={() => setTagOpen((o) => !o)}
+                    class="link-btn cur-rollback"
+                    onClick={() => setConfirm("rollback")}
                   >
-                    tag
+                    roll back
                   </button>
-                  <Show when={tagOpen()}>
-                    <span class="cur-tagmenu">
-                      <For each={TAG_PRESETS}>
-                        {(t) => (
-                          <button
-                            type="button"
-                            class="link-btn cur-tagopt"
-                            disabled={tags().includes(t)}
-                            onClick={() => applyTag(t)}
-                          >
-                            {t}
-                          </button>
-                        )}
-                      </For>
-                    </span>
-                  </Show>
-                </span>
-              </Show>
-              <a class="cur-action" href={viewHref("talk", c().slug)}>
-                message author
-              </a>
-              <Show when={c().author}>
-                <a class="cur-action" href={contribHref(c())}>
-                  contributions
-                </a>
-              </Show>
-              <Show when={c().sha}>
+                </Show>
                 <button
                   type="button"
-                  class="link-btn cur-rollback"
-                  onClick={() => setConfirm("rollback")}
+                  class="link-btn cur-delete"
+                  onClick={() => setConfirm("delete")}
                 >
-                  roll back
+                  propose delete
                 </button>
-              </Show>
-              <button
-                type="button"
-                class="link-btn cur-delete"
-                onClick={() => setConfirm("delete")}
-              >
-                propose delete
-              </button>
-            </div>
-          )}
-        </Show>
+              </>
+            )}
+          </Show>
+        </div>
       </Show>
 
       <ErrorNote msg={error()} />

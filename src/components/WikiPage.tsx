@@ -27,6 +27,9 @@ interface SectionEdit {
   data: Record<string, unknown>;
   body: string;
   span: SectionSpan;
+  // The rendered nodes of the section being edited, hidden while the editor is
+  // open so the editor's live preview is the only copy of the section on screen.
+  hidden: HTMLElement[];
 }
 
 export default function WikiPage(props: {
@@ -60,7 +63,10 @@ export default function WikiPage(props: {
   // a refetch. Tracks the SSR content first, then whatever the client fetches.
   const [raw, setRaw] = createSignal(props.initialRaw);
   const [sectionEdit, setSectionEdit] = createSignal<SectionEdit>();
-  let reloadAfterEdit = false;
+  // The exact document a live publish just committed. We render it straight from
+  // hand on close — no refetch, so no waiting on the Worker's cached `/latest`
+  // (or the CDN) to catch up to a commit we already hold.
+  let publishedDoc: string | undefined;
   let body: HTMLDivElement | undefined;
 
   // Render markdown with red links already resolved, so missing-target links
@@ -148,29 +154,37 @@ export default function WikiPage(props: {
     const mountEl = document.createElement("div");
     mountEl.className = "section-edit-host";
     heading.insertAdjacentElement("afterend", mountEl);
-    setSectionEdit({ mountEl, doc, data, body: md, span });
+    setSectionEdit({
+      mountEl,
+      doc,
+      data,
+      body: md,
+      span,
+      hidden: hideSection(mountEl),
+    });
   }
 
   function closeSectionEdit() {
     const open = sectionEdit();
     if (!open) return;
     open.mountEl.remove();
+    for (const el of open.hidden) el.style.removeProperty("display");
     setSectionEdit(undefined);
-    if (reloadAfterEdit) {
-      reloadAfterEdit = false;
-      void loadLatest();
+    if (publishedDoc) {
+      const doc = publishedDoc;
+      publishedDoc = undefined;
+      void showPublished(doc);
     }
   }
 
-  // After a live section publish, pull the fresh page so the read view reflects
-  // it (no rebuild — same fetch path as mount, minus the unchanged short-circuit).
-  async function loadLatest() {
+  // Re-render the read view from the document we just published — the bytes are
+  // already in hand, so this is instant and never shows stale content.
+  async function showPublished(doc: string) {
     try {
-      const latest = await fetchMarkdown(slug());
-      const { title, html, meta } = await renderResolved(latest);
-      render(latest, title, meta, html);
+      const { title, html, meta } = await renderResolved(doc);
+      render(doc, title, meta, html);
     } catch {
-      /* transient — keep the current content */
+      /* a render glitch shouldn't strand the editor — keep the current content */
     }
   }
 
@@ -241,8 +255,8 @@ export default function WikiPage(props: {
                 span={s().span}
                 reconstruct={(b) => withFrontmatter(s().data, b)}
                 onClose={closeSectionEdit}
-                onPublished={(r) => {
-                  if (r.live) reloadAfterEdit = true;
+                onPublished={(r, doc) => {
+                  if (r.live) publishedDoc = doc;
                 }}
               />
             </Portal>
@@ -251,6 +265,23 @@ export default function WikiPage(props: {
       </Show>
     </article>
   );
+}
+
+// Hide the rendered nodes of a section (mountEl sits just after its heading, so
+// its following siblings up to the next h2/h3 are the section body) and return
+// them so the editor can restore them on close.
+function hideSection(mountEl: HTMLElement): HTMLElement[] {
+  const hidden: HTMLElement[] = [];
+  let n = mountEl.nextElementSibling;
+  while (n && !n.matches("h2, h3")) {
+    const next = n.nextElementSibling;
+    if (n instanceof HTMLElement) {
+      n.style.display = "none";
+      hidden.push(n);
+    }
+    n = next;
+  }
+  return hidden;
 }
 
 function ArticleSkeleton() {
