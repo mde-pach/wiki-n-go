@@ -30,6 +30,7 @@ What sets it apart is how little there is to run and worry about. You can set on
 
 ## What you get
 
+test
 - **Free to host.** Your wiki runs on free services — no server to rent, no monthly bill.
 - **No database to manage.** Your pages are ordinary text files. Nothing can quietly break.
 - **Edit in the browser.** People click *Edit*, make a change, and save — nothing to install.
