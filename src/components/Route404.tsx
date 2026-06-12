@@ -20,7 +20,6 @@ import Discussion from "./Discussion";
 import Editor from "./Editor";
 import History from "./History";
 import { Icons } from "./Icons";
-import Infobox from "./Infobox";
 import PageMeta from "./PageMeta";
 import RecentChanges from "./RecentChanges";
 import ReviewQueue from "./ReviewQueue";
@@ -52,7 +51,6 @@ export default function Route404() {
               </div>
               <div class="col-main">
                 <TocMobile />
-                <Infobox slug={slug} />
                 <WikiPage slug={slug} />
               </div>
               <div class="col-info">

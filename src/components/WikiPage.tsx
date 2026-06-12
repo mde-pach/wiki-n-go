@@ -4,6 +4,7 @@ import { fetchMarkdown, fetchMarkdownAt, PageNotFoundError } from "../lib/conten
 import { decorate as decorateArticle } from "../lib/decorate";
 import { findSection, type SectionSpan } from "../lib/editor-section";
 import { type PageMeta, splitFrontmatter, withFrontmatter } from "../lib/frontmatter";
+import { infoboxHtml } from "../lib/infobox";
 import { pageSet } from "../lib/manifest";
 import {
   decorateHeadingsHtml,
@@ -45,7 +46,11 @@ export default function WikiPage(props: {
   missing?: boolean;
 }) {
   const slug = () => props.slug ?? slugFromLocation();
-  const [html, setHtml] = createSignal(props.initialHtml);
+  // Bake the quick-facts card in as the article's first child so it floats
+  // inside the prose flow (text wraps around it instead of sliding under it).
+  const withInfobox = (h: string | undefined, m: PageMeta | undefined) =>
+    h === undefined ? h : infoboxHtml(slug(), m ?? {}) + h;
+  const [html, setHtml] = createSignal(withInfobox(props.initialHtml, props.meta));
   const [meta, setMeta] = createSignal<PageMeta>(props.meta ?? {});
   const [notFound, setNotFound] = createSignal(props.missing ?? false);
   const [err, setErr] = createSignal<string>();
@@ -69,7 +74,7 @@ export default function WikiPage(props: {
       ),
       title,
     );
-    return { title, html, meta };
+    return { title, html: withInfobox(html, meta) as string, meta };
   }
 
   // Render this page pinned to a historic commit (permalink to a revision).

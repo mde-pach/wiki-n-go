@@ -755,16 +755,26 @@
   clear: both;
 }
 /* Infobox floats inside the article so the prose wraps around it (Vector-2022);
-   the right rail is reserved for Appearance. */
+   the right rail is reserved for Appearance. Baked in as the article's first
+   child (see lib/infobox) so it's a real sibling of the prose blocks. */
 .col-main .infobox {
   float: right;
   width: 20rem;
   max-width: 100%;
   margin: 0.2rem 0 1.1rem 1.6rem;
   /* Sit above the article's positioned headings so their underline rules don't
-     paint over the floated card. */
+     paint over the floated card. `top: 0` cancels the sticky base's offset,
+     which `position: relative` keeps and would otherwise shift the in-flow card
+     down over the following text (visible when it's `float: none` on mobile). */
   position: relative;
+  top: 0;
   z-index: 1;
+}
+/* Top-level lists wrap beside the floated card, but a list whose lines straddle
+   the card's lower edge will slide under it (a float quirk that hits list items,
+   not paragraphs). A BFC makes such a list drop cleanly below the card instead. */
+.col-main .prose > div > :is(ul, ol) {
+  display: flow-root;
 }
 .article {
   max-width: none;
