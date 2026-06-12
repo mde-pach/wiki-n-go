@@ -1,4 +1,4 @@
-import { createMemo, createResource, createSignal, For, Show } from "solid-js";
+import { createMemo, createResource, createSignal, For, onMount, Show } from "solid-js";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
 import { deletePage, rollbackCommit, tagChange } from "../lib/admin";
@@ -31,6 +31,9 @@ export default function PageCuration(props: {
 
   const { isMaintainer } = useWhoami();
   const cls = () => `curation${props.bar ? " cur-bar" : ""}`;
+
+  // Drop the CurationBoot pre-paint shell; this island now owns the bar.
+  onMount(() => document.getElementById("cur-pre")?.remove());
 
   const [fetched, { refetch }] = createResource(
     () => (!isServer && isMaintainer() && !props.change ? props.slug : undefined),

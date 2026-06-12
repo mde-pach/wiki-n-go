@@ -1,6 +1,7 @@
 ---
 import Appearance from "../components/Appearance.tsx";
 import Contributions from "../components/Contributions.tsx";
+import CurationBoot from "../components/CurationBoot.astro";
 import PageCuration from "../components/PageCuration.tsx";
 import Toc from "../components/Toc.tsx";
 import TocMobile from "../components/TocMobile.tsx";
@@ -105,6 +106,7 @@ const contributor =
     </div>
     <div class="col-main">
       <TocMobile initialItems={parsed?.headings ?? []} client:load />
+      <CurationBoot />
       <PageCuration slug={pageSlug} bar client:load />
       <WikiPage slug={pageSlug} initialHtml={html} initialRaw={raw} meta={parsed?.meta} fresh={ssr} missing={ssr && !parsed} client:load />
       {contributor && <Contributions login={contributor} client:load />}

@@ -1,0 +1,25 @@
+---
+// Pre-paint the curation bar for maintainers, read from the cached tier before
+// first paint — the same trick as AuthBoot — so the bar is present immediately
+// instead of popping in a second later when the PageCuration island finishes
+// hydrating. The island removes this placeholder (#cur-pre) on mount and takes
+// over with the live, interactive bar. Non-maintainers (or a first-ever visit
+// with no cached tier) get nothing, exactly as the island would render.
+---
+
+<span id="cur-pre"></span>
+<script is:inline>
+  (() => {
+    const slot = document.getElementById("cur-pre");
+    if (!slot) return;
+    try {
+      if (localStorage.getItem("wiki_tier") === "maintainer") {
+        slot.innerHTML =
+          '<div class="curation cur-bar" role="group" aria-label="Page curation">' +
+          '<span class="cur-label">Curation</span>' +
+          '<span class="cur-done">loading…</span>' +
+          "</div>";
+      }
+    } catch {}
+  })();
+</script>
