@@ -6,8 +6,6 @@ import {
   getSession,
   login,
   logout,
-  type Providers,
-  type SessionInfo,
 } from "../lib/auth";
 import { Icons } from "./Icons";
 
@@ -41,27 +39,15 @@ function ProviderMark(props: { provider: Provider }) {
 }
 
 export default function AuthButton() {
-  // The Sign-in button is rendered the same on the server and at hydration (a
-  // stored session lives in localStorage, which the server can't see) — reading
-  // the session synchronously here would make a signed-in client try to hydrate
-  // the avatar over the server's button and throw, freezing the chrome on "Sign
-  // in". So resolve the session in onMount instead: signed-out users get the
-  // button at first paint with no change; signed-in users flip to their avatar
-  // right after hydration.
-  const [session, setSession] = createSignal<SessionInfo | null>(null);
-  // Undefined until onMount for the same reason — the cache lives in localStorage,
-  // unseen by the server. Unknown providers keep the button shown (it only hides
-  // on a positive "auth disabled"), so first paint is stable either way.
-  const [providers, setProviders] = createSignal<Providers | undefined>(undefined);
+  // Rendered client-only (no SSR), so the session can be read synchronously and
+  // the correct chrome shows from this island's first render — no signed-in→avatar
+  // flash. `AuthBoot`'s pre-paint script already painted the same chrome before
+  // the bundle loaded; on mount we drop that placeholder and take over interactive.
+  const [session] = createSignal(getSession());
+  const [providers, setProviders] = createSignal(authProvidersCached());
   const [open, setOpen] = createSignal(false);
-  // The modal portals out of the backdrop-filtered header, so it must never be
-  // part of the SSR/hydration tree (a portal in the hydrated markup throws). Gate
-  // it on a client-only flag so it only ever mounts after hydration.
-  const [mounted, setMounted] = createSignal(false);
   onMount(async () => {
-    setSession(getSession());
-    setProviders(authProvidersCached()); // last-known, instant
-    setMounted(true);
+    document.getElementById("auth-pre")?.remove();
     setProviders(await authProviders()); // revalidate against the Worker
   });
 
@@ -103,7 +89,7 @@ export default function AuthButton() {
           )}
         </Show>
       </Show>
-      <Show when={mounted() && open() && !session()}>
+      <Show when={open() && !session()}>
         <Portal>
           <div class="overlay">
             <button

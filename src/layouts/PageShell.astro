@@ -1,6 +1,7 @@
 ---
 import "../styles/app.css";
 import { ClientRouter } from "astro:transitions";
+import AuthBoot from "../components/AuthBoot.astro";
 import AuthButton from "../components/AuthButton.tsx";
 import LangBar from "../components/LangBar.tsx";
 import MainMenu from "../components/MainMenu.tsx";
@@ -129,7 +130,8 @@ const canonical = new URL(read, Astro.site).href;
           </a>
           <Search client:load />
           <div class="header-actions">
-            <AuthButton client:load />
+            <AuthBoot />
+            <AuthButton client:only="solid-js" />
           </div>
         </div>
       </header>

@@ -1,0 +1,44 @@
+---
+// Pre-paint auth chrome: read the stored session before first paint and show the
+// avatar (or the Sign-in button) immediately, so a signed-in reader never sees a
+// "Sign in" flash while the client-only AuthButton island loads. The island
+// removes this placeholder (#auth-pre) on mount and takes over interactivity.
+// Mirrors ThemeBoot's pre-paint approach (the server can't see localStorage).
+---
+
+<span class="auth-pre" id="auth-pre"></span>
+<script is:inline>
+  (() => {
+    const slot = document.getElementById("auth-pre");
+    if (!slot) return;
+    const esc = (s) =>
+      String(s).replace(
+        /[&<>"]/g,
+        (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c],
+      );
+    let session = null;
+    try {
+      const token = localStorage.getItem("wiki_session");
+      if (token) {
+        const claims = token.split(".")[1] || "";
+        const b64 = claims.replace(/-/g, "+").replace(/_/g, "/");
+        const pad = b64.length % 4 ? "=".repeat(4 - (b64.length % 4)) : "";
+        const body = JSON.parse(atob(b64 + pad));
+        if (body && body.login && typeof body.exp === "number" && body.exp * 1000 > Date.now())
+          session = body;
+      }
+    } catch {}
+    if (session) {
+      slot.className = "signin";
+      slot.innerHTML =
+        '<img class="avatar" alt="" width="26" height="26" src="' +
+        esc(session.avatar || "") +
+        '"><span class="signin-label">' +
+        esc(session.login) +
+        '</span><button type="button" class="btn btn-ghost btn-sm">Sign out</button>';
+    } else {
+      slot.innerHTML =
+        '<button type="button" class="btn btn-outline btn-sm signin">Sign in</button>';
+    }
+  })();
+</script>

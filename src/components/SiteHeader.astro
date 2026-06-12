@@ -2,6 +2,7 @@
 // The global top bar shared by the standalone pages (new, move, cite, special,
 // admin) and the 404 fallback. PageShell renders its own variant (it adds
 // transition:persist and points the wordmark at the page's read URL).
+import AuthBoot from "./AuthBoot.astro";
 import AuthButton from "./AuthButton.tsx";
 import MainMenu from "./MainMenu.tsx";
 import Search from "./Search.tsx";
@@ -21,7 +22,8 @@ const { home } = Astro.props;
     </a>
     <Search client:load />
     <div class="header-actions">
-      <AuthButton client:load />
+      <AuthBoot />
+      <AuthButton client:only="solid-js" />
     </div>
   </div>
 </header>
