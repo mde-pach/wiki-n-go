@@ -37,7 +37,7 @@ export function Composer(props: {
         class="comment-input"
         rows={3}
         placeholder={props.placeholder ?? "Add to the discussion…"}
-        value={draft()}
+        prop:value={draft()}
         onInput={(e) => setDraft(e.currentTarget.value)}
       />
       <div class="editor-actions">

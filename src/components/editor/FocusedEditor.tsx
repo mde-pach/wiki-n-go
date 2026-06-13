@@ -114,7 +114,9 @@ export default function FocusedEditor(props: {
             ref={ta}
             class="editor-textarea"
             rows={rows}
-            value={slice()}
+            // `prop:value` so the seeded section text survives SSR/hydration —
+            // see the note in Editor.tsx. (Client-created today, but kept robust.)
+            prop:value={slice()}
             placeholder="Write Markdown…"
             onInput={(e) => setSlice(e.currentTarget.value)}
           />

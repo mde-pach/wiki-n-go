@@ -302,7 +302,11 @@ export default function Editor(props: { slug?: string; initialContent?: string }
               ref={ta}
               class="editor-textarea"
               rows={20}
-              value={body()}
+              // `prop:value`, not `value`: Solid SSRs a plain `value` as an
+              // attribute, which a <textarea> ignores (it renders child text
+              // only) and hydration never repaints — so the box paints empty
+              // for existing pages. `prop:` forces the property assignment.
+              prop:value={body()}
               placeholder="Write Markdown…"
               onInput={(e) => setBody(e.currentTarget.value)}
             />
