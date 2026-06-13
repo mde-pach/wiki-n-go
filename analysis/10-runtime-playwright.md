@@ -185,6 +185,6 @@ catch this class of drift. Low, but it blocks first-run.
 - **Section editing** (`FocusedEditor`): opens in place under the heading and is
   correctly seeded — the one editing surface unaffected by RT-1.
 
-Screenshots referenced above are saved at the worktree root
+Screenshots referenced above are in [`screenshots/`](screenshots/)
 (`home.png`, `edit-formatting.png`, `history.png`, `notfound.png`,
 `dark-signin-modal.png`, `mobile-article.png`, `special.png`, `admin-gated.png`).
