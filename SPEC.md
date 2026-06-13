@@ -225,8 +225,11 @@ costs; consider salt/epoch rotation to limit long-term linkability (M5).
   runtime (no rebuild). *Not* a SPA — mostly static HTML, islands only where
   interactive.
 - **Markdown:** `markdown-it` + `DOMPurify` (client-side render + sanitize).
-- **Worker (editing only):** one Cloudflare Worker — anonymous relay + optional
-  OAuth (based on the `sveltia-cms-auth` pattern for the OAuth half).
+- **Backend (editing only):** one **portable Bun server** — anonymous relay +
+  optional OAuth (OAuth half based on the `sveltia-cms-auth` pattern). *(Was a
+  single Cloudflare Worker; M11 moves it to a runtime-agnostic Bun process that
+  wikigit.org runs centrally and anyone can self-host. Cloudflare becomes one
+  optional host, not the built-in. State is in-memory + git — no DB, see M11/§6.)*
 - **Read CDN:** jsDelivr, pinned to commit SHA.
 - **Discussion:** giscus (GitHub Discussions).
 - **Hosting:** multi-host via **click-to-deploy** buttons (GitHub Pages /
@@ -593,6 +596,35 @@ Build order (each ships independently; the Engine slice lands here first):
 Open: `wg:` handle namespace + uniqueness (the Engine keys `wg:` off the stable `sub`
 meanwhile); persistent key volume for Accounts (see follow-up above).
 
+### M11 — Portable backend (Bun server, no-DB, self-hostable) 🟡
+Move the Engine backend **off the single Cloudflare Worker** onto a **portable Bun
+server** that wikigit.org runs centrally (multi-tenant, free for end users) and
+anyone can self-host. Cloudflare stays *possible* (one optional host), not the
+built-in. The read path (jsDelivr@sha + static islands) is unchanged — only the
+editing/dynamic backend moves. Full design + migration plan:
+`analysis/11-portable-backend-plan.md`. Decisions (2026-06-14):
+- **Bun server**, one process (the `accounts/` template), not edge functions.
+- **No DB — memory + git.** Sessions/OAuth-state/PoW are signature-based (survive
+  restart, no store); rate-limit/PoW-single-use/3RR + trust/index/cite are
+  ephemeral in-memory behind the existing `namespacedKV` seam (rebuilt from git on
+  miss); durable moderation state stays in git.
+- **Backend only** — content stays in each user's GitHub repo, read via CDN; the
+  server relays writes + serves dynamic endpoints.
+- **Self-host = a Bun binary** (`bun run start`) + reverse proxy for TLS.
+- **Durable patrol/tags move to `.wikigit/moderation.jsonl`** (git append-log,
+  hydrated to memory on boot — the `audit-log.jsonl` pattern), since they aren't
+  derivable from content.
+- **Scale vertical-first**, then **shard by tenant** (`repo → process`) if needed —
+  keeps no-DB correctness without a shared store.
+- [ ] ⬜ M11.1 store `Store` interface + `MemoryKV` · M11.2 Bun runtime (`Bun.serve`
+  wrap, `waitUntil`→tracked fire-and-forget) · M11.3 moderation log · M11.4 frontend
+  `serverUrl` · M11.5 deploy/ops · M11.6 retire CF surface (setup wizard, `wrangler.toml`,
+  KV, `EDGE_SSR=cloudflare`; PKCE-watch dropped).
+
+The §5 "one piece of infra is irreducible" argument is **runtime-agnostic** — it
+holds for the Bun server exactly as for the Worker (the browser still can't hold a
+write credential); only the noun changes.
+
 ---
 
 ## 10. Open Decisions
@@ -606,8 +638,10 @@ meanwhile); persistent key volume for Accounts (see follow-up above).
       content route on demand, server-side `noindex`, no rebuild. Off by default —
       **on for the flagship CF Pages deploy** (`EDGE_SSR=cloudflare`) so its first
       paint is request-time-fresh; forks/GitHub Pages stay static.
-- [ ] **PKCE watch:** drop the OAuth half of the Worker once GitHub supports
-      client-side PKCE.
+- [x] ~~**PKCE watch:** drop the OAuth half of the Worker once GitHub supports
+      client-side PKCE~~ → **moot (M11)**. A portable Bun server holds the OAuth
+      client secret fine, so there's nothing to wait on; the OAuth half stays
+      server-side by design.
 - [x] ~~`gh:` ↔ `wg:` identity merge (M10)~~ → **link** (one identity; GitHub a connector on the IdP).
 - [x] ~~Account-signup abuse (M10)~~ → **no signup trust bonus**; trust earned per-repo, real power human-granted.
 - [x] ~~IdP pick (M10): Logto vs Zitadel~~ → **self-hosted OpenAuth Worker** (lighter; identity + email code only).
@@ -706,3 +740,7 @@ meanwhile); persistent key volume for Accounts (see follow-up above).
 | 2026-06-08 | **Removed the pre-publish content/spam filter (`filters.ts`/`filters.json`/`runFilters`) — spam handled another way** | The AbuseFilter-style rule pass (blanking/byte/link/domain checks + regex rules, `disallow`→422 / `tag`) is gone. Its only structural outputs were kept alive cleanly: the `tag:<sha>` KV set, RecentChanges badges and the revert-risk `tags` input now come solely from 3RR's `edit-war` flag (`EditContext.verdict` → `EditContext.tags: string[]`). Merge/split drop their filter calls. No replacement gate added in the Worker — by design, spam control will live elsewhere |
 | 2026-06-08 | **Page navigation keeps `ClientRouter` but drops the cross-fade; curation bar hydrates eagerly + shares one whoami fetch** | Two read-view annoyances. (1) The View Transitions fade read as "app-like," not wiki-like — a global `::view-transition-old/new(root){animation:none}` makes the swap instant while keeping in-site navigation (no full reload, header still `transition:persist`). (2) The maintainer curation bar popped in late: it's viewer-specific so it can't be SSR'd, but it was `client:idle` (waits for idle) and every island re-fetched `/whoami`. Now `client:load` (fetch starts immediately) + a module-level shared `whoamiOnce` promise so the bar resolves from cache with no flash on subsequent in-site navigations (a full reload on sign-in/out drops it) |
 | 2026-06-08 | **Flagship CF Pages deploy turns edge-SSR on (`EDGE_SSR=cloudflare`) to kill the stale-then-fresh read flash** | The static path paints the build-time content glob, then `WikiPage`'s `onMount` refetches the latest from jsDelivr and swaps it in — a visible blink whenever content changed since the last *code* deploy (and content edits don't redeploy, so that's common). Rather than a client skeleton-then-fresh hack, switch the flagship to the already-shipped edge-SSR variant: the content route renders on demand, fetching request-time-fresh content server-side, so the island gets `fresh` and skips its refetch — first paint is the fresh HTML, no blink, no skeleton, SEO intact. Freshness is the `s-maxage=30, stale-while-revalidate` edge cache (not the static path's per-load fetch). One env var in `deploy-cf-pages.yml`; the build emits a Pages `_worker.js` + `_routes.json` (genuinely-static routes excluded). Forks/GitHub Pages stay pure static (flag unset) |
+| 2026-06-14 | **Move the backend off the single Cloudflare Worker onto a portable Bun server; wikigit.org runs it centrally (free for end users), anyone can self-host; Cloudflare becomes one optional host, not built-in** (M11) | The Worker free tier was the "near-zero infra" hook, but it locks the backend to one vendor/runtime, and the 10 ms-CPU cap already forced `accounts/` off Workers onto a Bun app on Coolify — that's the proven template. A portable Bun process runs anywhere Bun runs (VPS / Coolify / Fly / even CF Containers), so the central instance scales for a real free-tier product and a self-hoster isn't tied to Cloudflare. Reads are unaffected (CDN/jsDelivr), so the server only ever handles writes + a few dynamic GETs — cheap enough to offer free. The §5 irreducibility argument is runtime-agnostic (the browser still can't hold a write credential), so nothing about the model changes, only the host. Design + migration: `analysis/11-portable-backend-plan.md` |
+| 2026-06-14 | **Backend stays no-DB: state is in-memory + git, no relational/KV store added** (M11/D2) | Keeps the Engine's no-second-store invariant even as a real server. The realization that makes it work: sessions (HS256 JWT), OAuth login-state (signed token) and PoW tokens (self-verifying) are **signature-based**, so they survive restart with no store; rate-limit/PoW-single-use/3RR and the trust/link-graph/cite caches are **ephemeral in-memory** behind the existing `namespacedKV` seam (a `MemoryKV` Map+TTL), rebuilt from git/content on a miss (rebuild-on-miss + static-`*.json` fallback already exist), so a restart only re-warms caches and opens a ~2-min PoW-replay window — harmless. The only state that is neither stateless nor a cache is **durable moderation decisions**, which already live in git files (`bans.json`/`trusted-editors.json`/`suppressed.json`/`audit-log.jsonl`) |
+| 2026-06-14 | **Patrol bits + manual change tags move from KV to a git append-log `.wikigit/moderation.jsonl`, hydrated to memory on boot** (M11/D5) | `patrol:<sha>` and `tag:<sha>` are durable decisions, not derivable from page content, so under no-DB they can't be ephemeral-in-memory (a redeploy would re-show every page as unpatrolled). The `audit-log.jsonl` pattern fits exactly: append a line to a single git file per patrol/tag action (git = durable truth, audited, tamper-evident in the commit), hydrate it into the same in-memory view the read endpoints already use at boot, serve/update from memory. Rejected fail-open-ephemeral (simpler but loses moderation memory across deploys) and a real KV/DB (breaks no-DB). Compaction mirrors whatever `audit-log.jsonl` adopts |
+| 2026-06-14 | **No-DB caps easy horizontal scale; central instance scales vertical-first, then shards by tenant — not a shared store** (M11) | In-memory rate-limit/PoW can't be shared across processes, so spraying stateless app processes would break those gates. Accepted because the backend only does writes (reads are CDN), and write volume is tiny, so one Bun process serves a high rate for a long time. When one box isn't enough, the no-DB-preserving exit is **consistent-hash `repo → process`** so each tenant's counters live in exactly one process (correctness intact, still no shared store) — chosen over introducing Redis precisely to keep the invariant. Written down as the known ceiling + planned exit so it isn't a surprise |

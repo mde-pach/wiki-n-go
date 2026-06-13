@@ -6,6 +6,14 @@ Where multiple dimensions point at one root cause, items are **merged** and the
 contributing finding IDs listed. Refuted/downgraded findings (FE-2, FE-3, FE-4,
 WB-2) are deliberately excluded from P0 — see 00-INDEX.md.
 
+> **Backend pivot context (M11).** The backend is moving off the single Cloudflare
+> Worker onto a portable **Bun server** (no-DB: memory + git; wikigit.org central +
+> self-hostable). Plan: [`11-portable-backend-plan.md`](11-portable-backend-plan.md).
+> Items tied to Cloudflare primitives are flagged **🔁** below and reframed for the
+> portable runtime. **The P0 security/correctness fixes are runtime-agnostic** — do
+> them on the current Worker now; they carry to Bun untouched, so M11 is not a reason
+> to defer them.
+
 ---
 
 ## P0 — Fix now (correctness & security)
@@ -146,13 +154,16 @@ content already in the SSR'd HTML, usually discarding a byte-identical result.
 *Sources:* **PERF-3**, PERF-5, **RT-3** (live-measured: 7 Worker calls + content
 fetch on a single home load).
 
-### P1-3 — Add edge cache headers to Worker JSON reads — **S**
+### P1-3 — Add HTTP cache headers to backend JSON reads — **S** 🔁
 In `worker/src/http.ts` `json()`, set per-endpoint `Cache-Control`: `/pages` &
 `/link-graph` → `public, s-maxage=60, stale-while-revalidate=600`; `/latest` →
 `public, s-maxage=15, swr=60`; keep `/whoami` & `/patrol-status` `private, no-store`.
 Drop the client `cache:"no-store"` on `/pages`/`/latest`.
-*Why:* no read-path JSON is edge-cacheable today; the KV layer already makes these
-safe to cache (the edge-SSR content route already does exactly this).
+*Why:* no read-path JSON is cacheable today; the in-memory/KV layer already makes
+these safe to cache (the edge-SSR content route already does exactly this).
+*🔁 M11 reframe:* the mechanism is portable — on the Bun server these are standard
+HTTP `Cache-Control` honored by a **reverse proxy or optional CDN in front**, not CF
+edge KV. Same headers, vendor-neutral. Do it now on the Worker; it carries over.
 *Sources:* **PERF-4**. Adjacent: PERF-9 (skip `/whoami` entirely for readers with no
 session/cached-maintainer signal).
 
@@ -291,6 +302,30 @@ weighted ranking as v1 in FEATURES.
 *Sources:* RT-4, RT-5, ENV-1 (report 10).
 
 ---
+
+---
+
+## Milestone M11 — Portable backend (Bun, no-DB, self-hostable) — **L**
+
+A distinct initiative (not a finding-fix), sequenced **after the P0 correctness/
+security fixes** so the move carries clean code, not bugs. Full design + migration:
+[`11-portable-backend-plan.md`](11-portable-backend-plan.md). Phases:
+- **M11.1 — Store interface + `MemoryKV`** (S/M): extract the `namespacedKV` shape
+  into a `Store` interface; in-memory Map+TTL impl; parity tests.
+- **M11.2 — Bun runtime** (M): wrap the `fetch` router in `Bun.serve`; `env` from
+  `process.env` + `MemoryKV`; `waitUntil`→tracked fire-and-forget drained on
+  `SIGTERM`; port the worker suite.
+- **M11.3 — Durable moderation log** (S/M): patrol/tags → `.wikigit/moderation.jsonl`
+  (git append-log, boot-hydrated), reusing the `audit-log.jsonl` commit path.
+- **M11.4 — Frontend `serverUrl`** (S): rename `config.workerUrl`→`serverUrl`
+  (`PUBLIC_API_URL`); no contract change.
+- **M11.5 — Deploy/ops** (S/M): `bun run start` + `systemd`/Caddy(TLS) sample + env
+  reference; run on Coolify beside `accounts/`.
+- **M11.6 — Retire CF surface** (S): drop the Deploy-to-Cloudflare wizard, Workers
+  Builds, `wrangler.toml`, KV bindings, `EDGE_SSR=cloudflare`; PKCE-watch dropped;
+  Cloudflare kept only as a documented "advanced" host.
+*Scale note:* vertical-first (writes are low-volume; reads are CDN), shard-by-tenant
+(`repo → process`) as the no-DB-preserving exit if one box isn't enough.
 
 ## Cross-cut root-cause merges (where dimensions converged)
 

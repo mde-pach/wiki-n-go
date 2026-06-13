@@ -115,3 +115,4 @@ and of PERF-3/PERF-5 (RT-3: the live 7-call read-path Worker waterfall).
 - [08-accessibility-ux.md](08-accessibility-ux.md)
 - [10-runtime-playwright.md](10-runtime-playwright.md) — live browser pass (RT-1 Critical editor bug + a11y/perf corroboration)
 - [09-ROADMAP.md](09-ROADMAP.md) — prioritized, de-duplicated action plan
+- [11-portable-backend-plan.md](11-portable-backend-plan.md) — **M11**: backend pivot off Cloudflare Workers → portable Bun server (no-DB, self-hostable); design + migration plan
