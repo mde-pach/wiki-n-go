@@ -5,6 +5,7 @@ import {
   adminHref,
   BASE,
   changesHref,
+  createHref,
   parseRoute,
   prettify,
   readHref,
@@ -256,6 +257,8 @@ function Footer(props: { slug: string }) {
           <a href={setupHref}>Setup</a>
           <span class="sep">·</span>
           <a href={settingsHref}>Settings</a>
+          <span class="sep">·</span>
+          <a href={createHref}>Create a wiki</a>
         </div>
         <div class="footer-bottom">
           <p class="fb-license">

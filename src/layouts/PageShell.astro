@@ -19,6 +19,7 @@ import {
   BASE,
   categoryHref,
   changesHref,
+  createHref,
   langOf,
   prettify,
   readHref,
@@ -262,6 +263,8 @@ const canonical = new URL(read, Astro.site).href;
             <a href={setupHref}>Setup</a>
             <span class="sep">·</span>
             <a href={settingsHref}>Settings</a>
+            <span class="sep">·</span>
+            <a href={createHref}>Create a wiki</a>
           </div>
           <div class="footer-bottom">
             <p class="fb-license">

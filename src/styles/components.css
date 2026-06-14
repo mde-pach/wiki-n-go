@@ -2450,3 +2450,49 @@ a.preview-body:focus-visible .pv-foot {
     grid-template-columns: 1fr;
   }
 }
+
+.create-signin {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-top: var(--space-section);
+}
+.create-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.create-name-row .input {
+  max-width: 16rem;
+}
+.create-suffix {
+  color: var(--color-ink-subtle);
+  font-family: var(--font-mono, monospace);
+}
+.create-hint {
+  font-size: var(--text-sm);
+  color: var(--color-ink-subtle);
+}
+.create-hint.is-ok {
+  color: var(--color-add-strong);
+}
+.create-hint.is-bad {
+  color: var(--color-remove-strong);
+}
+.create-lanes {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+.create-lane {
+  display: flex;
+  gap: 0.6rem;
+  align-items: start;
+  padding: 0.6rem 0;
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+.create-lane input {
+  margin-top: 0.2rem;
+}
