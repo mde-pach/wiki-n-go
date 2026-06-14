@@ -57,6 +57,22 @@ export { signSession, verifySession } from "./identity/auth";
 export { frontmatter, lastPage, pageTier } from "./trust";
 export { SLUG_RE } from "./types";
 
+// Per-endpoint shared-cache hints, applied only on a 200 GET. `s-maxage` governs
+// a CDN / reverse proxy in front of the Worker (M11) — it does NOT touch the
+// browser's private cache, so it can't pin a stale SHA. Anything identity- or
+// moderation-specific is omitted (defaults to no shared caching). `/latest` and
+// `/whoami`/`/patrol-status` are deliberately absent: the client sends those
+// `no-store` and they must stay per-request fresh.
+export const CACHE_CONTROL: Record<string, string> = {
+  "GET /pages": "public, s-maxage=60, stale-while-revalidate=600",
+  "GET /link-graph": "public, s-maxage=60, stale-while-revalidate=600",
+  "GET /search-index": "public, s-maxage=60, stale-while-revalidate=600",
+  "GET /history": "public, s-maxage=30, stale-while-revalidate=300",
+  "GET /diff": "public, s-maxage=300, stale-while-revalidate=3600",
+  "GET /cite": "public, s-maxage=3600, stale-while-revalidate=86400",
+  "GET /changes": "public, s-maxage=15, stale-while-revalidate=120",
+};
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const headers = corsHeaders(env, request);
@@ -152,7 +168,8 @@ export default {
       const out = await handler();
       // Auth routes return a redirect Response directly; everything else is JSON.
       if (out instanceof Response) return out;
-      return json(out, 200, headers);
+      const cc = CACHE_CONTROL[`${request.method} ${url.pathname}`];
+      return json(out, 200, cc ? { ...headers, "Cache-Control": cc } : headers);
     } catch (err) {
       const status = err instanceof HttpError ? err.status : 500;
       return json({ error: message(err) }, status, headers);

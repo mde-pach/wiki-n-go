@@ -65,12 +65,20 @@ describe("GET /link-graph", () => {
     stubGitHub();
     const res = await worker.fetch(req("/link-graph"), makeEnv());
     expect(res.status).toBe(200);
+    // Shared-cache hint for a CDN in front (PERF-4); never on the browser's SHA.
+    expect(res.headers.get("Cache-Control")).toContain("s-maxage=60");
     const g = (await res.json()) as LinkGraph;
     expect(g.backlinks["getting-started"]).toEqual(["index"]);
     expect(g.wanted).toEqual([{ slug: "missing-page", by: ["index"] }]);
     expect(g.redirects).toEqual([
       { from: "getting-started", to: "index", broken: false, double: false },
     ]);
+  });
+
+  it("does not set a shared-cache header on identity/freshness endpoints", async () => {
+    stubGitHub();
+    const res = await worker.fetch(req("/whoami"), makeEnv());
+    expect(res.headers.get("Cache-Control")).toBeNull();
   });
 });
 
