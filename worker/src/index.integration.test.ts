@@ -140,3 +140,62 @@ describe("GET /search-index", () => {
     expect(home?.text).toContain("See getting-started and missing-page.");
   });
 });
+
+describe("GET /resolve + /tenant-available (tenant registry)", () => {
+  // Seed the registry read-cache so resolution needs no GitHub call.
+  function platformEnv(): Env {
+    const env = makeEnv() as Env & {
+      RATE_LIMIT: ReturnType<typeof fakeKV>;
+      PLATFORM_HOST: string;
+    };
+    env.PLATFORM_HOST = "wikigit.org";
+    env.RATE_LIMIT.put(
+      "registry:raw",
+      JSON.stringify({
+        name: "recipes",
+        repo: "bob/cookbook",
+        owner: "gh:bob",
+        lane: "byo",
+        at: "t",
+      }),
+    );
+    return env;
+  }
+
+  it("resolves a registered subdomain to its repo (with a shared-cache hint)", async () => {
+    const res = await worker.fetch(
+      req("/resolve?host=recipes.wikigit.org"),
+      platformEnv(),
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Cache-Control")).toContain("s-maxage=30");
+    expect(await res.json()).toEqual({
+      name: "recipes",
+      repo: "bob/cookbook",
+      lane: "byo",
+    });
+  });
+
+  it("404s an unregistered subdomain so the frontend can offer to claim it", async () => {
+    const res = await worker.fetch(
+      req("/resolve?host=ghost.wikigit.org"),
+      platformEnv(),
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("reports name availability (taken / reserved / free)", async () => {
+    const taken = await worker.fetch(
+      req("/tenant-available?name=recipes"),
+      platformEnv(),
+    );
+    expect((await taken.json()) as { available: boolean }).toMatchObject({
+      available: false,
+      reason: "taken",
+    });
+    const free = await worker.fetch(req("/tenant-available?name=fresh"), platformEnv());
+    expect((await free.json()) as { available: boolean }).toMatchObject({
+      available: true,
+    });
+  });
+});

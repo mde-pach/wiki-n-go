@@ -50,6 +50,11 @@ export interface Env {
   // installs, and namespace KV per repo. Requires the GitHub App credential.
   // Unset (default) → single-tenant: always env's repo, request repo ignored.
   MULTI_TENANT?: string;
+  // The hosted platform's apex (e.g. "wikigit.org"). Used to parse a request
+  // host into a tenant label (`foo.wikigit.org` → `foo`) for `/resolve`. Unset →
+  // derive the base as the host's registrable two labels (fine for `x.y`; set it
+  // explicitly for multi-part TLDs).
+  PLATFORM_HOST?: string;
 }
 
 export interface EditBody {

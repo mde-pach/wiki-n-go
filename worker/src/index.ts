@@ -24,6 +24,7 @@ import {
   tag,
 } from "./handlers/moderation";
 import { protect } from "./handlers/protect";
+import { resolve as resolveTenantHost, tenantAvailable } from "./handlers/resolve";
 import { grant, listEditors, revoke } from "./handlers/rights";
 import { status as connectionStatus } from "./handlers/status";
 import { listSuppressed, suppress, unsuppress } from "./handlers/suppress";
@@ -72,6 +73,7 @@ export const CACHE_CONTROL: Record<string, string> = {
   "GET /diff": "public, s-maxage=300, stale-while-revalidate=3600",
   "GET /cite": "public, s-maxage=3600, stale-while-revalidate=86400",
   "GET /changes": "public, s-maxage=15, stale-while-revalidate=120",
+  "GET /resolve": "public, s-maxage=30, stale-while-revalidate=300",
 };
 
 export default {
@@ -79,15 +81,30 @@ export default {
     const headers = corsHeaders(env, request);
     if (request.method === "OPTIONS") return new Response(null, { headers });
 
-    // Connection diagnostics: answered BEFORE the tenant gate so it stays
-    // reachable for an un-connected repo (it's what tells the setup page to
-    // connect). Does its own repo resolution, never 404s on "not served".
-    if (request.method === "GET" && new URL(request.url).pathname === "/status") {
-      try {
-        return json(await connectionStatus(env, request), 200, headers);
-      } catch (err) {
-        const code = err instanceof HttpError ? err.status : 500;
-        return json({ error: message(err) }, code, headers);
+    // Operator-global endpoints, answered BEFORE the tenant gate: they read the
+    // operator repo (registry / diagnostics), not the requested tenant, so they
+    // must run on the base env. `/status` also has to stay reachable for an
+    // un-connected repo (it's what tells the setup page to connect).
+    if (request.method === "GET") {
+      const path = new URL(request.url).pathname;
+      const preTenant: Record<string, () => Promise<unknown>> = {
+        "/status": () => connectionStatus(env, request),
+        "/resolve": () => resolveTenantHost(env, request, new URL(request.url)),
+        "/tenant-available": () => tenantAvailable(env, new URL(request.url)),
+      };
+      const pre = preTenant[path];
+      if (pre) {
+        try {
+          const cc = CACHE_CONTROL[`GET ${path}`];
+          return json(
+            await pre(),
+            200,
+            cc ? { ...headers, "Cache-Control": cc } : headers,
+          );
+        } catch (err) {
+          const code = err instanceof HttpError ? err.status : 500;
+          return json({ error: message(err) }, code, headers);
+        }
       }
     }
 
