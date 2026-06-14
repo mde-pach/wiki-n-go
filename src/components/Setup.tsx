@@ -1,6 +1,7 @@
 import { For, type JSX, Show } from "solid-js";
 import { config } from "../config";
 import { repoSlug } from "../lib/engine";
+import { buildChecklist, fetchFirstRunState } from "../lib/first-run";
 import {
   appInstallUrl,
   type EngineStatus,
@@ -143,6 +144,7 @@ function buildItems(status: EngineStatus | null): Item[] {
 
 export default function Setup() {
   const status = clientResource(fetchEngineStatus);
+  const firstRun = clientResource(fetchFirstRunState);
 
   return (
     <main id="main" class="view-wrap setup-page">
@@ -182,6 +184,41 @@ export default function Setup() {
             )}
           </For>
         </ul>
+      </Show>
+
+      <Show when={!firstRun.loading && status()}>
+        <section class="setup-firstrun">
+          <h3>Getting started</h3>
+          <p class="setup-firstrun-sub">
+            A few first steps — each ticks off on its own as you go.
+          </p>
+          <ul class="setup-list">
+            <For
+              each={buildChecklist(
+                firstRun() ?? { pages: 0, maintainers: 0, signinAvailable: false },
+              )}
+            >
+              {(item) => (
+                <li class={`setup-item is-${item.done ? "ok" : "info"}`}>
+                  <span class="setup-icon" aria-hidden="true">
+                    {item.done ? "✓" : "○"}
+                  </span>
+                  <div class="setup-body">
+                    <p class="setup-item-title">{item.title}</p>
+                    <p class="setup-item-detail">{item.detail}</p>
+                  </div>
+                  <Show when={item.action}>
+                    {(a) => (
+                      <a class="btn btn-primary btn-sm setup-action" href={a().href}>
+                        {a().label}
+                      </a>
+                    )}
+                  </Show>
+                </li>
+              )}
+            </For>
+          </ul>
+        </section>
       </Show>
 
       <section class="setup-paths">
