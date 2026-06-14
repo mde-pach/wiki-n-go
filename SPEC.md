@@ -597,7 +597,7 @@ Build order (each ships independently; the Engine slice lands here first):
 Open: `wg:` handle namespace + uniqueness (the Engine keys `wg:` off the stable `sub`
 meanwhile); persistent key volume for Accounts (see follow-up above).
 
-### M11 — Portable backend (Bun server, no-DB, self-hostable) 🟡
+### M11 — Portable backend (Bun server, no-DB, self-hostable) ✅
 Move the Engine backend **off the single Cloudflare Worker** onto a **portable Bun
 server** that wikigit.org runs centrally (multi-tenant, free for end users) and
 anyone can self-host. Cloudflare stays *possible* (one optional host), not the
@@ -617,10 +617,29 @@ editing/dynamic backend moves. Full design + migration plan:
   derivable from content.
 - **Scale vertical-first**, then **shard by tenant** (`repo → process`) if needed —
   keeps no-DB correctness without a shared store.
-- [ ] ⬜ M11.1 store `Store` interface + `MemoryKV` · M11.2 Bun runtime (`Bun.serve`
-  wrap, `waitUntil`→tracked fire-and-forget) · M11.3 moderation log · M11.4 frontend
-  `serverUrl` · M11.5 deploy/ops · M11.6 retire CF surface (setup wizard, `wrangler.toml`,
-  KV, `EDGE_SSR=cloudflare`; PKCE-watch dropped).
+- [x] ✅ **M11.1 — `MemoryKV`** (`worker/src/store.ts`): the KV subset the Worker uses
+  (get/put+TTL/delete/list{prefix}) with lazy read-time expiry + injectable clock.
+  `namespacedKV` composes over it unchanged. Proven a drop-in (the rate-limit gate
+  429s through it). Unit-tested.
+- [x] ✅ **M11.2 — Bun runtime** (`worker/src/server.ts`): serves the same
+  `app.fetch(request, env)` via `Bun.serve`; `env` from `process.env` + `MemoryKV`;
+  `/health` for orchestrator checks; graceful SIGTERM/SIGINT. The Worker entry +
+  CF deploy are untouched (no `waitUntil` in this codebase, so the wrap is plain).
+  `bun run start`. Smoke-tested in a container.
+- [x] ✅ **M11.3 — durable moderation log** (`worker/src/modlog.ts`): manual patrols +
+  tags append to `.wikigit/moderation.jsonl` (mirrors `audit-log.jsonl`) and hydrate
+  the store on Bun boot, so human moderation survives a no-DB restart. Kept off the
+  publish hot path (autopatrol stays KV-only, tier-derived + fail-open). Unit-tested.
+- [x] ✅ **M11.4 — frontend repoint**: the site already reads `PUBLIC_WORKER_URL`
+  (`src/config.ts`); point it at the Bun server's URL. HTTP contract unchanged, so
+  no other frontend change (a cosmetic `serverUrl` rename was skipped as churn).
+- [x] ✅ **M11.5 — deploy/ops** (`worker/Dockerfile`, `.dockerignore`, `DEPLOY.md`):
+  `oven/bun:1`, `--production`, **no volume** (no-DB). Coolify setup + env reference +
+  verify steps. `docker build` + container `/health` verified.
+- [x] ✅ **M11.6 — Cloudflare relegated, not removed**: Bun is the documented primary
+  backend; the Worker entry (`src/index.ts`), `wrangler.toml`, the `/setup` wizard and
+  the `EDGE_SSR=cloudflare` read path are **retained as a supported alternative**
+  (forks may still run on CF). PKCE-watch is moot (a server holds the OAuth secret).
 
 The §5 "one piece of infra is irreducible" argument is **runtime-agnostic** — it
 holds for the Bun server exactly as for the Worker (the browser still can't hold a
