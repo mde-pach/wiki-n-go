@@ -88,6 +88,14 @@ export default {
     }
 
     const url = new URL(request.url);
+    // Behind a TLS-terminating reverse proxy (Coolify/Traefik) the container sees
+    // the request over plain HTTP, so `request.url` is `http://…`. Honour the
+    // forwarded scheme/host so OAuth redirect URIs and canonical links are the
+    // real external `https://…` ones the browser and GitHub expect.
+    const fwdProto = request.headers.get("x-forwarded-proto");
+    if (fwdProto) url.protocol = `${fwdProto.split(",")[0].trim()}:`;
+    const fwdHost = request.headers.get("x-forwarded-host");
+    if (fwdHost) url.host = fwdHost.split(",")[0].trim();
     const q = url.searchParams;
     const routes: Record<string, () => Promise<unknown>> = {
       "GET /latest": () => latestSha(env),
