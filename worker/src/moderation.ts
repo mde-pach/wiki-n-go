@@ -51,7 +51,7 @@ export function powBits(env: Env): number {
   return Number.isFinite(n) ? n : 18;
 }
 
-function leadingZeroBits(hash: Uint8Array): number {
+export function leadingZeroBits(hash: Uint8Array): number {
   let bits = 0;
   for (const byte of hash) {
     if (byte === 0) {
