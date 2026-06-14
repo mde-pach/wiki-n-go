@@ -4,6 +4,7 @@ import { config } from "../config";
 import { languageName } from "../lib/languages";
 import { getLinkGraph } from "../lib/linkgraph";
 import { BASE, langOf, readHref } from "../lib/paths";
+import { loadSiteConfig } from "../lib/site-config";
 
 interface Entry {
   lang: string;
@@ -12,16 +13,15 @@ interface Entry {
   current: boolean;
 }
 
-function createHref(lang: string, key: string): string {
-  const createSlug = lang === config.defaultLang ? key : `${lang}/${key}`;
+function createHref(lang: string, key: string, defaultLang: string): string {
+  const createSlug = lang === defaultLang ? key : `${lang}/${key}`;
   return `${BASE}/edit/${createSlug}?translationKey=${encodeURIComponent(key)}`;
 }
 
 // Existing translations of this article — switch links. Configured languages
 // come first (in their listed order), any other language the article exists in
 // follows; names resolve through ISO 639-1 so every code shows a real label.
-function existing(siblings: string[], current: string): Entry[] {
-  const order = config.languages.map((l) => l.code);
+function existing(siblings: string[], current: string, order: string[]): Entry[] {
   const rank = (c: string) => order.indexOf(c) + 1 || order.length + 1;
   return siblings
     .map((slug) => {
@@ -39,8 +39,13 @@ function existing(siblings: string[], current: string): Entry[] {
 // Languages already present elsewhere in the wiki but not yet for this article:
 // the likely-to-be-extended set, offered as inline "add" links (W5). Drawn from
 // the wiki's actual languages, configured order first.
-function extend(siblings: string[], present: Set<string>, key: string): Entry[] {
-  const order = config.languages.map((l) => l.code);
+function extend(
+  siblings: string[],
+  present: Set<string>,
+  key: string,
+  order: string[],
+  defaultLang: string,
+): Entry[] {
   const rank = (c: string) => order.indexOf(c) + 1 || order.length + 1;
   const have = new Set(siblings.map(langOf));
   return [...present]
@@ -48,7 +53,7 @@ function extend(siblings: string[], present: Set<string>, key: string): Entry[] 
     .map((code) => ({
       lang: code,
       name: languageName(code),
-      href: createHref(code, key),
+      href: createHref(code, key, defaultLang),
       current: false,
     }))
     .sort((a, b) => rank(a.lang) - rank(b.lang));
@@ -66,6 +71,15 @@ export default function LangBar(props: {
     () => (isServer ? undefined : true),
     () => getLinkGraph(),
   );
+  // The configured language order + default language come from the tenant's
+  // wikigit.json at runtime (one shared build, many tenants); SSR uses the baked
+  // config until the merged config loads on the client.
+  const [cfg] = createResource(
+    () => (isServer ? undefined : true),
+    () => loadSiteConfig(),
+  );
+  const order = () => (cfg()?.languages ?? config.languages).map((l) => l.code);
+  const defaultLang = () => cfg()?.defaultLang ?? config.defaultLang;
   const siblings = () =>
     graph()?.translations?.[props.translationKey] ?? props.initialSiblings;
   const present = () => {
@@ -73,8 +87,9 @@ export default function LangBar(props: {
     return g ? new Set(Object.keys(g.titles).map(langOf)) : new Set(props.wikiLangs);
   };
 
-  const switches = () => existing(siblings(), props.slug);
-  const extras = () => extend(siblings(), present(), props.translationKey);
+  const switches = () => existing(siblings(), props.slug, order());
+  const extras = () =>
+    extend(siblings(), present(), props.translationKey, order(), defaultLang());
   // The generic "new language" path is always open: the picker on /new offers
   // every ISO 639-1 language, so there's always another one to translate into.
   // It's left unnamed here on purpose (W5: don't pre-suggest a specific language).

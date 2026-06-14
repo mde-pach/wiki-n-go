@@ -665,7 +665,10 @@ editing/dynamic backend moves. Full design + migration plan:
   `?repo=`. **(3) Config-as-data** — owner-editable `wikigit.json` (title/languages/theme),
   read live + tenant-aware via `GET /config`, written maintainer-gated + whitelisted via
   `POST /config`; the in-site `/settings` form round-trips it with no rebuild; `SiteBoot`
-  applies title/description to the shared chrome at runtime. **Still to build (phase 4):** the
+  applies the tenant's **title, tagline → header wordmark, Appearance defaults and language
+  set** to the shared chrome at runtime (cached per host so the pre-paint scripts — ThemeBoot +
+  a wordmark inline — apply them before first paint on reload/swap; flagship config==defaults is
+  untouched, keeping the hand-crafted wordmark). **Still to build (phase 4):** the
   claim flow itself (sign in → pick name → choose lane → provision repo/install → register) and
   the platform-stored provisioning (needs a `wikigit-tenants` org + the App with repo-admin).
 - [x] ✅ **M11.9 — claim flow, both lanes (Hub phase 4)** (2026-06-14): self-serve

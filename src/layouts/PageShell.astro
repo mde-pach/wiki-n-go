@@ -133,6 +133,31 @@ const canonical = new URL(read, Astro.site).href;
             <span>wiki</span><span class="wm-accent">git</span><span class="wm-dot"></span>
             <span class="wordmark-sub">the open reference</span>
           </a>
+          <script is:inline>
+            /* Pre-paint: rewrite the wordmark to a hosted tenant's title/tagline
+               (cached by SiteBoot) so a reload doesn't flash the generic brand.
+               First-ever load has no cache → SiteBoot patches once, async. */
+            (() => {
+              try {
+                const raw = sessionStorage.getItem("wikigit:chrome:" + location.host);
+                const c = raw && JSON.parse(raw);
+                if (!c || !c.title) return;
+                for (const el of document.querySelectorAll(".wordmark")) {
+                  el.textContent = "";
+                  const t = document.createElement("span");
+                  t.className = "wm-title";
+                  t.textContent = c.title;
+                  el.appendChild(t);
+                  if (c.tagline) {
+                    const s = document.createElement("span");
+                    s.className = "wordmark-sub";
+                    s.textContent = c.tagline;
+                    el.appendChild(s);
+                  }
+                }
+              } catch {}
+            })();
+          </script>
           <Search client:load />
           <div class="header-actions">
             <AuthBoot />

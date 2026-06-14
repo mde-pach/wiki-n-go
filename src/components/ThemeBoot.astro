@@ -34,11 +34,18 @@ const defaults: AppearanceDefaults = { ...config.appearance, ...appearance };
       textsize: "standard",
     };
     const defaultsOf = (doc) => {
+      let defs = {};
       try {
-        return JSON.parse(doc.querySelector('meta[name="wng-appearance"]').content);
-      } catch {
-        return {};
-      }
+        defs = JSON.parse(doc.querySelector('meta[name="wng-appearance"]').content);
+      } catch {}
+      // A hosted tenant's Appearance (cached by SiteBoot) overrides the build
+      // default, so a reload / View-Transition swap applies it before first paint.
+      try {
+        const raw = sessionStorage.getItem("wikigit:chrome:" + location.host);
+        const c = raw && JSON.parse(raw);
+        if (c && c.appearance) defs = Object.assign({}, defs, c.appearance);
+      } catch {}
+      return defs;
     };
     const pref = (key, defs) => {
       const saved = localStorage.getItem(STORE[key]);
