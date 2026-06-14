@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  latestByDomain,
   latestByName,
   nameAvailability,
   ownerWikiCount,
   parseRegistry,
   resolveHost,
   tenantLabel,
+  validDomain,
   validName,
 } from "./registry";
 import { MemoryKV } from "./store";
@@ -159,6 +161,69 @@ describe("resolveHost", () => {
   });
   it("returns null for a reserved subdomain (never a wiki)", async () => {
     expect(await resolveHost(env(LINES), "api.wikigit.org")).toBeNull();
+  });
+
+  it("resolves a verified custom domain to its wiki", async () => {
+    const raw = [
+      LINES,
+      JSON.stringify({
+        name: "recipes",
+        repo: "bob/cookbook",
+        owner: "gh:bob",
+        lane: "byo",
+        at: "t3",
+        domain: "wiki.bob.com",
+      }),
+    ].join("\n");
+    expect(await resolveHost(env(raw), "wiki.bob.com")).toEqual({
+      name: "recipes",
+      repo: "bob/cookbook",
+      lane: "byo",
+    });
+    expect(await resolveHost(env(raw), "WIKI.BOB.COM:443")).toEqual({
+      name: "recipes",
+      repo: "bob/cookbook",
+      lane: "byo",
+    });
+  });
+
+  it("returns null for an unknown off-platform host", async () => {
+    expect(await resolveHost(env(LINES), "wiki.bob.com")).toBeNull();
+  });
+});
+
+describe("validDomain / latestByDomain", () => {
+  it("accepts FQDNs, rejects single labels and junk", () => {
+    expect(validDomain("wiki.mybrand.com")).toBe(true);
+    expect(validDomain("a.b.c.example.org")).toBe(true);
+    expect(validDomain("localhost")).toBe(false);
+    expect(validDomain("no_underscores.com")).toBe(false);
+    expect(validDomain("")).toBe(false);
+  });
+
+  it("maps verified domains from the latest-by-name view", () => {
+    const raw = [
+      JSON.stringify({
+        name: "a",
+        repo: "x/a",
+        owner: "o",
+        lane: "byo",
+        at: "t1",
+        domain: "a.com",
+      }),
+      JSON.stringify({ name: "a", repo: "x/a", owner: "o", lane: "byo", at: "t2" }), // domain cleared
+      JSON.stringify({
+        name: "b",
+        repo: "x/b",
+        owner: "o",
+        lane: "byo",
+        at: "t3",
+        domain: "b.com",
+      }),
+    ].join("\n");
+    const byDomain = latestByDomain(latestByName(parseRegistry(raw)));
+    expect(byDomain.has("a.com")).toBe(false); // latest line dropped it
+    expect(byDomain.get("b.com")?.name).toBe("b");
   });
 });
 

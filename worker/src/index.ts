@@ -15,6 +15,8 @@ import {
   runPublish,
 } from "./handlers/content";
 import { contributions } from "./handlers/contributions";
+import type { DomainBody } from "./handlers/domain";
+import { addDomain } from "./handlers/domain";
 import { latestSha, linkGraph, listPages, searchIndex } from "./handlers/index-cache";
 import { mergePages, splitPage } from "./handlers/lifecycle";
 import {
@@ -104,6 +106,8 @@ export default {
           transfer(env, request, (await request.json()) as TransferBody),
         "POST /transfer/complete": async () =>
           transferComplete(env, request, (await request.json()) as TransferBody),
+        "POST /domain": async () =>
+          addDomain(env, request, (await request.json()) as DomainBody),
       };
       const pre = preTenant[key];
       if (pre) {

@@ -49,7 +49,10 @@ async function resolveOnce(): Promise<void> {
   if (typeof window === "undefined") return; // build/SSR: keep baked config
   const host = window.location.host;
   const label = subdomainLabel(host, config.platformHost);
-  if (label === null || label === "" || label === "www") return; // not a tenant subdomain
+  // Skip only the flagship apex/www (baked). A platform subdomain (label) AND a
+  // host outside the platform domain (null = a possible custom domain) both ask
+  // the Engine — an unregistered host just 404s and falls back to baked config.
+  if (label === "" || label === "www") return;
 
   const cached = sessionStorage.getItem(CACHE_PREFIX + host);
   if (cached) {

@@ -1,11 +1,22 @@
 import { createMemo, createSignal, Show } from "solid-js";
+import { config } from "../config";
 import { saveSiteConfig } from "../lib/admin";
 import { fetchEngineStatus } from "../lib/setup-status";
 import { loadSiteConfig, type WikigitConfig } from "../lib/site-config";
 import { clientResource, useWhoami } from "../lib/solid";
+import { subdomainLabel } from "../lib/tenant";
 import { errMessage } from "../lib/util";
+import CustomDomain from "./CustomDomain";
 import TransferWiki from "./TransferWiki";
 import { ErrorNote, Status, ViewHead } from "./ui";
+
+// Served from a real platform subdomain (foo.wikigit.org) → it's a registered
+// tenant that can attach a custom domain. Apex/www/non-platform hosts can't.
+function onTenantSubdomain(): boolean {
+  if (typeof location === "undefined") return false;
+  const label = subdomainLabel(location.host, config.platformHost);
+  return Boolean(label) && label !== "www";
+}
 
 type Appearance = NonNullable<WikigitConfig["appearance"]>;
 const APPEARANCE: { key: keyof Appearance; label: string; options: string[] }[] = [
@@ -220,6 +231,10 @@ export default function Settings() {
             </Show>
           </div>
           <ErrorNote msg={err()} />
+
+          <Show when={onTenantSubdomain()}>
+            <CustomDomain />
+          </Show>
 
           <Show when={status()?.managed}>
             <TransferWiki />

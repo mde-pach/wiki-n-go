@@ -21,6 +21,7 @@ export interface Tenant {
   owner: string; // the registering identity (e.g. "gh:alice" / "wg:bob")
   lane: Lane;
   at: string; // ISO timestamp, stamped by the caller (clock-free here)
+  domain?: string; // a verified custom host (e.g. "wiki.mybrand.com") → this wiki
 }
 
 // Subdomains that are real infrastructure, never tenant wikis.
@@ -42,9 +43,15 @@ const RESERVED = new Set([
 // DNS label, lowercased: 1–40 chars, alphanumeric, internal hyphens only.
 const NAME_RE = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
 const REPO_RE = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/;
+// A fully-qualified custom host: ≥2 dot-separated labels, lowercased.
+const DOMAIN_RE = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/;
 
 export function validName(name: string): boolean {
   return NAME_RE.test(name) && !RESERVED.has(name);
+}
+
+export function validDomain(host: string): boolean {
+  return DOMAIN_RE.test(host.toLowerCase());
 }
 
 export function parseRegistry(raw: string | undefined): Tenant[] {
@@ -59,6 +66,8 @@ export function parseRegistry(raw: string | undefined): Tenant[] {
         REPO_RE.test(t.repo) &&
         (t.lane === "platform" || t.lane === "byo")
       ) {
+        // Drop a malformed custom domain rather than the whole tenant line.
+        if (t.domain && !validDomain(t.domain)) t.domain = undefined;
         out.push(t);
       }
     } catch {}
@@ -70,6 +79,14 @@ export function parseRegistry(raw: string | undefined): Tenant[] {
 export function latestByName(tenants: Tenant[]): Map<string, Tenant> {
   const m = new Map<string, Tenant>();
   for (const t of tenants) m.set(t.name, t);
+  return m;
+}
+
+// Verified custom host → tenant, from the latest-by-name view (so a tenant's most
+// recent line decides its domain; clearing `domain` on a later line drops it).
+export function latestByDomain(latest: Map<string, Tenant>): Map<string, Tenant> {
+  const m = new Map<string, Tenant>();
+  for (const t of latest.values()) if (t.domain) m.set(t.domain.toLowerCase(), t);
   return m;
 }
 
@@ -127,7 +144,13 @@ export interface Resolution {
 // own flagship repo; a registered label → its tenant; anything else → null.
 export async function resolveHost(env: Env, host: string): Promise<Resolution | null> {
   const label = tenantLabel(host, env.PLATFORM_HOST ?? "");
-  if (label === null) return null;
+  // A host outside the platform domain is only a wiki if it's a verified custom
+  // domain in the registry (BYO owners point `wiki.mybrand.com` at us).
+  if (label === null) {
+    const h = host.toLowerCase().split(":")[0].replace(/\.$/, "");
+    const t = latestByDomain(await readRegistry(env)).get(h);
+    return t ? { name: t.name, repo: t.repo, lane: t.lane } : null;
+  }
   if (label === "" || label === "www") {
     return {
       name: "",
@@ -193,6 +216,33 @@ export async function repointTenant(
     throw new HttpError(404, "No such wiki.");
   }
   await appendTenant(env, t, by, current, `tenant: re-point ${t.name} → ${t.repo}`);
+}
+
+// Attach a verified custom domain to an existing tenant (append a line carrying
+// the new `domain`, last write wins). The caller has already verified ownership +
+// DNS; this only persists the mapping.
+export async function setTenantDomain(
+  env: Env,
+  t: Tenant,
+  by: { name: string; email: string },
+): Promise<void> {
+  if (!t.domain || !validDomain(t.domain)) throw new HttpError(400, "Invalid domain.");
+  if (!REPO_RE.test(t.repo)) throw new HttpError(400, "Invalid repo.");
+  const current = await getCurrentFile(
+    env,
+    `${env.REPO_OWNER}/${env.REPO_NAME}`,
+    TENANTS_PATH,
+  );
+  if (!latestByName(parseRegistry(current?.raw)).has(t.name)) {
+    throw new HttpError(404, "No such wiki.");
+  }
+  await appendTenant(
+    env,
+    t,
+    by,
+    current,
+    `tenant: custom domain ${t.name} → ${t.domain}`,
+  );
 }
 
 // `at` is passed in by callers so the registry stays clock-free; the append is
