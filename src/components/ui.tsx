@@ -18,9 +18,13 @@ export function ViewHead(props: {
 }
 
 export function ErrorNote(props: { msg?: string }) {
+  // role="alert" so a screen reader announces async failures (rate-limit, ban,
+  // publish error) the moment they appear — they're otherwise silent.
   return (
     <Show when={props.msg}>
-      <p class="editor-err">{props.msg}</p>
+      <p class="editor-err" role="alert">
+        {props.msg}
+      </p>
     </Show>
   );
 }

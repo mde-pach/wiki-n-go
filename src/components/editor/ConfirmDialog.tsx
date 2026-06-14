@@ -1,4 +1,5 @@
-import type { JSX } from "solid-js";
+import { type JSX, onCleanup } from "solid-js";
+import { dialogBehavior } from "../../lib/dialog";
 
 export function ConfirmDialog(props: {
   title: string;
@@ -17,6 +18,7 @@ export function ConfirmDialog(props: {
         class={`modal${props.wide ? " modal-wide" : ""}`}
         role="dialog"
         aria-modal="true"
+        ref={(el) => onCleanup(dialogBehavior(el, props.onCancel))}
       >
         <div class="modal-head">
           <div>

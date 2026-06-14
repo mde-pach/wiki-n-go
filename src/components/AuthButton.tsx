@@ -1,4 +1,4 @@
-import { createSignal, For, onMount, Show } from "solid-js";
+import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { Portal } from "solid-js/web";
 import {
   authProviders,
@@ -7,6 +7,7 @@ import {
   login,
   logout,
 } from "../lib/auth";
+import { dialogBehavior } from "../lib/dialog";
 import { Icons } from "./Icons";
 
 type Provider = "github" | "wikigit";
@@ -103,6 +104,7 @@ export default function AuthButton() {
               role="dialog"
               aria-modal="true"
               aria-label="Sign in"
+              ref={(el) => onCleanup(dialogBehavior(el, () => setOpen(false)))}
             >
               <div class="modal-head">
                 <div>
