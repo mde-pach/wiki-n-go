@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   latestByName,
   nameAvailability,
+  ownerWikiCount,
   parseRegistry,
   resolveHost,
   tenantLabel,
@@ -51,6 +52,60 @@ describe("parseRegistry / latestByName", () => {
       JSON.stringify({ name: "a", repo: "x/2", owner: "o", lane: "byo", at: "t2" }),
     ].join("\n");
     expect(latestByName(parseRegistry(raw)).get("a")?.repo).toBe("x/2");
+  });
+});
+
+describe("ownerWikiCount", () => {
+  const raw = [
+    JSON.stringify({
+      name: "a",
+      repo: "wikigit-tenants/a",
+      owner: "wg:jane",
+      lane: "platform",
+      at: "t1",
+    }),
+    JSON.stringify({
+      name: "b",
+      repo: "wikigit-tenants/b",
+      owner: "wg:jane",
+      lane: "platform",
+      at: "t2",
+    }),
+    JSON.stringify({
+      name: "c",
+      repo: "jane/own",
+      owner: "wg:jane",
+      lane: "byo",
+      at: "t3",
+    }),
+    JSON.stringify({
+      name: "d",
+      repo: "wikigit-tenants/d",
+      owner: "gh:bob",
+      lane: "platform",
+      at: "t4",
+    }),
+  ].join("\n");
+  const latest = () => latestByName(parseRegistry(raw));
+
+  it("counts only an owner's managed (platform-lane) wikis", () => {
+    expect(ownerWikiCount(latest(), "wg:jane")).toBe(2); // byo not counted
+    expect(ownerWikiCount(latest(), "gh:bob")).toBe(1);
+    expect(ownerWikiCount(latest(), "gh:nobody")).toBe(0);
+  });
+
+  it("counts a re-pointed name once (latest-by-name view)", () => {
+    const re = [
+      raw,
+      JSON.stringify({
+        name: "a",
+        repo: "wikigit-tenants/a",
+        owner: "wg:jane",
+        lane: "platform",
+        at: "t5",
+      }),
+    ].join("\n");
+    expect(ownerWikiCount(latestByName(parseRegistry(re)), "wg:jane")).toBe(2);
   });
 });
 

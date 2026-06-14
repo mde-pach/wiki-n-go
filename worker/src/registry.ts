@@ -73,6 +73,17 @@ export function latestByName(tenants: Tenant[]): Map<string, Tenant> {
   return m;
 }
 
+// An owner's current managed (platform-lane) wikis, from the latest-by-name view
+// — re-pointing a name you already own isn't a new wiki, and byo wikis live in
+// the owner's own repo so they don't count against the hosted quota.
+export function ownerWikiCount(latest: Map<string, Tenant>, owner: string): number {
+  let n = 0;
+  for (const t of latest.values()) {
+    if (t.lane === "platform" && t.owner === owner) n++;
+  }
+  return n;
+}
+
 async function readRaw(env: Env): Promise<string | undefined> {
   const kv = env.RATE_LIMIT;
   if (kv) {

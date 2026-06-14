@@ -63,6 +63,13 @@ export interface Env {
   GITHUB_PLATFORM_APP_ID?: string;
   GITHUB_PLATFORM_APP_PRIVATE_KEY?: string;
   PLATFORM_ORG?: string; // the GitHub org that holds managed tenant repos
+  // Operator kill-switch: any truthy value (≠ "0"/"false") pauses `POST /claim`
+  // with a 503, so provisioning can be halted under abuse without a redeploy of
+  // the App credentials. Reads/edits of existing wikis are unaffected.
+  PROVISION_PAUSED?: string;
+  // Per-identity ceiling on managed (platform-lane) wikis, counted from the
+  // registry's `owner`. Unset/invalid → DEFAULT_MAX_WIKIS.
+  MAX_WIKIS_PER_OWNER?: string;
 }
 
 export interface EditBody {
