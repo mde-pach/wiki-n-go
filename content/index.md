@@ -12,7 +12,6 @@ infobox:
     v: MIT
     mono: true
 kicker: Documentation
-image: https://duckduckgo.com/i/0cc93634b2107d5b.png
 protection: auto
 tags:
   - Documentation

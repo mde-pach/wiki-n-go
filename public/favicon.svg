@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Wikigit">
+  <rect width="32" height="32" rx="6" fill="#0b1320"/>
+  <text x="16" y="21" font-family="Georgia, 'Times New Roman', serif" font-size="15" font-weight="700" text-anchor="middle">
+    <tspan fill="#f8f9fa">w</tspan><tspan fill="#3b82f6">g</tspan>
+  </text>
+  <circle cx="24.5" cy="9" r="2" fill="#3b82f6"/>
+</svg>
