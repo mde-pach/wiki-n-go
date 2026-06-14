@@ -54,6 +54,10 @@ export async function verifySession(
   const expected = b64urlEncode(await hmacSign(secret, `${header}.${claims}`));
   if (!timingSafeEq(sig, expected)) return null;
   try {
+    // Pin the algorithm: only ever accept the HS256 JWTs we mint, so a forged
+    // header (e.g. alg:"none") can't slip past even if signing ever changes.
+    const head = JSON.parse(new TextDecoder().decode(b64urlDecode(header)));
+    if (head?.alg !== "HS256" || head?.typ !== "JWT") return null;
     const body = JSON.parse(new TextDecoder().decode(b64urlDecode(claims))) as Session;
     if (typeof body.login !== "string" || typeof body.id !== "number") return null;
     if (typeof body.exp !== "number" || body.exp * 1000 < nowMs) return null;
@@ -106,8 +110,12 @@ export function authStatus(env: Env): {
 }
 
 // Guard the post-sign-in redirect against open-redirect: the return URL must
-// live on a configured site origin (exact or `*.wikigit.org` wildcard).
+// live on a configured site origin (exact or `*.wikigit.org` wildcard). Unlike
+// CORS, this fails **closed** when ALLOWED_ORIGIN is unset — an empty allowlist
+// must not green-light every origin, or the session JWT (in the redirect hash)
+// could be sent anywhere.
 function isAllowedReturn(env: Env, ret: string): boolean {
+  if (allowedOrigins(env).length === 0) return false;
   try {
     return originAllowed(env, new URL(ret).origin);
   } catch {
