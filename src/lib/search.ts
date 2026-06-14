@@ -1,4 +1,5 @@
 import { config } from "../config";
+import { engineUrl } from "./engine";
 import { fetchFirstOk } from "./net";
 import { BASE } from "./paths";
 import { stripMarkdownInline } from "./previews";
@@ -13,7 +14,7 @@ export interface SearchDoc {
 // Prefer the Worker's live index; fall back to the static build file.
 export async function getSearchDocs(): Promise<SearchDoc[]> {
   const data = await fetchFirstOk<{ docs: SearchDoc[] }>([
-    config.workerUrl ? `${config.workerUrl}/search-index` : null,
+    config.workerUrl ? engineUrl("/search-index") : null,
     `${BASE}/search-index.json`,
   ]);
   return data?.docs ?? [];

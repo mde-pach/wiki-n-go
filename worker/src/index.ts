@@ -25,6 +25,7 @@ import {
 } from "./handlers/moderation";
 import { protect } from "./handlers/protect";
 import { grant, listEditors, revoke } from "./handlers/rights";
+import { status as connectionStatus } from "./handlers/status";
 import { listSuppressed, suppress, unsuppress } from "./handlers/suppress";
 import { corsHeaders, HttpError, json, message, ndjsonStream } from "./http";
 import { whoami } from "./identity";
@@ -77,6 +78,18 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const headers = corsHeaders(env, request);
     if (request.method === "OPTIONS") return new Response(null, { headers });
+
+    // Connection diagnostics: answered BEFORE the tenant gate so it stays
+    // reachable for an un-connected repo (it's what tells the setup page to
+    // connect). Does its own repo resolution, never 404s on "not served".
+    if (request.method === "GET" && new URL(request.url).pathname === "/status") {
+      try {
+        return json(await connectionStatus(env, request), 200, headers);
+      } catch (err) {
+        const code = err instanceof HttpError ? err.status : 500;
+        return json({ error: message(err) }, code, headers);
+      }
+    }
 
     // Scope env to the request's target repo (no-op single-tenant). A bad/unknown
     // repo is rejected here with a clean status before any route runs.

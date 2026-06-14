@@ -2308,3 +2308,101 @@ a.preview-body:focus-visible .pv-foot {
   width: 100%;
   box-sizing: border-box;
 }
+
+/* Setup & status page — the non-technical onboarding/health surface. */
+.setup-page {
+  max-width: 56rem;
+}
+.setup-list {
+  list-style: none;
+  margin: var(--space-section) 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.setup-item {
+  display: grid;
+  grid-template-columns: 1.6rem 1fr auto;
+  gap: 0.85rem;
+  align-items: start;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-border);
+  border-left-width: 3px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+.setup-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #fff;
+}
+.setup-item.is-ok {
+  border-left-color: var(--color-add-strong);
+}
+.setup-item.is-ok .setup-icon {
+  background: var(--color-add-strong);
+}
+.setup-item.is-warn {
+  border-left-color: var(--color-warn-line);
+  background: var(--color-warn-bg);
+}
+.setup-item.is-warn .setup-icon {
+  background: var(--color-warn-line);
+}
+.setup-item.is-error {
+  border-left-color: var(--color-remove-strong, #d33);
+  background: var(--color-remove-bg);
+}
+.setup-item.is-error .setup-icon {
+  background: var(--color-remove-strong, #d33);
+}
+.setup-item.is-info {
+  border-left-color: var(--color-accent);
+}
+.setup-item.is-info .setup-icon {
+  background: var(--color-accent);
+}
+.setup-item-title {
+  margin: 0;
+  font-weight: 600;
+}
+.setup-item-detail {
+  margin: 0.2rem 0 0;
+  color: var(--color-ink-subtle);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+.setup-action {
+  white-space: nowrap;
+  align-self: center;
+}
+.setup-paths {
+  margin-top: var(--space-section);
+  padding-top: var(--space-section);
+  border-top: 1px solid var(--color-border);
+}
+.setup-paths h3 {
+  margin: 0 0 0.5rem;
+}
+.setup-paths p {
+  color: var(--color-ink-subtle);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+@media (max-width: 40rem) {
+  .setup-item {
+    grid-template-columns: 1.6rem 1fr;
+  }
+  .setup-action {
+    grid-column: 2;
+    justify-self: start;
+    margin-top: 0.5rem;
+  }
+}

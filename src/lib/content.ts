@@ -1,4 +1,5 @@
 import { config } from "../config";
+import { engineUrl } from "./engine";
 
 export class PageNotFoundError extends Error {
   constructor(public slug: string) {
@@ -12,7 +13,7 @@ export class PageNotFoundError extends Error {
 export async function resolveLatestSha(): Promise<string> {
   if (config.workerUrl) {
     try {
-      const res = await fetch(`${config.workerUrl}/latest`, { cache: "no-store" });
+      const res = await fetch(engineUrl("/latest"), { cache: "no-store" });
       if (res.ok) return ((await res.json()) as { sha: string }).sha;
     } catch {
       // fall back to the GitHub API below

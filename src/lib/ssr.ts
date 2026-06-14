@@ -1,4 +1,5 @@
 import { config } from "../config";
+import { engineUrl } from "./engine";
 import type { Revision } from "./history";
 
 // Request-time helpers for the optional edge-SSR variant (SPEC §8/M4). They run
@@ -12,7 +13,7 @@ import type { Revision } from "./history";
 export async function fetchPageSlugs(): Promise<Set<string>> {
   if (!config.workerUrl) return new Set();
   try {
-    const res = await fetch(`${config.workerUrl}/pages`, { cache: "no-store" });
+    const res = await fetch(engineUrl("/pages"), { cache: "no-store" });
     if (!res.ok) return new Set();
     return new Set(((await res.json()) as { pages: string[] }).pages);
   } catch {
@@ -26,10 +27,9 @@ export async function fetchPageSlugs(): Promise<Set<string>> {
 export async function fetchRevisions(slug: string): Promise<Revision[]> {
   if (!config.workerUrl) return [];
   try {
-    const res = await fetch(
-      `${config.workerUrl}/history?slug=${encodeURIComponent(slug)}`,
-      { cache: "no-store" },
-    );
+    const res = await fetch(engineUrl(`/history?slug=${encodeURIComponent(slug)}`), {
+      cache: "no-store",
+    });
     if (!res.ok) return [];
     return ((await res.json()) as { revisions: Revision[] }).revisions;
   } catch {
@@ -44,7 +44,7 @@ export async function pageNoindex(slug: string): Promise<boolean> {
   if (!config.workerUrl) return false;
   try {
     const res = await fetch(
-      `${config.workerUrl}/patrol-status?slug=${encodeURIComponent(slug)}`,
+      engineUrl(`/patrol-status?slug=${encodeURIComponent(slug)}`),
       { cache: "no-store" },
     );
     if (!res.ok) return false;
