@@ -1,4 +1,5 @@
 import { config } from "../config";
+import { engineUrl } from "./engine";
 import { fetchFirstOk } from "./net";
 import { BASE, slugifyLabel } from "./paths";
 
@@ -155,7 +156,7 @@ let cache: Promise<LinkGraph | null> | undefined;
 // the static build file when there's no Worker / it's unreachable. Fetched once.
 function load(): Promise<LinkGraph | null> {
   return fetchFirstOk<LinkGraph>([
-    config.workerUrl ? `${config.workerUrl}/link-graph` : null,
+    config.workerUrl ? engineUrl("/link-graph") : null,
     `${BASE}/link-graph.json`,
   ]);
 }

@@ -1,5 +1,5 @@
-import { config } from "../config";
 import { authHeaders } from "./auth";
+import { engineUrl } from "./engine";
 
 export interface EditResult {
   author: string;
@@ -41,7 +41,7 @@ async function readJson<T>(res: Response): Promise<T> {
 }
 
 export async function getJson<T>(path: string, opts: RequestOptions = {}): Promise<T> {
-  const res = await fetch(`${config.workerUrl}${path}`, {
+  const res = await fetch(engineUrl(path), {
     cache: opts.cache ?? "no-store",
     headers: opts.auth ? authHeaders() : undefined,
   });
@@ -54,7 +54,7 @@ export async function postJson<T>(
   opts: RequestOptions = {},
 ): Promise<T> {
   const auth = opts.auth ?? true;
-  const res = await fetch(`${config.workerUrl}${path}`, {
+  const res = await fetch(engineUrl(path), {
     method: "POST",
     headers: { "Content-Type": "application/json", ...(auth ? authHeaders() : {}) },
     body: JSON.stringify(body),
@@ -81,7 +81,7 @@ export async function submitEdit(
   summary?: string,
   onProgress?: (p: Progress) => void,
 ): Promise<EditResult> {
-  const res = await fetch(`${config.workerUrl}/edit`, {
+  const res = await fetch(engineUrl("/edit"), {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ slug, content, token, summary }),

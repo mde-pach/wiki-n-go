@@ -1,5 +1,6 @@
 import { config } from "../config";
 import type { Tier } from "./api";
+import { engineUrl } from "./engine";
 import { fetchFirstOk } from "./net";
 import { BASE } from "./paths";
 
@@ -27,7 +28,7 @@ export interface Contributions {
 export async function getContributions(login: string): Promise<Contributions> {
   const live = config.workerUrl
     ? await fetchFirstOk<Contributions>([
-        `${config.workerUrl}/contributions?author=${encodeURIComponent(login)}`,
+        engineUrl(`/contributions?author=${encodeURIComponent(login)}`),
       ])
     : null;
   if (live) return live;
