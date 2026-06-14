@@ -44,6 +44,23 @@ describe("sanitizeConfig", () => {
     expect(sanitizeConfig({ title: "  spaced  " }).title).toBe("spaced");
     expect(sanitizeConfig({ title: "x".repeat(81) }).title).toBeUndefined();
   });
+
+  it("keeps valid maintainer logins and provider-qualified keys", () => {
+    expect(
+      sanitizeConfig({ maintainers: ["alice", "gh:bob", "wg:42", "anon-1a2b"] })
+        .maintainers,
+    ).toEqual(["alice", "gh:bob", "wg:42", "anon-1a2b"]);
+  });
+
+  it("drops malformed maintainer entries, dedupes, and caps the list", () => {
+    expect(
+      sanitizeConfig({ maintainers: ["ok", "ok", "has space", "", 7, "x@y"] })
+        .maintainers,
+    ).toEqual(["ok"]);
+    const many = Array.from({ length: 150 }, (_, i) => `u${i}`);
+    expect(sanitizeConfig({ maintainers: many }).maintainers).toHaveLength(100);
+    expect(sanitizeConfig({ maintainers: [] }).maintainers).toBeUndefined();
+  });
 });
 
 describe("parseConfigFile", () => {

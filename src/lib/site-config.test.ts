@@ -26,4 +26,9 @@ describe("mergeSiteConfig", () => {
       defaultSiteConfig().languages,
     );
   });
+
+  it("carries the maintainers list, defaulting to empty", () => {
+    expect(mergeSiteConfig({}).maintainers).toEqual([]);
+    expect(mergeSiteConfig({ maintainers: ["alice"] }).maintainers).toEqual(["alice"]);
+  });
 });

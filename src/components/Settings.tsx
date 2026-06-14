@@ -13,6 +13,15 @@ const APPEARANCE: { key: keyof Appearance; label: string; options: string[] }[] 
   { key: "textsize", label: "Text size", options: ["small", "standard", "large"] },
 ];
 
+// One login per line. Trimmed, blanks dropped — the Engine re-validates and
+// unions these with the grant/revoke list when resolving maintainer tier.
+function parseMaintainers(text: string): string[] {
+  return text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+}
+
 // One line per language, "code  Name" (e.g. "fr  Français"). Empty → inherit the
 // platform default set, so a non-technical owner can leave it blank.
 function parseLanguages(text: string): { code: string; name: string }[] {
@@ -61,6 +70,7 @@ export default function Settings() {
         languages: f.languages,
         appearance: f.appearance,
         signin: f.signin,
+        maintainers: f.maintainers,
       });
       setSaved(true);
     } catch (e) {
@@ -166,6 +176,20 @@ export default function Settings() {
                 }
               >
                 {(form().languages ?? []).map((l) => `${l.code} ${l.name}`).join("\n")}
+              </textarea>
+            </label>
+
+            <label class="settings-field settings-wide">
+              <span>Maintainers — one login per line (e.g. a GitHub login)</span>
+              <textarea
+                class="input"
+                rows={3}
+                placeholder={"alice\nbob"}
+                onInput={(e) =>
+                  field("maintainers", parseMaintainers(e.currentTarget.value))
+                }
+              >
+                {(form().maintainers ?? []).join("\n")}
               </textarea>
             </label>
 

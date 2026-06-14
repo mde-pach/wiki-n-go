@@ -17,7 +17,16 @@ export interface WikigitConfig {
     textsize?: "small" | "standard" | "large";
   };
   signin?: boolean;
+  // Logins the owner grants maintainer tier, declaratively, from the settings
+  // form. A plain entry is read as a GitHub login (`gh:<entry>`); an explicit
+  // `gh:`/`wg:`/`anon-` key targets that exact identity. Unioned with the
+  // imperative grant/revoke `trusted-editors.json` list (see trust.ts).
+  maintainers?: string[];
 }
+
+// Identity keys/logins are conservative: a bare login, or a provider-qualified
+// key. Anything else (spaces, markup) is dropped so the list can't smuggle junk.
+const MAINTAINER_RE = /^(?:gh:|wg:|anon-)?[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 
 const LANG_RE = /^[a-z]{2,3}(?:-[A-Za-z]{2,4})?$/;
 const SLUG_RE = /^[a-z0-9][a-z0-9/_-]*$/;
@@ -77,6 +86,16 @@ export function sanitizeConfig(input: unknown): WikigitConfig {
   }
 
   if (typeof src.signin === "boolean") out.signin = src.signin;
+
+  if (Array.isArray(src.maintainers)) {
+    const seen = new Set<string>();
+    for (const raw of src.maintainers) {
+      const m = str(raw, 80);
+      if (m && MAINTAINER_RE.test(m) && !seen.has(m)) seen.add(m);
+      if (seen.size >= 100) break;
+    }
+    if (seen.size) out.maintainers = [...seen];
+  }
 
   return out;
 }

@@ -2,6 +2,7 @@ import { parse as parseYaml } from "yaml";
 import { type CommitItem, ghHeaders, repoJson } from "./github";
 import { HttpError } from "./http";
 import { kvGetJson, kvPutJson } from "./kv";
+import { sanitizeConfig } from "./siteconfig";
 import type { Env } from "./types";
 
 // Tiers form one ordered scale shared by editors and pages: an editor of rank
@@ -66,6 +67,14 @@ async function trustedEditors(env: Env): Promise<string[]> {
   return Array.isArray(list) ? (list as string[]) : [];
 }
 
+// Maintainers declared in `wikigit.json` (the owner-editable settings form).
+// Same grant as `trusted-editors.json` — the two are unioned, so an owner can
+// manage maintainers from settings without touching the imperative grant path.
+async function configMaintainers(env: Env): Promise<string[]> {
+  const cfg = await repoJson<unknown>(env, "wikigit.json");
+  return sanitizeConfig(cfg).maintainers ?? [];
+}
+
 // Maintainer status is keyed on the **provider-qualified** identity key
 // (`gh:<login>` / `wg:<sub>` / `anon-<hash>`), never the display name — a
 // self-chosen Wikigit handle equal to the owner's GitHub login (or a trusted
@@ -84,7 +93,11 @@ const TRUST_TTL_S = 3600;
 // identity (maintainer check + cache key); `email` is the commit-author filter.
 // Anonymous and signed-in identities share the exact same machinery and thresholds.
 export async function editorTier(env: Env, email: string, key: string): Promise<Tier> {
-  if (isMaintainer(key, env.REPO_OWNER, await trustedEditors(env))) return "maintainer";
+  const [trusted, configM] = await Promise.all([
+    trustedEditors(env),
+    configMaintainers(env),
+  ]);
+  if (isMaintainer(key, env.REPO_OWNER, [...trusted, ...configM])) return "maintainer";
   const { n, firstMs } = await trustStats(env, email, key);
   const days = (Date.now() - firstMs) / 86_400_000;
   const num = (v: string | undefined, d: number) => Number.parseInt(v ?? "", 10) || d;

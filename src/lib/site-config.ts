@@ -16,6 +16,7 @@ export interface WikigitConfig {
   languages?: { code: string; name: string }[];
   appearance?: Partial<AppearanceDefaults>;
   signin?: boolean;
+  maintainers?: string[];
 }
 
 export interface SiteConfig {
@@ -27,6 +28,7 @@ export interface SiteConfig {
   languages: { code: string; name: string }[];
   appearance: AppearanceDefaults;
   signin: boolean;
+  maintainers: string[];
 }
 
 export function defaultSiteConfig(): SiteConfig {
@@ -39,6 +41,7 @@ export function defaultSiteConfig(): SiteConfig {
     languages: config.languages,
     appearance: config.appearance,
     signin: true,
+    maintainers: [],
   };
 }
 
@@ -53,6 +56,7 @@ export function mergeSiteConfig(over: WikigitConfig): SiteConfig {
     languages: over.languages?.length ? over.languages : base.languages,
     appearance: { ...base.appearance, ...over.appearance },
     signin: over.signin ?? base.signin,
+    maintainers: over.maintainers ?? base.maintainers,
   };
 }
 
