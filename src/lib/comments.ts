@@ -11,6 +11,24 @@ export interface Comment {
   replyTo: string | null;
 }
 
+// Direct children of `parent` when rebuilding the comment tree from the flat
+// reply-to markers (GitHub Discussions nest only one level, so we rebuild
+// arbitrary depth client-side). At the root, a comment is a child when it has no
+// parent, points at the root, OR points at a parent that isn't in the set (an
+// orphan whose target was deleted) — so no comment is ever silently dropped.
+export function childrenOf(
+  parent: Comment,
+  isRoot: boolean,
+  all: Comment[],
+): Comment[] {
+  const known = new Set(all.map((c) => c.id));
+  return all.filter((c) =>
+    isRoot
+      ? !c.replyTo || c.replyTo === parent.id || !known.has(c.replyTo)
+      : c.replyTo === parent.id,
+  );
+}
+
 export interface Topic {
   id: string;
   title: string;

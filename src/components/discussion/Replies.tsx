@@ -1,17 +1,8 @@
 import { For, Show } from "solid-js";
-import type { Comment } from "../../lib/comments";
+import { type Comment, childrenOf } from "../../lib/comments";
 import { CommentView } from "./CommentView";
 import { Composer } from "./Composer";
 import type { TreeProps } from "./types";
-
-function childrenOf(parent: Comment, isRoot: boolean, all: Comment[]): Comment[] {
-  const known = new Set(all.map((c) => c.id));
-  return all.filter((c) =>
-    isRoot
-      ? !c.replyTo || c.replyTo === parent.id || !known.has(c.replyTo)
-      : c.replyTo === parent.id,
-  );
-}
 
 export function Replies(props: TreeProps & { parent: Comment; depth: number }) {
   const isRoot = () => props.parent.replyTo === null && props.depth === 0;
