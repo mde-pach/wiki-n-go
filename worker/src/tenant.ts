@@ -1,5 +1,6 @@
 import { repoInstallationId, usingApp } from "./githubApp";
 import { HttpError } from "./http";
+import type { KV, KVListOptions, KVPutOptions } from "./store";
 import type { Env } from "./types";
 
 // Multi-tenant (the "giscus model"): one operator-run Worker + App serving any
@@ -32,20 +33,14 @@ export function multiTenant(env: Env): boolean {
 // Wrap a KV namespace so every key is transparently prefixed. Two tenants over
 // the same backing namespace get disjoint keyspaces (the prefix differs and
 // owner/name can't contain `/`, so prefixes never alias). `list` is scoped too.
-export function namespacedKV(kv: KVNamespace, prefix: string): KVNamespace {
+export function namespacedKV(kv: KV, prefix: string): KV {
   const k = (key: string) => `${prefix}${key}`;
   return {
-    get: (key: string, opts?: unknown) =>
-      (kv.get as (k: string, o?: unknown) => Promise<unknown>)(k(key), opts),
-    getWithMetadata: (key: string, opts?: unknown) =>
-      (kv.getWithMetadata as (k: string, o?: unknown) => Promise<unknown>)(
-        k(key),
-        opts,
-      ),
-    put: (key: string, value: string, opts?: KVNamespacePutOptions) =>
+    get: (key: string) => kv.get(k(key)),
+    put: (key: string, value: string, opts?: KVPutOptions) =>
       kv.put(k(key), value, opts),
     delete: (key: string) => kv.delete(k(key)),
-    list: async (opts?: KVNamespaceListOptions) => {
+    list: async (opts?: KVListOptions) => {
       const res = await kv.list({ ...opts, prefix: `${prefix}${opts?.prefix ?? ""}` });
       // Strip the prefix back off so the wrapper is transparent to callers.
       return {
@@ -53,7 +48,7 @@ export function namespacedKV(kv: KVNamespace, prefix: string): KVNamespace {
         keys: res.keys.map((e) => ({ ...e, name: e.name.slice(prefix.length) })),
       };
     },
-  } as unknown as KVNamespace;
+  };
 }
 
 // The repo named by the request: `X-Wiki-Repo: owner/name` header (works for GET

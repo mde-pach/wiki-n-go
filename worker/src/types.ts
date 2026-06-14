@@ -1,3 +1,5 @@
+import type { KV } from "./store";
+
 export interface Env {
   // The write credential. Set GITHUB_TOKEN (bot PAT) OR the GITHUB_APP_* trio;
   // when the App is configured it's preferred and the PAT is unused (see githubApp.ts).
@@ -11,7 +13,7 @@ export interface Env {
   BRANCH: string;
   CONTENT_DIR: string;
   ALLOWED_ORIGIN: string;
-  RATE_LIMIT?: KVNamespace; // unset until a KV namespace is bound; rate limiting then activates
+  RATE_LIMIT?: KV; // the in-memory (Bun) or KV (legacy CF) store; unset → rate limiting/caches inert
   POW_BITS?: string; // proof-of-work difficulty (leading zero bits) for anon writes; default 18, "0" disables
   // Discussion target. Both IDs are derived at runtime from REPO_OWNER/REPO_NAME
   // + DISCUSSION_CATEGORY (so a fork needs no manual lookup); set them only to

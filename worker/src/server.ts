@@ -31,7 +31,7 @@ function buildEnv(): Env {
     BRANCH: e.BRANCH ?? "main",
     CONTENT_DIR: e.CONTENT_DIR ?? "content",
     ALLOWED_ORIGIN: e.ALLOWED_ORIGIN ?? "",
-    RATE_LIMIT: kv as unknown as KVNamespace,
+    RATE_LIMIT: kv,
   } as unknown as Env;
 }
 

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import worker from "./index";
+import type { KV } from "./store";
 import type { Env } from "./types";
 
 // A real 512-bit PKCS#1 key (test-only) — the format GitHub's manifest flow
@@ -24,10 +25,10 @@ function fakeKV() {
     list: async ({ prefix = "" }: { prefix?: string } = {}) => ({
       keys: [...m.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })),
     }),
-  } as unknown as KVNamespace & { store: Map<string, string> };
+  } as unknown as KV & { store: Map<string, string> };
 }
 
-function makeEnv(kv: KVNamespace): Env {
+function makeEnv(kv: KV): Env {
   return {
     GITHUB_APP_ID: "1",
     GITHUB_APP_PRIVATE_KEY: PKCS1_PEM,

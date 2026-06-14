@@ -1,3 +1,4 @@
+import type { KVPutOptions } from "./store";
 import type { Env } from "./types";
 
 export async function kvGetJson<T>(env: Env, key: string): Promise<T | null> {
@@ -14,7 +15,7 @@ export async function kvPutJson(
   env: Env,
   key: string,
   value: unknown,
-  opts?: KVNamespacePutOptions,
+  opts?: KVPutOptions,
 ): Promise<void> {
   await env.RATE_LIMIT?.put(key, JSON.stringify(value), opts);
 }

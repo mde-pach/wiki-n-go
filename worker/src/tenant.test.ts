@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { KV } from "./store";
 import { multiTenant, namespacedKV, requestedRepo, resolveTenant } from "./tenant";
 import type { Env } from "./types";
 
@@ -12,7 +13,7 @@ function fakeKV() {
     list: async ({ prefix = "" }: { prefix?: string } = {}) => ({
       keys: [...m.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })),
     }),
-  } as unknown as KVNamespace & { store: Map<string, string> };
+  } as unknown as KV & { store: Map<string, string> };
 }
 
 const baseEnv = (extra: Partial<Env> = {}): Env =>

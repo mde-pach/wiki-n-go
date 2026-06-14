@@ -1,21 +1,18 @@
 {
-  "name": "wiki-n-go-worker",
+  "name": "wikigit-engine",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
     "start": "bun src/server.ts",
-    "dev:bun": "bun --watch src/server.ts",
+    "dev": "bun --watch src/server.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "verify": "tsc --noEmit && vitest run"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4",
+    "@types/bun": "^1.2",
     "typescript": "^5",
-    "vitest": "^4.1.8",
-    "wrangler": "^4"
+    "vitest": "^4.1.8"
   },
   "dependencies": {
     "@openauthjs/openauth": "^0.4.3",

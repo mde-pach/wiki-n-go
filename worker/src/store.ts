@@ -11,15 +11,33 @@
 // harmless for caches/short-lived counters; the only durable decisions (patrol,
 // tags) move to a git append-log (M11.3).
 
+export type KVPutOptions = { expirationTtl?: number; expiration?: number };
+export type KVListOptions = { prefix?: string; limit?: number; cursor?: string };
+export type KVListResult = {
+  keys: { name: string }[];
+  list_complete: boolean;
+  cursor?: string;
+};
+
+// The KV surface the Engine actually uses — a small subset of the Cloudflare KV
+// API. Both MemoryKV (Bun) and a real CF KVNamespace satisfy it, so the rest of
+// the code is binding-agnostic and we don't depend on @cloudflare/workers-types.
+export interface KV {
+  get(key: string): Promise<string | null>;
+  put(key: string, value: string, opts?: KVPutOptions): Promise<void>;
+  delete(key: string): Promise<void>;
+  list(opts?: KVListOptions): Promise<KVListResult>;
+}
+
 interface Entry {
   value: string;
   expiresAt: number | null; // epoch ms, or null = never
 }
 
-type PutOptions = { expirationTtl?: number; expiration?: number };
-type ListOptions = { prefix?: string; limit?: number; cursor?: string };
+type PutOptions = KVPutOptions;
+type ListOptions = KVListOptions;
 
-export class MemoryKV {
+export class MemoryKV implements KV {
   private map = new Map<string, Entry>();
   // Injectable clock so TTL is deterministically testable.
   constructor(private now: () => number = () => Date.now()) {}

@@ -10,7 +10,7 @@ import type { Env } from "./types";
 const JWT_TTL_SEC = 540; // GitHub caps App JWTs at 10 min; stay under with margin.
 const TOKEN_SKEW_MS = 60_000; // re-mint a minute before the installation token expires.
 
-function pemBody(pem: string): Uint8Array {
+function pemBody(pem: string): Uint8Array<ArrayBuffer> {
   const body = pem
     .replace(/-----BEGIN [^-]+-----/, "")
     .replace(/-----END [^-]+-----/, "")
@@ -30,7 +30,7 @@ function derLen(n: number): number[] {
 // imports PKCS#8, and GitHub hands out PKCS#1 ("BEGIN RSA PRIVATE KEY"), so we
 // add the fixed rsaEncryption AlgorithmIdentifier wrapper rather than make the
 // user run openssl.
-export function wrapPkcs1ToPkcs8(pkcs1: Uint8Array): Uint8Array {
+export function wrapPkcs1ToPkcs8(pkcs1: Uint8Array): Uint8Array<ArrayBuffer> {
   const version = [0x02, 0x01, 0x00];
   // SEQUENCE { OID 1.2.840.113549.1.1.1 (rsaEncryption), NULL }
   const algId = [
@@ -44,7 +44,7 @@ export function wrapPkcs1ToPkcs8(pkcs1: Uint8Array): Uint8Array {
 
 // Private-key PEM → PKCS#8 DER bytes ready for crypto.subtle.importKey. Accepts
 // both GitHub's PKCS#1 and an already-PKCS#8 key.
-export function pemToPkcs8Bytes(pem: string): Uint8Array {
+export function pemToPkcs8Bytes(pem: string): Uint8Array<ArrayBuffer> {
   const der = pemBody(pem);
   return pem.includes("BEGIN RSA PRIVATE KEY") ? wrapPkcs1ToPkcs8(der) : der;
 }
