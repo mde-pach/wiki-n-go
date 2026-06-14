@@ -1,4 +1,5 @@
 import { config } from "../config";
+import { onSwapReset } from "./cache-reset";
 
 export interface Revision {
   sha: string;
@@ -23,6 +24,9 @@ export function getHistory(slug: string): Promise<Revision[]> {
   }
   return p;
 }
+
+// A new revision lands on edit — drop the memoised history so it shows up.
+onSwapReset(() => cache.clear());
 
 async function loadHistory(slug: string): Promise<Revision[]> {
   const res = await fetch(

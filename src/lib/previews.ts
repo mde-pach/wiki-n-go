@@ -1,3 +1,4 @@
+import { onSwapReset } from "./cache-reset";
 import { fetchMarkdown, PageNotFoundError } from "./content";
 import { splitTitle } from "./markdown";
 import { BASE, prettify, readHref } from "./paths";
@@ -8,6 +9,10 @@ type Card =
   | { kind: "wiki"; title: string; snippet: string; thumb?: string; url: string };
 
 const cache = new Map<string, Promise<Card>>();
+
+// Our own page hovercards (title/snippet/missing) go stale after an in-site edit;
+// drop them on navigation. The Wikipedia interwiki cache below is external + stable.
+onSwapReset(() => cache.clear());
 
 interface WikiSummary {
   title?: string;
