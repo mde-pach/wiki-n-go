@@ -7,6 +7,7 @@
 // Run: `bun run start` (or `bun src/server.ts`). Configure via env vars — the
 // same names the Worker uses (see types.ts / .dev.vars.example), plus PORT.
 import app from "./index";
+import { hydrateModLog } from "./modlog";
 import { MemoryKV } from "./store";
 import type { Env } from "./types";
 
@@ -36,6 +37,13 @@ function buildEnv(): Env {
 
 const env = buildEnv();
 const port = Number(process.env.PORT ?? 8787);
+
+// Seed the in-memory store with durable moderation decisions (manual patrols +
+// tags) from the git log, so they survive this restart (M11.3). Best-effort —
+// a failure (no creds yet, file absent) just leaves the store empty (fail-open).
+hydrateModLog(env)
+  .then((n) => n > 0 && console.log(`hydrated ${n} moderation entries from git`))
+  .catch((e) => console.error("mod-log hydrate skipped:", (e as Error).message));
 
 const server = Bun.serve({
   port,

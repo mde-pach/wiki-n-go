@@ -4,6 +4,7 @@ import { HttpError } from "../http";
 import { requireMaintainer } from "../identity";
 import { invalidateContent } from "../kv";
 import { autopatrol } from "../moderation";
+import { appendModLog } from "../modlog";
 import { botCommitter, commitPayload, getCurrentFile } from "../repo";
 import { revertCommit } from "../revert";
 import type { DeleteBody, Env, RestoreBody } from "../types";
@@ -28,8 +29,17 @@ export async function patrol(
 ): Promise<{ ok: true }> {
   const sha = String(body.sha ?? "");
   if (!SHA_RE.test(sha)) throw new HttpError(400, "Invalid revision.");
-  await requireMaintainer(env, request, "Patrolling");
+  const writer = await requireMaintainer(env, request, "Patrolling");
   await env.RATE_LIMIT?.put(`patrol:${sha}`, "1");
+  // Durable record so the patrol survives a no-DB restart (M11.3).
+  await appendModLog(
+    env,
+    { type: "patrol", sha },
+    {
+      name: writer.name,
+      email: writer.email,
+    },
+  );
   return { ok: true };
 }
 
@@ -47,6 +57,18 @@ export async function tag(
   if (!TAG_RE.test(label)) throw new HttpError(400, "Invalid tag.");
   const writer = await requireMaintainer(env, request, "Tagging");
   await addTag(env, sha, label);
+  // Durable record of the full tag set so manual tags survive a restart (M11.3).
+  const raw = await env.RATE_LIMIT?.get(`tag:${sha}`);
+  if (raw) {
+    await appendModLog(
+      env,
+      { type: "tag", sha, tags: JSON.parse(raw) as string[] },
+      {
+        name: writer.name,
+        email: writer.email,
+      },
+    );
+  }
   await appendAudit(
     env,
     `${env.REPO_OWNER}/${env.REPO_NAME}`,

@@ -32,8 +32,8 @@ function stubGitHub(o: Opts) {
       puts.push({ url, body: JSON.parse(String(init.body)) });
       return Response.json({ commit: { sha: "newsha", html_url: "u" } });
     }
-    if (url.includes("/contents/audit-log.jsonl"))
-      return new Response("", { status: 404 }); // created on first audit write
+    if (url.includes("/contents/audit-log.jsonl") || url.includes("moderation.jsonl"))
+      return new Response("", { status: 404 }); // created on first audit/mod write
     const file = url.match(/\/contents\/content\/.+?\.md\?ref=([^&]+)/);
     if (file) {
       const raw = file[1] === o.rev ? o.atRev : o.current;
