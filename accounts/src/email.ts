@@ -22,3 +22,20 @@ export async function sendCode(email: string, code: string): Promise<void> {
     text: `Your Wikigit sign-in code is ${code}.\n\nIt expires shortly. If you didn't request it, you can ignore this email.`,
   });
 }
+
+// A wiki notification (reverted / pending review / reply), delivered for the
+// Engine — which never sees the address. See accounts/README.md and the Engine's
+// worker/NOTIFY.md for the contract.
+export async function sendNotification(
+  email: string,
+  subject: string,
+  body: string,
+  link: string,
+): Promise<void> {
+  await transport.sendMail({
+    from: FROM,
+    to: email,
+    subject,
+    text: link ? `${body}\n\n${link}` : body,
+  });
+}

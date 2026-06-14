@@ -22,7 +22,13 @@ caught at write-time and routed by identity. See `src/notify.ts`.
   comment lands. `gh:` participants are subscribed by an `@login` on their *first*
   comment (GitHub then notifies natively); `wg:` participants get an email.
 
-## The companion endpoint (lives on the IdP app, `auth.wikigit.org`)
+## The companion endpoint — **implemented** in `accounts/` (`auth.wikigit.org`)
+
+`POST /notify` is built in the IdP app (`accounts/src/index.ts`); it verifies the
+bearer, resolves `sub → email` via a `["userById", id]` index, and sends through
+the same SMTP as sign-in. Set `NOTIFY_TOKEN` on the IdP and the matching
+`IDP_MAIL_TOKEN` + `IDP_MAIL_URL=https://auth.wikigit.org/notify` on the Engine.
+
 
 The Engine calls it for `wg:` recipients only. Configure the Engine with
 `IDP_MAIL_URL` (e.g. `https://auth.wikigit.org/notify`) and a shared

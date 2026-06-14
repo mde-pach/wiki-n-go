@@ -39,3 +39,21 @@ import { createClient } from "@openauthjs/openauth/client";
 Then `wikigitWriter` keys `wg:` off the stable **`id`** (not `handle`). The flow is
 PKCE/public-client, so the Engine needs only `WIKIGIT_ISSUER` + `WIKIGIT_CLIENT_ID`
 — **drop `WIKIGIT_CLIENT_SECRET`**.
+
+## Notifications (`POST /notify`)
+
+The Engine never holds a user's email, so it can't email `wg:` users itself — it
+pushes the event here and this app sends it via the same SMTP as sign-in. The
+Engine's side + full contract live in `worker/NOTIFY.md`.
+
+```
+POST /notify
+Authorization: Bearer ${NOTIFY_TOKEN}
+{ "sub": "<account id>", "subject": "...", "body": "...", "link": "https://..." }
+→ 202 (sent) · 401 (bad token) · 404 (unknown account) · 400 (bad body)
+```
+
+Set **`NOTIFY_TOKEN`** here and the matching **`IDP_MAIL_TOKEN`** on the Engine,
+with the Engine's **`IDP_MAIL_URL=https://auth.wikigit.org/notify`**. Unset
+`NOTIFY_TOKEN` → the route is disabled (404) and the Engine no-ops. `sub → email`
+resolves through a `["userById", id]` index written on sign-in.
