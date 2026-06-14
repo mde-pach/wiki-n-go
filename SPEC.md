@@ -668,6 +668,19 @@ editing/dynamic backend moves. Full design + migration plan:
   applies title/description to the shared chrome at runtime. **Still to build (phase 4):** the
   claim flow itself (sign in → pick name → choose lane → provision repo/install → register) and
   the platform-stored provisioning (needs a `wikigit-tenants` org + the App with repo-admin).
+- [x] ✅ **M11.9 — claim flow, both lanes (Hub phase 4)** (2026-06-14): self-serve
+  `foo.wikigit.org`, **open** (any signed-in user; gating policy, if ever wanted, lives in the
+  claim handler). **Two-App split for safety:** a separate operator-only `wikigit-platform`
+  App (id 4053265, org-owned, Administration write, key only on the Engine) provisions repos;
+  the public `wikigit-app` (which lands on strangers' repos) stays minimal. `POST /claim`
+  (sign-in-gated, operator-global): the **platform** lane provisions `wikigit-tenants/<name>`
+  via the platform App + seeds home/`wikigit.json` (`wikigit-app`, installed org-wide, serves
+  it after); the **byo** lane verifies `wikigit-app` is installed on the user's repo. Then
+  `registerTenant` + returns the subdomain URL. Frontend `/create`: sign in → pick name (live
+  availability) → choose lane → submit → redirect. The create→seed→serve→delete chain was
+  verified against the real org. Engine env: `GITHUB_PLATFORM_APP_ID`/`_PRIVATE_KEY` (base64),
+  `PLATFORM_ORG`, `PLATFORM_HOST`. Tests isolate via `vi.resetModules()` (no prod reset hooks);
+  `worker/.dockerignore` `**/*.test.ts` keeps fixtures out of the runtime image.
 
 The §5 "one piece of infra is irreducible" argument is **runtime-agnostic** — it
 holds for the Bun server exactly as for the Worker (the browser still can't hold a
