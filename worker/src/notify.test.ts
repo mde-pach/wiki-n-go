@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { keyFromCommitEmail, mentionFor, notifyByEmail, notifyRevert } from "./notify";
+import {
+  keyFromCommitEmail,
+  mentionFor,
+  notifyByEmail,
+  notifyPendingReview,
+  notifyRevert,
+} from "./notify";
 import type { Env } from "./types";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -123,5 +129,39 @@ describe("notifyRevert", () => {
     });
     await notifyRevert(env(), null, "deadbeef", ["coffee"]);
     expect(calls).toHaveLength(0);
+  });
+});
+
+describe("notifyPendingReview", () => {
+  const env = () =>
+    ({
+      REPO_OWNER: "acme",
+      REPO_NAME: "wiki",
+      BRANCH: "main",
+      GITHUB_TOKEN: "tok",
+      IDP_MAIL_URL: "https://idp/notify",
+    }) as Env;
+
+  it("@-mentions gh maintainers in one PR comment and emails wg ones", async () => {
+    const posts: { url: string; body: string }[] = [];
+    vi.stubGlobal("fetch", async (input: string | URL, init: RequestInit = {}) => {
+      const url = String(input);
+      if (url.endsWith("/trusted-editors.json")) return Response.json(["wg:42"]);
+      if (url.endsWith("/wikigit.json"))
+        return Response.json({ maintainers: ["alice"] });
+      posts.push({ url, body: String(init.body) });
+      return Response.json({});
+    });
+    await notifyPendingReview(env(), 7, "coffee", "https://pr/7");
+
+    const comment = posts.find((p) => p.url.endsWith("/issues/7/comments"));
+    expect(comment).toBeTruthy();
+    // owner + config maintainer get @-mentioned; the wg maintainer does not.
+    expect(JSON.parse(comment?.body ?? "{}").body).toContain("@acme");
+    expect(JSON.parse(comment?.body ?? "{}").body).toContain("@alice");
+    expect(JSON.parse(comment?.body ?? "{}").body).not.toContain("@42");
+
+    const email = posts.find((p) => p.url === "https://idp/notify");
+    expect(JSON.parse(email?.body ?? "{}").sub).toBe("42");
   });
 });

@@ -1,4 +1,5 @@
 import { gh } from "./github";
+import { maintainerKeys } from "./trust";
 import type { Env } from "./types";
 
 // Write-time notifications. We hold NO notification state: each event is pushed,
@@ -90,4 +91,44 @@ export async function notifyRevert(
     body: `A maintainer rolled back your recent edit to ${where} on this wiki.`,
     link: `https://github.com/${repo}/commit/${sha}`,
   });
+}
+
+// Tell the wiki's maintainers a new edit is awaiting review. gh: maintainers are
+// `@`-mentioned in one PR comment (GitHub notifies natively); wg: maintainers get
+// an IdP email; anon maintainers are unreachable. Best-effort; never throws into
+// the publish path.
+export async function notifyPendingReview(
+  env: Env,
+  prNumber: number,
+  slug: string,
+  prUrl: string,
+): Promise<void> {
+  let keys: string[];
+  try {
+    keys = await maintainerKeys(env);
+  } catch {
+    return;
+  }
+  const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
+  const mentions = keys.map(mentionFor).filter((m): m is string => m !== null);
+  if (mentions.length) {
+    try {
+      await gh(env, `/repos/${repo}/issues/${prNumber}/comments`, {
+        method: "POST",
+        body: JSON.stringify({
+          body: `${mentions.map((m) => `@${m}`).join(" ")} — a new edit to **${slug}** is awaiting review.`,
+        }),
+      });
+    } catch {
+      // best-effort
+    }
+  }
+  for (const key of keys) {
+    if (key.startsWith("wg:"))
+      await notifyByEmail(env, key, {
+        subject: `Edit awaiting review: ${slug}`,
+        body: `A new edit to ${slug} is awaiting maintainer review on this wiki.`,
+        link: prUrl,
+      });
+  }
 }

@@ -75,6 +75,20 @@ async function configMaintainers(env: Env): Promise<string[]> {
   return sanitizeConfig(cfg).maintainers ?? [];
 }
 
+// Every maintainer's identity key — the owner, the trusted-editors list and the
+// config maintainers, unioned + normalized (a bare login → `gh:<login>`, matching
+// isMaintainer). Used to notify maintainers of a pending review.
+export async function maintainerKeys(env: Env): Promise<string[]> {
+  const [trusted, configM] = await Promise.all([
+    trustedEditors(env),
+    configMaintainers(env),
+  ]);
+  const toKey = (e: string) => (/^(gh:|wg:|anon-)/.test(e) ? e : `gh:${e}`);
+  const set = new Set<string>([`gh:${env.REPO_OWNER}`]);
+  for (const e of [...trusted, ...configM]) set.add(toKey(e));
+  return [...set];
+}
+
 // Maintainer status is keyed on the **provider-qualified** identity key
 // (`gh:<login>` / `wg:<sub>` / `anon-<hash>`), never the display name — a
 // self-chosen Wikigit handle equal to the owner's GitHub login (or a trusted

@@ -12,6 +12,7 @@ import { HttpError } from "../http";
 import { resolve, type Writer } from "../identity";
 import { invalidateContent, kvGetJson, kvPutJson } from "../kv";
 import { autopatrol, bumpEditWar } from "../moderation";
+import { notifyPendingReview } from "../notify";
 import { commitPayload, getCurrentFile } from "../repo";
 import { revertCommit } from "../revert";
 import { revertRisk } from "../risk";
@@ -390,6 +391,9 @@ export async function runPublish(
     // Trusted but not auto-mergeable (overlapping change): leave the PR open and
     // let it fall into the review queue — an expected outcome, not an error.
   }
+  // A freshly-opened PR is a new review for the wiki's maintainers. Notify them
+  // once (not on reuse/retry of an existing PR). Best-effort.
+  if (pr.created) await notifyPendingReview(env, pr.number, ctx.slug, pr.htmlUrl);
   return { live: false, prUrl: pr.htmlUrl, author: ctx.writer.name };
 }
 
@@ -424,7 +428,7 @@ async function deleteBranch(env: Env, repo: string, branch: string): Promise<voi
 async function openOrReusePr(
   env: Env,
   ctx: EditContext,
-): Promise<{ number: number; branch: string; htmlUrl: string }> {
+): Promise<{ number: number; branch: string; htmlUrl: string; created: boolean }> {
   const { repo, path, slug, summary, writer, current, tags } = ctx;
   const author = writer.name;
   const branch = editBranch(writer, slug);
@@ -477,7 +481,13 @@ async function openOrReusePr(
     env,
     `/repos/${repo}/pulls?head=${env.REPO_OWNER}:${branch}&state=open`,
   );
-  if (open.length) return { number: open[0].number, branch, htmlUrl: open[0].html_url };
+  if (open.length)
+    return {
+      number: open[0].number,
+      branch,
+      htmlUrl: open[0].html_url,
+      created: false,
+    };
 
   const pr = await gh<{ number: number; html_url: string }>(
     env,
@@ -496,7 +506,7 @@ async function openOrReusePr(
       }),
     },
   );
-  return { number: pr.number, branch, htmlUrl: pr.html_url };
+  return { number: pr.number, branch, htmlUrl: pr.html_url, created: true };
 }
 
 // Post-merge bookkeeping for a clean auto-merge. Every step is idempotent, so a
