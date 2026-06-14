@@ -634,12 +634,16 @@ editing/dynamic backend moves. Full design + migration plan:
   (`src/config.ts`); point it at the Bun server's URL. HTTP contract unchanged, so
   no other frontend change (a cosmetic `serverUrl` rename was skipped as churn).
 - [x] ✅ **M11.5 — deploy/ops** (`worker/Dockerfile`, `.dockerignore`, `DEPLOY.md`):
-  `oven/bun:1`, `--production`, **no volume** (no-DB). Coolify setup + env reference +
-  verify steps. `docker build` + container `/health` verified.
-- [x] ✅ **M11.6 — Cloudflare relegated, not removed**: Bun is the documented primary
-  backend; the Worker entry (`src/index.ts`), `wrangler.toml`, the `/setup` wizard and
-  the `EDGE_SSR=cloudflare` read path are **retained as a supported alternative**
-  (forks may still run on CF). PKCE-watch is moot (a server holds the OAuth secret).
+  `oven/bun:1` + `curl`/`HEALTHCHECK`, `--production`, **no volume** (no-DB). **Live on
+  Coolify** at `wikigit-engine.147.135.128.22.sslip.io` (HTTPS/Let's Encrypt);
+  authenticated reads (`/latest`, `/pages`) + CORS verified against the site origin.
+- [x] ✅ **M11.6 — Cloudflare fully removed** (2026-06-14, decided pre-release): no
+  `@cloudflare/workers-types` (local `KV` interface + `@types/bun`), no `wrangler`/
+  `wrangler.toml`, no `@astrojs/cloudflare`, no `/setup` Deploy-to-Cloudflare wizard,
+  no `deploy-cf-pages.yml`. Bun is the **only** backend, deployed on Coolify; `index.ts`
+  is the shared app, `server.ts` the entry. Netlify retained as the optional edge-SSR
+  adapter. Frontend hosting repoint (wikigit.org DNS off Cloudflare Pages) deferred to
+  the "proper multi-service deploy config". PKCE-watch moot (the server holds the secret).
 
 The §5 "one piece of infra is irreducible" argument is **runtime-agnostic** — it
 holds for the Bun server exactly as for the Worker (the browser still can't hold a
