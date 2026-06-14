@@ -299,7 +299,7 @@ describe("slugifyPath", () => {
 });
 
 describe("viewHref (collapse home/lang-home — W4)", () => {
-  it("home → /edit (never /edit/index, which Cloudflare Pages 308-strips)", () => {
+  it("home → /edit (never /edit/index, which some static hosts 308-strip)", () => {
     expect(viewHref("edit", "index")).toBe("/edit");
     expect(viewHref("history", "index")).toBe("/history");
     expect(viewHref("talk", "index")).toBe("/talk");

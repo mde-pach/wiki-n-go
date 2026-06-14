@@ -20,7 +20,7 @@ export function rawPage(slug: string | undefined): string | undefined {
 }
 
 // Edit/history/talk route params, collapsed the same way the read route is so a
-// page never lives under a literal `/index` segment — Cloudflare Pages 308-strips
+// page never lives under a literal `/index` segment — some static hosts 308-strip
 // `…/index` → `…/`, which broke the home's Edit/History/Talk tabs (W4).
 export function staticPaths(): { params: { slug: string | undefined } }[] {
   return contentSlugs().map((slug) => ({

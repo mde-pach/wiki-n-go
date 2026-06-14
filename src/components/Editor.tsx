@@ -255,8 +255,8 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     setModal(true);
   }
   function confirmSubmit() {
-    // Close the confirm dialog first so an in-panel bot-check (if Cloudflare
-    // asks for one) is reachable rather than behind the modal backdrop.
+    // Close the confirm dialog first so the publish progress is visible rather
+    // than behind the modal backdrop.
     setModal(false);
     setProgress({ progress: 0, label: "Starting" });
     run(async (tok) => {

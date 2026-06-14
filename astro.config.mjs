@@ -2,20 +2,16 @@ import solid from "@astrojs/solid-js";
 import { defineConfig } from "astro/config";
 
 // Optional edge-SSR variant (off by default — see SPEC §8/M4). Set
-// EDGE_SSR=cloudflare|netlify to server-render the content route on demand for
-// SEO (real HTML + server-side noindex-until-patrolled), still fetching content
-// from jsDelivr@sha at request time — no per-commit rebuild. Unset → pure static
-// output for GitHub Pages, unchanged (no adapter, every route prerendered).
+// EDGE_SSR=netlify to server-render the content route on demand for SEO (real
+// HTML + server-side noindex-until-patrolled), still fetching content from
+// jsDelivr@sha at request time — no per-commit rebuild. Unset → pure static
+// output (GitHub Pages), unchanged (no adapter, every route prerendered).
 const edgeSsr = process.env.EDGE_SSR || "";
 const loadAdapter = {
-  // `imageService: "compile"` keeps sharp (→ node `fs`) out of the edge runtime
-  // bundle; content images are plain Markdown, so no runtime image service.
-  cloudflare: () =>
-    import("@astrojs/cloudflare").then((m) => m.default({ imageService: "compile" })),
   netlify: () => import("@astrojs/netlify").then((m) => m.default()),
 };
 if (edgeSsr && !(edgeSsr in loadAdapter)) {
-  throw new Error(`EDGE_SSR must be "cloudflare" or "netlify", got "${edgeSsr}".`);
+  throw new Error(`EDGE_SSR must be "netlify", got "${edgeSsr}".`);
 }
 const adapter = edgeSsr ? await loadAdapter[edgeSsr]() : undefined;
 

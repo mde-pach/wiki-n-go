@@ -11,7 +11,7 @@ export function readHref(slug: string): string {
 
 // Edit/history/talk URL for a content slug, collapsed like readHref so the home
 // is `/edit` (not `/edit/index`) and a language home is `/edit/fr` — never a
-// literal `/index` segment that Cloudflare Pages would 308-strip (W4).
+// literal `/index` segment that some static hosts would 308-strip (W4).
 export function viewHref(view: "edit" | "history" | "talk", slug: string): string {
   if (slug === config.homeSlug) return `${BASE}/${view}`;
   return `${BASE}/${view}/${isLangHome(slug) ?? slug}`;
@@ -97,7 +97,6 @@ export function categoryHref(tag: string): string {
 export const changesHref = `${BASE}/changes`;
 export const reviewHref = `${BASE}/review`;
 export const adminHref = `${BASE}/admin`;
-export const setupHref = `${BASE}/setup`;
 
 // Profile page for a GitHub login, stored as content at `user/<login>`. Logins
 // are case-insensitive on GitHub, so the slug is canonicalised to lowercase.
