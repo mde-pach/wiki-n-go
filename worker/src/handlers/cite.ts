@@ -9,6 +9,7 @@ import {
 } from "../citelib";
 import { HttpError } from "../http";
 import { cached } from "../kv";
+import { fetchGuarded } from "../ssrf";
 import type { Env } from "../types";
 
 const CITE_TTL_MS = 86_400_000;
@@ -48,31 +49,10 @@ async function lookupCitation(env: Env, query: CiteQuery): Promise<Citation> {
     if (!book) throw new HttpError(404, "Couldn't find that ISBN.");
     return openLibraryCitation(book, query.value);
   }
-  assertFetchableUrl(query.value);
-  const res = await fetch(query.value, {
+  const { res, finalUrl } = await fetchGuarded(query.value, {
     headers: { "User-Agent": ua },
-    redirect: "follow",
   });
   if (!res.ok) throw new HttpError(422, "Couldn't fetch that URL.");
   const html = (await res.text()).slice(0, 262_144);
-  return htmlMetaCitation(html, res.url || query.value);
-}
-
-// Block the obvious SSRF targets; the Worker fetches arbitrary user-supplied URLs.
-function assertFetchableUrl(raw: string) {
-  let url: URL;
-  try {
-    url = new URL(raw);
-  } catch {
-    throw new HttpError(400, "Invalid URL.");
-  }
-  if (url.protocol !== "http:" && url.protocol !== "https:")
-    throw new HttpError(400, "Only http(s) URLs are supported.");
-  const host = url.hostname.toLowerCase();
-  const blocked =
-    /^(localhost|127\.|0\.|10\.|169\.254\.|192\.168\.|::1$|\[::1\])/.test(host) ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    host.endsWith(".internal") ||
-    host.endsWith(".local");
-  if (blocked) throw new HttpError(400, "Refusing to fetch a private address.");
+  return htmlMetaCitation(html, finalUrl);
 }
