@@ -22,6 +22,16 @@ export interface Providers {
   wikigit: boolean;
 }
 
+export type Provider = "github" | "wikigit";
+
+// The sign-in providers to offer, in display order: those the Worker reports
+// enabled, or both when not yet known (first visit) — the Worker is the authority
+// and rejects any it hasn't enabled, so offering an extra one is safe.
+export function enabledProviders(p?: Providers): Provider[] {
+  if (!p) return ["github", "wikigit"];
+  return (["github", "wikigit"] as Provider[]).filter((k) => p[k]);
+}
+
 function decode(token: string): SessionInfo | null {
   try {
     const claims = token.split(".")[1] ?? "";

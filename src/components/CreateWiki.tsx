@@ -1,6 +1,13 @@
-import { createSignal, Show } from "solid-js";
+import { createSignal, For, onMount, Show } from "solid-js";
 import { config } from "../config";
-import { getSession, login } from "../lib/auth";
+import {
+  authProviders,
+  authProvidersCached,
+  enabledProviders,
+  getSession,
+  login,
+  type Provider,
+} from "../lib/auth";
 import { type Availability, checkName, createWiki } from "../lib/claim";
 import { appInstallUrl } from "../lib/setup-status";
 import { errMessage } from "../lib/util";
@@ -9,8 +16,17 @@ import { ErrorNote, Status, ViewHead } from "./ui";
 type Lane = "platform" | "byo";
 const NAME_RE = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
 
+// Email (Wikigit account) lets a non-technical owner create a managed wiki
+// without a GitHub account — the platform lane provisions the repo for them.
+const PROVIDER_LABEL: Record<Provider, string> = {
+  github: "Continue with GitHub",
+  wikigit: "Continue with email",
+};
+
 export default function CreateWiki() {
   const [signedIn] = createSignal(Boolean(getSession()));
+  const [providers, setProviders] = createSignal(authProvidersCached());
+  onMount(async () => setProviders(await authProviders()));
   const [name, setName] = createSignal("");
   const [avail, setAvail] = createSignal<Availability>();
   const [lane, setLane] = createSignal<Lane>("platform");
@@ -68,13 +84,19 @@ export default function CreateWiki() {
         fallback={
           <div class="create-signin">
             <Status>Sign in to create a wiki — it takes a second.</Status>
-            <button
-              type="button"
-              class="btn btn-primary"
-              onClick={() => login("github", location.href)}
-            >
-              Sign in with GitHub
-            </button>
+            <div class="provider-list">
+              <For each={enabledProviders(providers())}>
+                {(p, i) => (
+                  <button
+                    type="button"
+                    class={`btn provider-btn ${i() === 0 ? "btn-primary" : "btn-outline"}`}
+                    onClick={() => login(p, location.href)}
+                  >
+                    {PROVIDER_LABEL[p]}
+                  </button>
+                )}
+              </For>
+            </div>
           </div>
         }
       >

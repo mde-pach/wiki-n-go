@@ -679,8 +679,9 @@ editing/dynamic backend moves. Full design + migration plan:
   (sign-in-gated, operator-global): the **platform** lane provisions `wikigit-tenants/<name>`
   via the platform App + seeds home/`wikigit.json` (`wikigit-app`, installed org-wide, serves
   it after); the **byo** lane verifies `wikigit-app` is installed on the user's repo. Then
-  `registerTenant` + returns the subdomain URL. Frontend `/create`: sign in → pick name (live
-  availability) → choose lane → submit → redirect. The create→seed→serve→delete chain was
+  `registerTenant` + returns the subdomain URL. Frontend `/create`: sign in (**GitHub or email
+  / Wikigit account** — both `enabledProviders()`-driven, so a non-technical owner can create a
+  managed wiki with no GitHub) → pick name (live availability) → choose lane → submit → redirect. The create→seed→serve→delete chain was
   verified against the real org. Engine env: `GITHUB_PLATFORM_APP_ID`/`_PRIVATE_KEY` (base64),
   `PLATFORM_ORG`, `PLATFORM_HOST`. Tests isolate via `vi.resetModules()` (no prod reset hooks);
   `worker/.dockerignore` `**/*.test.ts` keeps fixtures out of the runtime image.

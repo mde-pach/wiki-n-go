@@ -3,14 +3,14 @@ import { Portal } from "solid-js/web";
 import {
   authProviders,
   authProvidersCached,
+  enabledProviders,
   getSession,
   login,
   logout,
+  type Provider,
 } from "../lib/auth";
 import { dialogBehavior } from "../lib/dialog";
 import { Icons } from "./Icons";
-
-type Provider = "github" | "wikigit";
 
 const PROVIDER_LABEL: Record<Provider, string> = {
   github: "Continue with GitHub",
@@ -58,11 +58,7 @@ export default function AuthButton() {
     const p = providers();
     return p ? !p.github && !p.wikigit : false;
   };
-  const choices = (): Provider[] => {
-    const p = providers();
-    if (!p) return ["github", "wikigit"];
-    return (["github", "wikigit"] as Provider[]).filter((k) => p[k]);
-  };
+  const choices = (): Provider[] => enabledProviders(providers());
 
   return (
     <>
