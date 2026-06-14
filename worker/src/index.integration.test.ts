@@ -60,6 +60,31 @@ const req = (path: string) =>
 
 afterEach(() => vi.unstubAllGlobals());
 
+describe("reverse-proxy scheme (X-Forwarded-Proto)", () => {
+  it("builds an https OAuth redirect_uri when proxied over http", async () => {
+    const env = {
+      ...makeEnv(),
+      OAUTH_CLIENT_ID: "cid",
+      OAUTH_CLIENT_SECRET: "csecret",
+      SESSION_SECRET: "sess",
+      ALLOWED_ORIGIN: "https://example.test",
+    } as unknown as Env;
+    // The container sees http (TLS terminated at the proxy); the proxy forwards https.
+    const res = await worker.fetch(
+      new Request(
+        "http://api.test/auth/login?provider=github&return=https://example.test/",
+        {
+          headers: { "X-Forwarded-Proto": "https" },
+        },
+      ),
+      env,
+    );
+    expect(res.status).toBe(302);
+    const loc = new URL(res.headers.get("location") ?? "");
+    expect(loc.searchParams.get("redirect_uri")).toBe("https://api.test/auth/callback");
+  });
+});
+
 describe("GET /link-graph", () => {
   it("builds the graph from content and flags wanted + redirects", async () => {
     stubGitHub();
