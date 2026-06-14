@@ -46,10 +46,15 @@ async function build(env: Env, author: string): Promise<ContributionsResult> {
   // anon author is its own key; a bare login is treated as the GitHub identity.
   const key = isAnon ? author : `gh:${author}`;
   const [commits, tier, suppressions] = await Promise.all([
+    // Filter by `email`, NOT the raw author name: GitHub's `?author=` resolves a
+    // login or an email, never the git author *name*. An anon's name `anon-<hash>`
+    // matches nothing, so the list came back empty while trust (which queries the
+    // email) reported edits — the two surfaces disagreed. The email matches both
+    // anon (`<name>@anon.invalid`) and a login (resolves to the account).
     gh<CommitItem[]>(
       env,
       `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits?author=${encodeURIComponent(
-        author,
+        email,
       )}&sha=${env.BRANCH}&per_page=50`,
     ),
     editorTier(env, email, key),

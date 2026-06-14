@@ -156,6 +156,49 @@ describe("GET /contributions", () => {
     });
   });
 
+  it("queries anon contributions by the no-PII email, not the bare name (WB-1)", async () => {
+    let listAuthor: string | undefined;
+    vi.stubGlobal("fetch", async (input: string | URL) => {
+      const url = String(input);
+      if (url.includes("/commits/a1"))
+        return Response.json({
+          stats: { additions: 5, deletions: 0 },
+          files: [{ filename: "content/tea.md", status: "added" }],
+        });
+      if (url.includes("/commits?author=") && url.includes("per_page=50")) {
+        listAuthor = new URL(url).searchParams.get("author") ?? undefined;
+        return Response.json([
+          {
+            sha: "a1",
+            parents: [],
+            commit: {
+              author: { name: "anon-3f9a2c", date: "2026-06-02T00:00:00Z" },
+              message: "Add tea",
+            },
+          },
+        ]);
+      }
+      if (url.includes("/commits?author=")) return new Response("[]"); // trust → open
+      if (url.includes("raw.githubusercontent.com"))
+        return new Response("", { status: 404 });
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+
+    const res = await worker.fetch(
+      new Request("https://w.dev/contributions?author=anon-3f9a2c", {
+        headers: { Origin: "https://example.test" },
+      }),
+      makeEnv(),
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { isAnon: boolean; contributions: unknown[] };
+    // The list must be filtered by the author's email, not its name — else it's
+    // empty for anon while the tier (email-based) is non-zero.
+    expect(listAuthor).toBe("anon-3f9a2c@anon.invalid");
+    expect(body.isAnon).toBe(true);
+    expect(body.contributions).toHaveLength(1);
+  });
+
   it("rejects a malformed author", async () => {
     const res = await worker.fetch(
       new Request("https://w.dev/contributions?author=not%20a%20login", {
