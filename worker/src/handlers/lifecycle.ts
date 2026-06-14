@@ -62,7 +62,7 @@ export async function mergePages(env: Env, request: Request, body: MergeBody) {
   const toPath = `${env.CONTENT_DIR}/${to}.md`;
 
   const [tier, source, target] = await Promise.all([
-    editorTier(env, writer.name, writer.email),
+    editorTier(env, writer.email, writer.key),
     getCurrentFile(env, repo, fromPath),
     getCurrentFile(env, repo, toPath),
   ]);
@@ -124,7 +124,7 @@ export async function splitPage(env: Env, request: Request, body: SplitBody) {
   const toPath = `${env.CONTENT_DIR}/${to}.md`;
 
   const [tier, source, target] = await Promise.all([
-    editorTier(env, writer.name, writer.email),
+    editorTier(env, writer.email, writer.key),
     getCurrentFile(env, repo, fromPath),
     getCurrentFile(env, repo, toPath),
   ]);

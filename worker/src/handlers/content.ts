@@ -287,7 +287,7 @@ export async function prepareEdit(
   const path = `${env.CONTENT_DIR}/${slug}.md`;
 
   const [tier, current] = await Promise.all([
-    editorTier(env, writer.name, writer.email),
+    editorTier(env, writer.email, writer.key),
     getCurrentFile(env, repo, path),
   ]);
 
@@ -603,7 +603,7 @@ export async function movePage(env: Env, request: Request, body: MoveBody) {
   const toPath = `${env.CONTENT_DIR}/${to}.md`;
 
   const [tier, current, target] = await Promise.all([
-    editorTier(env, writer.name, writer.email),
+    editorTier(env, writer.email, writer.key),
     getCurrentFile(env, repo, fromPath),
     getCurrentFile(env, repo, toPath),
   ]);

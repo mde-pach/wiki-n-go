@@ -42,6 +42,9 @@ async function build(env: Env, author: string): Promise<ContributionsResult> {
   // account via its no-reply email, which GitHub's `author` filter resolves from
   // the username — so the login itself works as the email-or-username filter.
   const email = isAnon ? `${author}@anon.invalid` : author;
+  // Provider-qualified key for the maintainer/tier check (display only here): an
+  // anon author is its own key; a bare login is treated as the GitHub identity.
+  const key = isAnon ? author : `gh:${author}`;
   const [commits, tier, suppressions] = await Promise.all([
     gh<CommitItem[]>(
       env,
@@ -49,7 +52,7 @@ async function build(env: Env, author: string): Promise<ContributionsResult> {
         author,
       )}&sha=${env.BRANCH}&per_page=50`,
     ),
-    editorTier(env, author, email),
+    editorTier(env, email, key),
     loadSuppressions(env),
   ]);
   const redact = makeRedactor(suppressions);

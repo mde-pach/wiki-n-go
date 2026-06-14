@@ -66,18 +66,26 @@ async function trustedEditors(env: Env): Promise<string[]> {
   return Array.isArray(list) ? (list as string[]) : [];
 }
 
+// Maintainer status is keyed on the **provider-qualified** identity key
+// (`gh:<login>` / `wg:<sub>` / `anon-<hash>`), never the display name — a
+// self-chosen Wikigit handle equal to the owner's GitHub login (or a trusted
+// login) must NOT inherit their rights. The owner is the GitHub identity
+// `gh:<REPO_OWNER>`. Legacy allowlist entries without a provider prefix are
+// read as GitHub logins (`gh:<entry>`) for backward compatibility.
+export function isMaintainer(key: string, owner: string, trusted: string[]): boolean {
+  if (key === `gh:${owner}`) return true;
+  const toKey = (e: string) => (/^(gh:|wg:|anon-)/.test(e) ? e : `gh:${e}`);
+  return trusted.map(toKey).includes(key);
+}
+
 const TRUST_TTL_S = 3600;
 
-// Trust tier from accepted-edit history. `name` matches the maintainer
-// allowlist + caches the result; `email` is the commit-author filter. Anonymous
-// and signed-in identities share the exact same machinery and thresholds.
-export async function editorTier(env: Env, name: string, email: string): Promise<Tier> {
-  // The repo owner is always a maintainer. A signed-in login is identity-verified
-  // by OAuth, so login === REPO_OWNER is provably the owner — no allowlist entry
-  // needed. (Anonymous names are `anon-<hash>`, so they can't match.)
-  if (name === env.REPO_OWNER) return "maintainer";
-  if ((await trustedEditors(env)).includes(name)) return "maintainer";
-  const { n, firstMs } = await trustStats(env, name, email);
+// Trust tier from accepted-edit history. `key` is the provider-qualified
+// identity (maintainer check + cache key); `email` is the commit-author filter.
+// Anonymous and signed-in identities share the exact same machinery and thresholds.
+export async function editorTier(env: Env, email: string, key: string): Promise<Tier> {
+  if (isMaintainer(key, env.REPO_OWNER, await trustedEditors(env))) return "maintainer";
+  const { n, firstMs } = await trustStats(env, email, key);
   const days = (Date.now() - firstMs) / 86_400_000;
   const num = (v: string | undefined, d: number) => Number.parseInt(v ?? "", 10) || d;
   if (n >= num(env.EXTENDED_EDITS, 500) && days >= num(env.EXTENDED_DAYS, 30))
@@ -89,8 +97,8 @@ export async function editorTier(env: Env, name: string, email: string): Promise
 
 // Read the identity's accepted-edit stats, cached briefly in KV to spare the
 // GitHub API on every edit.
-async function trustStats(env: Env, name: string, email: string): Promise<TrustStats> {
-  const key = `trust:${name}`;
+async function trustStats(env: Env, email: string, idKey: string): Promise<TrustStats> {
+  const key = `trust:${idKey}`;
   const s = await kvGetJson<Partial<TrustStats>>(env, key);
   if (s && typeof s.n === "number" && typeof s.firstMs === "number")
     return s as TrustStats;

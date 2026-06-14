@@ -92,7 +92,7 @@ export async function requireMaintainer(
   action: string,
 ): Promise<Writer> {
   const writer = await resolve(env, request);
-  if ((await editorTier(env, writer.name, writer.email)) !== "maintainer")
+  if ((await editorTier(env, writer.email, writer.key)) !== "maintainer")
     throw new HttpError(403, `${action} requires maintainer access.`);
   return writer;
 }
@@ -103,6 +103,6 @@ export async function whoami(
   env: Env,
   request: Request,
 ): Promise<{ author: string; tier: Tier; avatar: string | null; isAnon: boolean }> {
-  const { name, email, avatar, isAnon } = await resolve(env, request);
-  return { author: name, tier: await editorTier(env, name, email), avatar, isAnon };
+  const { name, email, avatar, isAnon, key } = await resolve(env, request);
+  return { author: name, tier: await editorTier(env, email, key), avatar, isAnon };
 }
