@@ -28,7 +28,7 @@ banner:
 
 What sets it apart is how little there is to run and worry about. You can set one up in a few minutes without writing any code.
 
-## What you get ?
+## What you get
 
 
 - **Free to host.** Your wiki runs on free services — no server to rent, no monthly bill.
