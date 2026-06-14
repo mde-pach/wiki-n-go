@@ -66,6 +66,23 @@ For any other website, use a normal link:
 
 The description is shown if the image can't load and helps screen readers. A picture on its own line becomes a neat captioned figure automatically.
 
+### Floating pictures
+
+To float a picture to one side so the text wraps around it — like an encyclopedia article — put it on its own line with the `::image` form:
+
+```
+::image[Coffee flowers in bloom]{src=https://example.com/coffee.jpg align=right}
+```
+
+The text in `[...]` is the caption. Inside `{...}`:
+
+- `src=` — the picture address (required).
+- `align=` — `right`, `left`, `center`, or `none`. Defaults to `right`.
+- `width=` — a cap on how wide it gets, e.g. `width=320` (pixels) or `width=50%`. A picture is never blown up past its own size.
+- `upright` — a narrower default, handy for tall (portrait) pictures.
+
+On narrow screens floated pictures drop to full width automatically. For a plain centered picture that shows in any Markdown tool, use the `![...](...)` form above; the `::image` form is read here on the wiki.
+
 ## References and citations
 
 To back up a fact with a source, add a footnote. Write a marker where the fact is, and the note itself anywhere on the page:

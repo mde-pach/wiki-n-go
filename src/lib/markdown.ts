@@ -3,6 +3,7 @@ import MarkdownIt from "markdown-it";
 import anchor from "markdown-it-anchor";
 import footnote from "markdown-it-footnote";
 import { citeTemplate } from "./citetemplate";
+import { directiveImage } from "./directiveimage";
 import { figures } from "./figures";
 import { type PageMeta, parseFrontmatter } from "./frontmatter";
 import { langOf, slugifyLabel, viewHref } from "./paths";
@@ -22,6 +23,7 @@ export const md = new MarkdownIt({ html: false, linkify: true, typographer: true
     }),
   })
   .use(footnote)
+  .use(directiveImage)
   .use(figures)
   .use(wikilink)
   .use(mention)

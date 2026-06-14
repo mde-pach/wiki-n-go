@@ -410,6 +410,36 @@ hr {
   color: var(--color-ink-muted);
 }
 
+/* Floated figures (::image directive). Width caps the figure; text wraps. */
+.prose figure.figure--right {
+  float: right;
+  clear: right;
+  max-width: 50%;
+  margin: 0.4em 0 0.8em 1.4em;
+}
+.prose figure.figure--left {
+  float: left;
+  clear: left;
+  max-width: 50%;
+  margin: 0.4em 1.4em 0.8em 0;
+}
+.prose figure.figure--center {
+  margin-inline: auto;
+}
+.prose figure.figure--none {
+  float: none;
+}
+
+@media (max-width: 640px) {
+  .prose figure.figure--right,
+  .prose figure.figure--left {
+    float: none;
+    width: auto !important;
+    max-width: 100%;
+    margin: 1.4em auto;
+  }
+}
+
 /* Tables in prose */
 .prose table {
   width: 100%;
