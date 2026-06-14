@@ -27,6 +27,31 @@ export function commitPayload(env: Env, args: CommitArgs): string {
   });
 }
 
+// Commit a repo-root JSON list (bans / trusted-editors / suppressions) in one
+// PUT. Callers have already read the file to mutate the list, so they pass the
+// blob `sha` they hold — no second fetch. Serializes pretty + trailing newline,
+// the shape every such file uses, so the moderation handlers share one write
+// path instead of near-identical copies.
+export async function commitJson(
+  env: Env,
+  path: string,
+  items: unknown[],
+  message: string,
+  author: { name: string; email: string },
+  sha: string | undefined,
+): Promise<void> {
+  await gh(env, `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/contents/${path}`, {
+    method: "PUT",
+    body: commitPayload(env, {
+      message,
+      content: `${JSON.stringify(items, null, 2)}\n`,
+      branch: env.BRANCH,
+      sha,
+      author,
+    }),
+  });
+}
+
 // Current file on the live branch: blob sha (for the next commit) + raw text
 // (for protection / field checks). Null when the page is new.
 export async function getCurrentFile(

@@ -1,8 +1,7 @@
 import { appendAudit } from "../audit";
-import { gh } from "../github";
 import { HttpError } from "../http";
 import { requireMaintainer } from "../identity";
-import { commitPayload, getCurrentFile } from "../repo";
+import { commitJson, getCurrentFile } from "../repo";
 import type { Env, GrantBody } from "../types";
 
 const EDITORS_PATH = "trusted-editors.json";
@@ -52,16 +51,14 @@ async function writeEditors(
   if (action === "revoke" && next.length === list.length)
     throw new HttpError(404, "Not a granted editor.");
 
-  await gh(env, `/repos/${repo}/contents/${EDITORS_PATH}`, {
-    method: "PUT",
-    body: commitPayload(env, {
-      message: `${action === "grant" ? "Grant" : "Revoke"} maintainer: ${key}`,
-      content: `${JSON.stringify(next, null, 2)}\n`,
-      branch: env.BRANCH,
-      sha: current?.sha,
-      author: { name: writer.name, email: writer.email },
-    }),
-  });
+  await commitJson(
+    env,
+    EDITORS_PATH,
+    next,
+    `${action === "grant" ? "Grant" : "Revoke"} maintainer: ${key}`,
+    { name: writer.name, email: writer.email },
+    current?.sha,
+  );
   await appendAudit(env, repo, writer.name, writer.email, action, key);
   return { ok: true };
 }

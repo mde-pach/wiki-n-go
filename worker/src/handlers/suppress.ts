@@ -1,45 +1,38 @@
 import { appendAudit } from "../audit";
-import { gh } from "../github";
 import { HttpError } from "../http";
 import { requireMaintainer } from "../identity";
-import { commitPayload, getCurrentFile } from "../repo";
+import { commitJson, getCurrentFile } from "../repo";
 import { parseSuppressions, type Suppression } from "../suppression";
 import type { Env, SuppressBody } from "../types";
 
 const SUPPRESSED_PATH = "suppressed.json";
+
+async function readSuppressed(
+  env: Env,
+): Promise<{ list: Suppression[]; sha: string | undefined }> {
+  const current = await getCurrentFile(
+    env,
+    `${env.REPO_OWNER}/${env.REPO_NAME}`,
+    SUPPRESSED_PATH,
+  );
+  return { list: parseSuppressions(current?.raw), sha: current?.sha };
+}
 
 export async function listSuppressed(
   env: Env,
   request: Request,
 ): Promise<{ suppressions: Suppression[] }> {
   await requireMaintainer(env, request, "Viewing suppressions");
-  const current = await getCurrentFile(
-    env,
-    `${env.REPO_OWNER}/${env.REPO_NAME}`,
-    SUPPRESSED_PATH,
-  );
-  return { suppressions: parseSuppressions(current?.raw) };
+  return { suppressions: (await readSuppressed(env)).list };
 }
 
-async function writeSuppressed(
+const writeSuppressed = (
   env: Env,
-  message: string,
+  sha: string | undefined,
   list: Suppression[],
+  message: string,
   by: { name: string; email: string },
-): Promise<void> {
-  const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
-  const current = await getCurrentFile(env, repo, SUPPRESSED_PATH);
-  await gh(env, `/repos/${repo}/contents/${SUPPRESSED_PATH}`, {
-    method: "PUT",
-    body: commitPayload(env, {
-      message,
-      content: `${JSON.stringify(list, null, 2)}\n`,
-      branch: env.BRANCH,
-      sha: current?.sha,
-      author: by,
-    }),
-  });
-}
+) => commitJson(env, SUPPRESSED_PATH, list, message, by, sha);
 
 export async function suppress(
   env: Env,
@@ -55,14 +48,12 @@ export async function suppress(
 
   const writer = await requireMaintainer(env, request, "Suppression");
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
-  const current = await getCurrentFile(env, repo, SUPPRESSED_PATH);
-  const list = parseSuppressions(current?.raw).filter(
-    (s) => !(s.type === type && s.value === value),
-  );
+  const { list: existing, sha } = await readSuppressed(env);
+  const list = existing.filter((s) => !(s.type === type && s.value === value));
   list.push({ type, value, reason, by: writer.name, at: new Date().toISOString() });
 
   const author = { name: writer.name, email: writer.email };
-  await writeSuppressed(env, `Suppress ${type} ${value}`, list, author);
+  await writeSuppressed(env, sha, list, `Suppress ${type} ${value}`, author);
   await appendAudit(
     env,
     repo,
@@ -85,13 +76,12 @@ export async function unsuppress(
 
   const writer = await requireMaintainer(env, request, "Suppression");
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
-  const current = await getCurrentFile(env, repo, SUPPRESSED_PATH);
-  const list = parseSuppressions(current?.raw);
+  const { list, sha } = await readSuppressed(env);
   const next = list.filter((s) => !(s.type === type && s.value === value));
   if (next.length === list.length) throw new HttpError(404, "No such suppression.");
 
   const author = { name: writer.name, email: writer.email };
-  await writeSuppressed(env, `Unsuppress ${type} ${value}`, next, author);
+  await writeSuppressed(env, sha, next, `Unsuppress ${type} ${value}`, author);
   await appendAudit(
     env,
     repo,

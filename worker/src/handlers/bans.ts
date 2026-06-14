@@ -1,9 +1,8 @@
 import { type AuditEntry, appendAudit, listAudit } from "../audit";
 import { type NormalBan, normalizeBan, parseBans, serializeBan } from "../bans";
-import { gh } from "../github";
 import { HttpError } from "../http";
 import { requireMaintainer } from "../identity";
-import { commitPayload, getCurrentFile } from "../repo";
+import { commitJson, getCurrentFile } from "../repo";
 import type { BanBody, Env, UnbanBody } from "../types";
 
 const BANS_PATH = "bans.json";
@@ -17,26 +16,13 @@ export async function listBans(env: Env): Promise<{ bans: NormalBan[] }> {
   return { bans: parseBans(current?.raw) };
 }
 
-async function writeBans(
+const writeBans = (
   env: Env,
-  repo: string,
   sha: string | undefined,
   list: NormalBan[],
   message: string,
   by: { name: string; email: string },
-): Promise<void> {
-  const out = list.map(serializeBan);
-  await gh(env, `/repos/${repo}/contents/${BANS_PATH}`, {
-    method: "PUT",
-    body: commitPayload(env, {
-      message,
-      content: `${JSON.stringify(out, null, 2)}\n`,
-      branch: env.BRANCH,
-      sha,
-      author: by,
-    }),
-  });
-}
+) => commitJson(env, BANS_PATH, list.map(serializeBan), message, by, sha);
 
 export async function ban(
   env: Env,
@@ -67,7 +53,7 @@ export async function ban(
   );
 
   const author = { name: writer.name, email: writer.email };
-  await writeBans(env, repo, current?.sha, list, `Ban ${key}`, author);
+  await writeBans(env, current?.sha, list, `Ban ${key}`, author);
   await appendAudit(
     env,
     repo,
@@ -98,7 +84,7 @@ export async function unban(
   if (next.length === list.length) throw new HttpError(404, "No such ban.");
 
   const author = { name: writer.name, email: writer.email };
-  await writeBans(env, repo, current?.sha, next, `Unban ${key}`, author);
+  await writeBans(env, current?.sha, next, `Unban ${key}`, author);
   await appendAudit(env, repo, writer.name, writer.email, "unban", key);
   return { ok: true };
 }
