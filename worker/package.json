@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
+    "start": "bun src/server.ts",
+    "dev:bun": "bun --watch src/server.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "verify": "tsc --noEmit && vitest run"
