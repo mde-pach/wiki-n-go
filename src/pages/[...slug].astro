@@ -91,7 +91,7 @@ const contributor =
   profileLogin && !profileLogin.startsWith("anon-") ? profileLogin : null;
 ---
 
-<PageShell slug={pageSlug} view="read" title={parsed?.title || prettify(pageSlug)} categories={parsed?.meta?.tags} description={parsed?.meta?.description} appearance={parsed?.meta?.appearance} ssr={ssr} noindex={noindex}>
+<PageShell slug={pageSlug} view="read" title={parsed?.title || prettify(pageSlug)} categories={parsed?.meta?.tags} description={parsed?.meta?.description} appearance={parsed?.meta?.appearance} ssr={ssr} noindex={noindex} titlePending={!ssr}>
   {
     redirectUrl && (
       <script
@@ -102,13 +102,13 @@ const contributor =
   }
   <main id="main" class="read-grid">
     <div class="col-toc">
-      <Toc editHref={viewHref("edit", pageSlug)} initialItems={parsed?.headings ?? []} client:load />
+      <Toc editHref={viewHref("edit", pageSlug)} initialItems={ssr ? (parsed?.headings ?? []) : []} client:load />
     </div>
     <div class="col-main">
-      <TocMobile initialItems={parsed?.headings ?? []} client:load />
+      <TocMobile initialItems={ssr ? (parsed?.headings ?? []) : []} client:load />
       <CurationBoot />
       <PageCuration slug={pageSlug} bar client:load />
-      <WikiPage slug={pageSlug} initialHtml={html} initialRaw={raw} meta={parsed?.meta} fresh={ssr} missing={ssr && !parsed} client:load />
+      <WikiPage slug={pageSlug} initialHtml={ssr ? html : undefined} initialRaw={ssr ? raw : undefined} meta={ssr ? parsed?.meta : undefined} fresh={ssr} missing={ssr && !parsed} client:load />
       {contributor && <Contributions login={contributor} client:load />}
     </div>
     <div class="col-info">

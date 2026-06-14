@@ -1,5 +1,6 @@
-import { createSignal, lazy, onMount, Show, Suspense } from "solid-js";
+import { batch, createSignal, lazy, onMount, Show, Suspense } from "solid-js";
 import { Portal } from "solid-js/web";
+import { classifyTags } from "../lib/categories";
 import { fetchMarkdown, fetchMarkdownAt, PageNotFoundError } from "../lib/content";
 import { decorate as decorateArticle } from "../lib/decorate";
 import { findSection, type SectionSpan } from "../lib/editor-section";
@@ -12,8 +13,15 @@ import {
   renderMarkdown,
   splitTitle,
 } from "../lib/markdown";
-import { BASE, langOf, prettify, readHref, slugFromLocation } from "../lib/paths";
-import { deferIdle, errMessage } from "../lib/util";
+import {
+  BASE,
+  categoryHref,
+  langOf,
+  prettify,
+  readHref,
+  slugFromLocation,
+} from "../lib/paths";
+import { errMessage } from "../lib/util";
 import { markRedLinksHtml } from "../lib/wikilink";
 import { Icons } from "./Icons";
 
@@ -57,15 +65,21 @@ export default function WikiPage(props: {
   // inside the prose flow (text wraps around it instead of sliding under it).
   const withInfobox = (h: string | undefined, m: PageMeta | undefined) =>
     h === undefined ? h : infoboxHtml(slug(), m ?? {}) + h;
-  const [html, setHtml] = createSignal(withInfobox(props.initialHtml, props.meta));
-  const [meta, setMeta] = createSignal<PageMeta>(props.meta ?? {});
+  // Only show server-rendered content when it was fetched at request time
+  // (edge-SSR, `fresh`). On the static (GitHub Pages) build the baked snapshot
+  // can be stale — a no-rebuild content edit isn't in it — so start empty and
+  // render solely from the commit the client fetches on mount, all at once.
+  const [html, setHtml] = createSignal(
+    props.fresh ? withInfobox(props.initialHtml, props.meta) : undefined,
+  );
+  const [meta, setMeta] = createSignal<PageMeta>(props.fresh ? (props.meta ?? {}) : {});
   const [notFound, setNotFound] = createSignal(props.missing ?? false);
   const [err, setErr] = createSignal<string>();
   const [redirectedFrom, setRedirectedFrom] = createSignal<string>();
   const [revOf, setRevOf] = createSignal<string>();
   // The latest raw markdown in hand, so a section `[edit]` can slice it without
   // a refetch. Tracks the SSR content first, then whatever the client fetches.
-  const [raw, setRaw] = createSignal(props.initialRaw);
+  const [raw, setRaw] = createSignal(props.fresh ? props.initialRaw : undefined);
   const [sectionEdit, setSectionEdit] = createSignal<SectionEdit>();
   // The exact document a live publish just committed. We render it straight from
   // hand on close — no refetch, so no waiting on the Worker's cached `/latest`
@@ -106,25 +120,53 @@ export default function WikiPage(props: {
   }
 
   function render(latest: string, title: string, m: PageMeta, html: string) {
-    setRaw(latest);
-    setMeta(m);
-    setHtml(html);
+    // One batched update so the title, body, infobox and notices appear in a
+    // single paint — never a half-rendered page.
+    batch(() => {
+      setRaw(latest);
+      setMeta(m);
+      setHtml(html);
+    });
     const heading = title || slug();
     document.title = heading;
     const el = document.querySelector(".page-title");
     if (el) el.textContent = heading;
+    fillCategorySlot(m.tags);
     queueMicrotask(decorate);
+  }
+
+  // On the static read view the footer category chips are a placeholder slot
+  // (the build can't know the live tags); fill it from the page we just fetched
+  // so the chips match the commit, not the build-time copy. No-op under edge-SSR,
+  // where the chips are already server-rendered.
+  function fillCategorySlot(tags?: string[]) {
+    const slot = document.querySelector<HTMLElement>(".cat-block[data-cats]");
+    if (!slot) return;
+    const { topical, maintenance } = tags?.length
+      ? classifyTags(tags)
+      : { topical: [], maintenance: [] };
+    const chip = (c: string) =>
+      `<a class="chip chip-link" href="${categoryHref(c)}">${escapeText(c)}</a>`;
+    const catRow = (label: string, items: string[], extra = "") =>
+      items.length
+        ? `<div class="cat-row${extra}"><span class="cat-label">${label}</span>${items.map(chip).join("")}</div>`
+        : "";
+    slot.innerHTML =
+      catRow("Categories", topical) +
+      catRow("Maintenance", maintenance, " cat-row-maint");
+    slot.hidden = slot.innerHTML === "";
   }
 
   async function revalidate() {
     try {
       const latest = await fetchMarkdown(slug());
-      setRaw(latest);
-      if (latest === props.initialRaw) return; // unchanged since build → keep SSR content (no shift)
       const { title, html, meta } = await renderResolved(latest);
       render(latest, title, meta, html);
     } catch (e) {
-      if (props.initialHtml) return; // page existed at build; keep it on a transient error
+      // Only the freshly fetched file may be shown: on failure surface an error
+      // rather than fall back to the (possibly stale) build-time snapshot.
+      const el = document.querySelector(".page-title");
+      if (el) el.textContent = prettify(slug());
       if (e instanceof PageNotFoundError) setNotFound(true);
       else setErr(errMessage(e));
     }
@@ -133,16 +175,14 @@ export default function WikiPage(props: {
   onMount(() => {
     const params = new URLSearchParams(window.location.search);
     setRedirectedFrom(params.get("redirectedfrom") ?? undefined);
-    if (html()) decorate(); // server-rendered content: build the TOC + red links now
+    if (html()) decorate(); // edge-SSR painted request-time-fresh content already
     const rev = params.get("rev");
     if (rev) return void showRevision(rev); // historical view; skip the latest fetch
-    if (props.fresh) return; // SSR rendered request-time-fresh content already
-    // The content is already painted from SSR; the /latest→jsDelivr revalidation
-    // only matters if the page changed since the build, so run it off the
-    // hydration critical path (it swaps in shortly after if newer). On a missing
-    // SSR page (a fresh slug) there's nothing painted, so revalidate immediately.
-    if (props.initialHtml) deferIdle(revalidate);
-    else void revalidate();
+    if (props.fresh) return; // edge-SSR already rendered the fresh file
+    // Static build: the baked snapshot is never shown (the signals start empty
+    // when not fresh), so fetch the latest commit now and render only that — all
+    // at once. A fetch failure becomes an error, not stale content.
+    void revalidate();
   });
 
   // A section `[edit]` opens a focused editor in place rather than navigating
@@ -281,6 +321,13 @@ export default function WikiPage(props: {
     </article>
   );
 }
+
+const escapeText = (s: string) =>
+  s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 
 // Hide the rendered nodes of a section (mountEl sits just after its heading, so
 // its following siblings up to the next h2/h3 are the section body) and return

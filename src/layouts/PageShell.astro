@@ -43,9 +43,22 @@ interface Props {
   // the head (instead of the client PatrolMeta island) and OG/canonical tags.
   ssr?: boolean;
   noindex?: boolean;
+  // Static read view: the title and category chips are rendered client-side from
+  // the freshly fetched file (WikiPage), so render placeholders here instead of
+  // the possibly-stale build-time copy.
+  titlePending?: boolean;
 }
-const { slug, view, title, categories, description, appearance, ssr, noindex } =
-  Astro.props;
+const {
+  slug,
+  view,
+  title,
+  categories,
+  description,
+  appearance,
+  ssr,
+  noindex,
+  titlePending,
+} = Astro.props;
 
 // `gitRevisions` reads local git (build only, uses node:child_process); load it
 // lazily so it stays out of the edge bundle. The edge path fetches the same data
@@ -169,7 +182,7 @@ const canonical = new URL(read, Astro.site).href;
       <div class="page-head">
         <div class="page-head-inner">
           <div class="page-head-top">
-            <h1 class="page-title">{display}</h1>
+            <h1 class="page-title">{titlePending ? <span class="sk-bar skeleton" style="display:inline-block;width:16rem;max-width:60vw;height:1.7rem;vertical-align:middle" /> : display}</h1>
             {
               group && (
                 <LangBar
@@ -252,7 +265,9 @@ const canonical = new URL(read, Astro.site).href;
 
       <footer class="site-footer">
         <div class="footer-inner">
+          {titlePending && <div class="cat-block" data-cats hidden />}
           {
+            !titlePending &&
             cats && (cats.topical.length > 0 || cats.maintenance.length > 0) && (
               <div class="cat-block">
                 {cats.topical.length > 0 && (
