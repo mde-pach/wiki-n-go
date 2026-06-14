@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { b64urlEncode } from "./crypto";
-import { buildClaims, pemToPkcs8Bytes, usingApp, wrapPkcs1ToPkcs8 } from "./githubApp";
+import {
+  buildClaims,
+  normalizePrivateKey,
+  pemToPkcs8Bytes,
+  usingApp,
+  wrapPkcs1ToPkcs8,
+} from "./githubApp";
 
 // A real 512-bit PKCS#1 key (test-only), the format GitHub's manifest flow returns.
 const PKCS1_PEM = `-----BEGIN RSA PRIVATE KEY-----
@@ -53,6 +59,38 @@ describe("pemToPkcs8Bytes", () => {
     const wrapped = wrapPkcs1ToPkcs8(big);
     expect(wrapped[0]).toBe(0x30); // outer SEQUENCE
     expect(wrapped[1]).toBe(0x81); // long-form length, 1 octet follows
+  });
+});
+
+describe("normalizePrivateKey", () => {
+  it("passes a real multi-line PEM through unchanged", () => {
+    expect(normalizePrivateKey(PKCS1_PEM)).toBe(PKCS1_PEM);
+  });
+
+  it("restores newlines from a single-line, \\n-escaped PEM", () => {
+    const escaped = PKCS1_PEM.replace(/\n/g, "\\n");
+    expect(normalizePrivateKey(escaped)).toBe(PKCS1_PEM);
+  });
+
+  it("decodes a base64-encoded PEM (CI/Docker-arg safe form)", () => {
+    const b64 = btoa(PKCS1_PEM);
+    expect(normalizePrivateKey(b64)).toBe(PKCS1_PEM);
+  });
+
+  it("imports a key delivered base64-encoded", async () => {
+    const key = await crypto.subtle.importKey(
+      "pkcs8",
+      pemToPkcs8Bytes(normalizePrivateKey(btoa(PKCS1_PEM))),
+      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const sig = await crypto.subtle.sign(
+      "RSASSA-PKCS1-v1_5",
+      key,
+      new TextEncoder().encode("hello"),
+    );
+    expect(sig.byteLength).toBe(64);
   });
 });
 

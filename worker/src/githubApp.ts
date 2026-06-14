@@ -49,6 +49,16 @@ export function pemToPkcs8Bytes(pem: string): Uint8Array<ArrayBuffer> {
   return pem.includes("BEGIN RSA PRIVATE KEY") ? wrapPkcs1ToPkcs8(der) : der;
 }
 
+// A multi-line PEM can't survive every secret store: Docker build-args (Coolify)
+// and many CI systems mangle embedded newlines. So also accept the key as one
+// line with literal "\n" escapes, or base64-encoded — normalize back to a real
+// PEM before parsing. A genuine PEM passes through unchanged.
+export function normalizePrivateKey(raw: string): string {
+  const s = raw.trim();
+  if (s.includes("PRIVATE KEY")) return s.replace(/\\n/g, "\n");
+  return atob(s.replace(/\s+/g, ""));
+}
+
 export function buildClaims(appId: string, nowSec: number) {
   return {
     iat: nowSec - 30, // backdate slightly for clock drift between us and GitHub
@@ -60,7 +70,7 @@ export function buildClaims(appId: string, nowSec: number) {
 async function importSigningKey(pem: string): Promise<CryptoKey> {
   return crypto.subtle.importKey(
     "pkcs8",
-    pemToPkcs8Bytes(pem),
+    pemToPkcs8Bytes(normalizePrivateKey(pem)),
     { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
     false,
     ["sign"],
