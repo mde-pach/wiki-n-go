@@ -53,12 +53,14 @@ export function search(docs: SearchDoc[], query: string, limit = 7): SearchHit[]
     let missing = false;
     for (const t of terms) {
       const inTitle = title.includes(t);
-      const inText = text.includes(t);
-      if (!inTitle && !inText) {
+      const freq = countOccurrences(text, t);
+      if (!inTitle && freq === 0) {
         missing = true;
         break;
       }
-      score += inTitle ? 10 : 3;
+      // Body relevance scales with frequency (capped) so a page that discusses a
+      // term repeatedly outranks one that mentions it once; a title hit dominates.
+      score += inTitle ? 10 : 3 + Math.min(freq - 1, 4);
     }
     if (missing) continue;
     if (title.startsWith(q)) score += 8;
@@ -72,6 +74,18 @@ export function search(docs: SearchDoc[], query: string, limit = 7): SearchHit[]
     title: doc.title,
     snippet: snippet(doc.text, terms[0]),
   }));
+}
+
+// Count non-overlapping occurrences of a lowercased term in lowercased text.
+function countOccurrences(text: string, term: string): number {
+  if (!term) return 0;
+  let n = 0;
+  let i = text.indexOf(term);
+  while (i !== -1) {
+    n++;
+    i = text.indexOf(term, i + term.length);
+  }
+  return n;
 }
 
 function snippet(text: string, term: string, radius = 64): string {

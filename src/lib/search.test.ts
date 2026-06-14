@@ -37,6 +37,14 @@ describe("search ranking", () => {
     expect(hit.slug).toBe("tea");
     expect(hit.snippet.toLowerCase()).toContain("infusion");
   });
+
+  it("ranks a body that repeats the term above one that mentions it once (P2-7)", () => {
+    const fixture: SearchDoc[] = [
+      { slug: "once", title: "Once", text: "widget appears here." },
+      { slug: "many", title: "Many", text: "widget widget widget widget everywhere." },
+    ];
+    expect(search(fixture, "widget")[0].slug).toBe("many");
+  });
 });
 
 describe("toPlainText", () => {
