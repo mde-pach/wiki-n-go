@@ -8,6 +8,7 @@ import MainMenu from "../components/MainMenu.tsx";
 import PageMeta from "../components/PageMeta.tsx";
 import PatrolMeta from "../components/PatrolMeta.tsx";
 import Search from "../components/Search.tsx";
+import SiteBoot from "../components/SiteBoot.tsx";
 import ThemeBoot from "../components/ThemeBoot.astro";
 import TokenCapture from "../components/TokenCapture.astro";
 import { type AppearanceDefaults, config } from "../config";
@@ -22,6 +23,7 @@ import {
   prettify,
   readHref,
   reviewHref,
+  settingsHref,
   setupHref,
   type View,
   viewHref,
@@ -122,6 +124,7 @@ const canonical = new URL(read, Astro.site).href;
   <body>
     <div class="app">
       <a class="skip-link" href="#main">Skip to content</a>
+      <SiteBoot client:idle />
       <header class="header" transition:persist>
         <div class="header-inner">
           <MainMenu client:load />
@@ -257,6 +260,8 @@ const canonical = new URL(read, Astro.site).href;
             <a href={adminHref}>Admin</a>
             <span class="sep">·</span>
             <a href={setupHref}>Setup</a>
+            <span class="sep">·</span>
+            <a href={settingsHref}>Settings</a>
           </div>
           <div class="footer-bottom">
             <p class="fb-license">

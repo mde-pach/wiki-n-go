@@ -1,4 +1,10 @@
 import { getJson, postJson } from "./api";
+import type { WikigitConfig } from "./site-config";
+
+export async function saveSiteConfig(config: WikigitConfig): Promise<WikigitConfig> {
+  const data = await postJson<{ ok: true; config: WikigitConfig }>("/config", config);
+  return data.config;
+}
 
 export interface Ban {
   key: string;

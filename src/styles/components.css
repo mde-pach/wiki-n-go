@@ -2406,3 +2406,47 @@ a.preview-body:focus-visible .pv-foot {
     margin-top: 0.5rem;
   }
 }
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-card);
+  margin-top: var(--space-section);
+}
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.settings-field > span {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-ink-subtle);
+}
+.settings-wide {
+  grid-column: 1 / -1;
+}
+.settings-check {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+.settings-check > span {
+  font-weight: 400;
+}
+.settings-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: var(--space-section);
+}
+.settings-saved {
+  color: var(--color-add-strong);
+  font-size: var(--text-sm);
+}
+@media (max-width: 40rem) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+}

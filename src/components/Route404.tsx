@@ -9,6 +9,7 @@ import {
   prettify,
   readHref,
   reviewHref,
+  settingsHref,
   setupHref,
   userLogin,
   viewHref,
@@ -253,6 +254,8 @@ function Footer(props: { slug: string }) {
           <a href={adminHref}>Admin</a>
           <span class="sep">·</span>
           <a href={setupHref}>Setup</a>
+          <span class="sep">·</span>
+          <a href={settingsHref}>Settings</a>
         </div>
         <div class="footer-bottom">
           <p class="fb-license">

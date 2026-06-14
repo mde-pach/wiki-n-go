@@ -141,6 +141,32 @@ describe("GET /search-index", () => {
   });
 });
 
+describe("GET /config (owner-editable wiki config)", () => {
+  it("reads wikigit.json from the repo and returns the sanitized config", async () => {
+    vi.stubGlobal("fetch", async (input: string | URL) => {
+      if (String(input).includes("/contents/wikigit.json")) {
+        return Response.json({
+          sha: "c",
+          content: btoa(JSON.stringify({ title: "Acme", junk: 1 })),
+        });
+      }
+      throw new Error(`unexpected fetch: ${input}`);
+    });
+    const res = await worker.fetch(req("/config"), makeEnv());
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Cache-Control")).toContain("s-maxage=30");
+    expect((await res.json()) as { config: unknown }).toEqual({
+      config: { title: "Acme" },
+    });
+  });
+
+  it("returns an empty config when the file is absent", async () => {
+    vi.stubGlobal("fetch", async () => new Response("", { status: 404 }));
+    const res = await worker.fetch(req("/config"), makeEnv());
+    expect((await res.json()) as { config: unknown }).toEqual({ config: {} });
+  });
+});
+
 describe("GET /resolve + /tenant-available (tenant registry)", () => {
   // Seed the registry read-cache so resolution needs no GitHub call.
   function platformEnv(): Env {

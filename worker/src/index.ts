@@ -1,6 +1,7 @@
 import { auditLog, ban, listBans, unban } from "./handlers/bans";
 import { cite } from "./handlers/cite";
 import { createTopic, getThread, listTopics, postComment } from "./handlers/comments";
+import { getConfig, putConfig } from "./handlers/config";
 import {
   diff,
   history,
@@ -74,6 +75,7 @@ export const CACHE_CONTROL: Record<string, string> = {
   "GET /cite": "public, s-maxage=3600, stale-while-revalidate=86400",
   "GET /changes": "public, s-maxage=15, stale-while-revalidate=120",
   "GET /resolve": "public, s-maxage=30, stale-while-revalidate=300",
+  "GET /config": "public, s-maxage=30, stale-while-revalidate=300",
 };
 
 export default {
@@ -139,6 +141,7 @@ export default {
       "GET /topics": () => listTopics(env, q.get("slug") ?? ""),
       "GET /topic": () => getThread(env, q.get("id") ?? ""),
       "GET /whoami": () => whoami(env, request),
+      "GET /config": () => getConfig(env),
       "GET /changes": () => listChanges(env, q.get("limit") ?? ""),
       "GET /contributions": () => contributions(env, q.get("author") ?? ""),
       "GET /pending": () => listPending(env),
@@ -164,6 +167,7 @@ export default {
               runPublish(env, prepared.ctx, prepared.trusted, emit),
             );
       },
+      "POST /config": async () => putConfig(env, request, await request.json()),
       "POST /move": async () =>
         movePage(env, request, (await request.json()) as MoveBody),
       "POST /merge": async () =>
