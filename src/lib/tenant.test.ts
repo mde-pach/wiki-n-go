@@ -44,7 +44,9 @@ describe("subdomainLabel", () => {
 describe("bootTenant", () => {
   it("resolves a subdomain → activeRepo, and routes Engine calls through it", async () => {
     onHost("recipes.wikigit.org");
-    const fetchMock = vi.fn(async () => Response.json({ repo: "bob/cookbook", lane: "byo", name: "recipes" }));
+    const fetchMock = vi.fn(async () =>
+      Response.json({ repo: "bob/cookbook", lane: "byo", name: "recipes" }),
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     await bootTenant();
@@ -52,7 +54,9 @@ describe("bootTenant", () => {
     expect(activeRepo()).toEqual({ owner: "bob", name: "cookbook" });
     expect(engineUrl("/pages")).toContain("repo=bob%2Fcookbook");
     // The single /resolve request carried the hostname.
-    expect(String(fetchMock.mock.calls[0][0])).toContain("/resolve?host=recipes.wikigit.org");
+    expect(String(fetchMock.mock.calls[0][0])).toContain(
+      "/resolve?host=recipes.wikigit.org",
+    );
   });
 
   it("uses the sessionStorage cache without a second /resolve", async () => {
