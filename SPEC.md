@@ -372,7 +372,8 @@ follow-ups (CODEOWNERS sync, hard-purge, revert-risk/3RR), not core console gaps
       threading the edit slug through `isBanned`, so a partial block gags only its subtrees and never a comment).
       Append-only `audit-log.jsonl` records rollback · restore · protect · delete · tag · grant · revoke · ban · unban ·
       suppress · unsuppress · auto-revert. New **Blocks** + **Audit log** tabs in `/admin`
-      (`GET /bans`, maintainer-only `GET /audit`). TODO: ban `expires`.
+      (`GET /bans`, maintainer-only `GET /audit`). **Temporary bans shipped**: optional `expires`
+      (duration `24h`/`7d` or ISO) with lazy read-time expiry (`banExpired`/`parseExpiry`).
 - [x] ✅ **Protection + rights management** — Worker `POST /protect {slug, tier}` rewrites the page's `protection:`
       frontmatter via a targeted line edit (clean diff); `POST /grant`/`/revoke` (+ `GET /editors`) edit
       `trusted-editors.json` to add/remove maintainers (the owner is always one). **Protection** + **Rights** tabs in

@@ -20,7 +20,7 @@ export interface Env {
   DISCUSSION_CATEGORY_ID?: string;
   DISCUSSION_CATEGORY?: string; // category name to post talk topics in (default "General")
   // Autonomous-editing knobs (all optional; defaults keep the reviewed-PR model).
-  DEFAULT_EDIT_TIER?: string; // tier required to edit a path with no protection.json rule (default "maintainer")
+  DEFAULT_EDIT_TIER?: string; // tier required to edit a page with no `protection:` frontmatter (default "maintainer")
   AUTOCONFIRM_EDITS?: string; // accepted edits for the "auto" tier (default 10)
   AUTOCONFIRM_DAYS?: string; // age in days for the "auto" tier (default 4)
   EXTENDED_EDITS?: string; // accepted edits for the "extended" tier (default 500)

@@ -196,7 +196,7 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 | **Immediate publish** (most edits go live instantly) | every edit → PR; trusted tiers **squash-auto-merge** to `main` at once (untrusted wait for review) → live on CDN, no rebuild | ✅ | P0 |
 | **Pending Changes / FlaggedRevs** (hold untrusted edits on select pages) | the **current PR-review flow**, but made **per-path** not global (see §L protection) | 🟡 | P0 |
 | **Edit conflicts** (base-rev compare → diff3 auto-merge; manual only on overlap) | git's **3-way merge** on the PR auto-resolves non-overlapping edits; an overlapping conflict leaves the PR open in the review queue | ✅ | P1 |
-| Edit summary · minor-edit flag | commit message / PR title; `Minor:` trailer or label | 🟡 | P1 |
+| Edit summary · ~~minor-edit flag~~ | edit summary → commit message / PR title (✅). Minor-edit flag is **not implemented** (no checkbox → `Minor:` trailer → filter); split out as ⬜ | 🟡 | P1 |
 | **Undo** one edit · **restore to revision** | Worker `POST /restore {slug, rev}` writes the page's content at `rev` (History-row "restore", maintainer); undo-latest = restore the prior row | 🟡 | P1 |
 | **Rollback** (1-click revert a contributor's trailing run) | maintainer-gated Worker `POST /rollback` restores each page a commit touched to its pre-commit state (per-commit; trailing-run TODO) | 🟡 | P1 |
 | CAPTCHA only for risky/untrusted edits (autoconfirmed exempt) | Proof-of-work on **anonymous** edits; **any signed-in GitHub user is exempt** (`if (!session)`), not just trusted tiers | 🟡 | P1 |
@@ -214,7 +214,7 @@ filters, watchlists) lives in **KV/D1 bound to the single Worker** — not a sec
 ## M. Moderation, anti-vandalism & patrol
 | Wikipedia mechanism | Ours | St | Pri |
 |---|---|---|---|
-| **RecentChanges** feed (+ New-Filters: anon/bot/minor/size/namespace/experience/risk) | feed over `git log`/merged PRs; same filter vocabulary as query params | ⬜ | P0 |
+| **RecentChanges** feed (+ New-Filters: anon/bot/minor/size/namespace/experience/risk) | shipped: `/changes` feed over `git log`/merged PRs (`RecentChanges.tsx`, Worker `/changes`), with author/risk/high-risk filters; remaining filter facets (bot/minor/size/namespace) are follow-ons | ✅ | P0 |
 | Live patrol stream (EventStreams) | Worker SSE/webhook fan-out of commit/merge events | ⬜ | P2 |
 | **Patrol flag / autopatrol**; new pages **noindex** until reviewed | per-edit "reviewed" bit + maintainer **patrol queue**; **autopatrol** = edits at tier ≥ `AUTOPATROL_TIER` (default extended) land pre-patrolled; unpatrolled pages get `noindex` (client island → `GET /patrol-status`, fail-open; the optional edge-SSR variant resolves it **server-side** in the head, still fail-open) | ✅ | P1 |
 | **New Pages Patrol** + Page Curation toolbar | New-pages queue (M6) + a **Page Curation toolbar** (`PageCuration`): one maintainer-gated reviewer overlay — approve (patrol) · **tag** (one-click maintenance/review tags via `POST /tag`) · message author (→ talk) · contributions · roll back · propose-delete, with patrol state + the revert-risk badge + applied tags inline. Mounts on each New-pages row **and** on any page's read view; optimistic UI over the patrol/tag/rollback/delete endpoints (message links to the in-site talk flow). Separate file-creation PR queue still TODO | 🟡 | P1 |
