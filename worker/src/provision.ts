@@ -71,6 +71,30 @@ function titleCase(name: string): string {
   return name.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+// Hand a managed repo back to its owner: initiate a GitHub transfer of
+// `${PLATFORM_ORG}/<name>` to `newOwner`. GitHub returns 202 and the new owner
+// must accept on github.com — so this only starts the move (the registry isn't
+// re-pointed until the owner has accepted and installed the content App). Uses
+// the platform App's Administration-write credential, like provisioning.
+export async function transferRepo(
+  env: Env,
+  name: string,
+  newOwner: string,
+): Promise<void> {
+  if (!platformEnabled(env))
+    throw new HttpError(503, "Managed hosting isn't configured on this Engine.");
+  const token = await platformToken(env);
+  const org = env.PLATFORM_ORG as string;
+  const res = await fetch(`https://api.github.com/repos/${org}/${name}/transfer`, {
+    method: "POST",
+    headers: ghHeaders(token, env),
+    body: JSON.stringify({ new_owner: newOwner }),
+  });
+  if (res.status === 404) throw new HttpError(404, "That managed wiki doesn't exist.");
+  if (!res.ok && res.status !== 202)
+    throw new HttpError(502, `Transfer failed (${res.status})`);
+}
+
 // Create + seed `${PLATFORM_ORG}/<name>` and return its full "owner/name". The
 // repo auto-inits (gets a default branch); we then add a home page and a
 // wikigit.json titled from the name. Idempotency: a name collision (repo exists)

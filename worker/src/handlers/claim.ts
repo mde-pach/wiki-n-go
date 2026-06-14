@@ -22,7 +22,11 @@ const DEFAULT_MAX_WIKIS = 5;
 const CLAIM_RATE_MAX = 10; // claims per window per identity — coarse burst control
 const CLAIM_RATE_WINDOW_S = 3600;
 
-function ownerKey(s: { provider?: string; login: string; sub?: string }): string {
+export function ownerKey(s: {
+  provider?: string;
+  login: string;
+  sub?: string;
+}): string {
   return s.provider === "wikigit" ? `wg:${s.sub ?? s.login}` : `gh:${s.login}`;
 }
 

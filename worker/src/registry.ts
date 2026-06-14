@@ -164,16 +164,52 @@ export async function registerTenant(
 ): Promise<void> {
   if (!validName(t.name)) throw new HttpError(400, "Invalid or reserved name.");
   if (!REPO_RE.test(t.repo)) throw new HttpError(400, "Invalid repo.");
-  const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
-  const current = await getCurrentFile(env, repo, TENANTS_PATH);
+  const current = await getCurrentFile(
+    env,
+    `${env.REPO_OWNER}/${env.REPO_NAME}`,
+    TENANTS_PATH,
+  );
   if (latestByName(parseRegistry(current?.raw)).has(t.name)) {
     throw new HttpError(409, "Name already taken.");
   }
+  await appendTenant(env, t, by, current, `tenant: register ${t.name} → ${t.repo}`);
+}
+
+// Re-point an EXISTING tenant to a new repo (append a line; last write wins). The
+// transfer bridge uses this after a managed repo moves to the owner's account —
+// unlike registerTenant it requires the name to already exist (it's an update).
+export async function repointTenant(
+  env: Env,
+  t: Tenant,
+  by: { name: string; email: string },
+): Promise<void> {
+  if (!REPO_RE.test(t.repo)) throw new HttpError(400, "Invalid repo.");
+  const current = await getCurrentFile(
+    env,
+    `${env.REPO_OWNER}/${env.REPO_NAME}`,
+    TENANTS_PATH,
+  );
+  if (!latestByName(parseRegistry(current?.raw)).has(t.name)) {
+    throw new HttpError(404, "No such wiki.");
+  }
+  await appendTenant(env, t, by, current, `tenant: re-point ${t.name} → ${t.repo}`);
+}
+
+// `at` is passed in by callers so the registry stays clock-free; the append is
+// idempotent-friendly (last write wins) and busts the read cache.
+async function appendTenant(
+  env: Env,
+  t: Tenant,
+  by: { name: string; email: string },
+  current: { raw?: string; sha?: string } | null,
+  message: string,
+): Promise<void> {
+  const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
   const prefix = current?.raw ? current.raw.replace(/\n*$/, "\n") : "";
   await gh(env, `/repos/${repo}/contents/${TENANTS_PATH}`, {
     method: "PUT",
     body: JSON.stringify({
-      message: `tenant: register ${t.name} → ${t.repo}`,
+      message,
       content: btoa(`${prefix}${JSON.stringify(t)}\n`),
       branch: env.BRANCH,
       sha: current?.sha,

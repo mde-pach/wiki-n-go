@@ -1,8 +1,10 @@
 import { createMemo, createSignal, Show } from "solid-js";
 import { saveSiteConfig } from "../lib/admin";
+import { fetchEngineStatus } from "../lib/setup-status";
 import { loadSiteConfig, type WikigitConfig } from "../lib/site-config";
 import { clientResource, useWhoami } from "../lib/solid";
 import { errMessage } from "../lib/util";
+import TransferWiki from "./TransferWiki";
 import { ErrorNote, Status, ViewHead } from "./ui";
 
 type Appearance = NonNullable<WikigitConfig["appearance"]>;
@@ -38,6 +40,7 @@ function parseLanguages(text: string): { code: string; name: string }[] {
 export default function Settings() {
   const { isMaintainer } = useWhoami();
   const loaded = clientResource(loadSiteConfig);
+  const status = clientResource(fetchEngineStatus);
 
   const [saved, setSaved] = createSignal(false);
   const [busy, setBusy] = createSignal(false);
@@ -217,6 +220,10 @@ export default function Settings() {
             </Show>
           </div>
           <ErrorNote msg={err()} />
+
+          <Show when={status()?.managed}>
+            <TransferWiki />
+          </Show>
         </Show>
       </Show>
     </main>

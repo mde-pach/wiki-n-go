@@ -11,6 +11,7 @@ export interface StatusReport {
   signin: { enabled: boolean; providers: Record<string, boolean> };
   writeCredential: "app" | "token" | "none";
   appSlug: string | null; // for the setup page's "Connect" (install) link
+  managed: boolean; // a platform-org repo → offer the "move to my GitHub" bridge
 }
 
 // Connection diagnostics for the setup/status page. Deliberately reachable even
@@ -45,5 +46,6 @@ export async function status(env: Env, request: Request): Promise<StatusReport> 
     signin: authStatus(env),
     writeCredential: usingApp(env) ? "app" : env.GITHUB_TOKEN ? "token" : "none",
     appSlug: env.GITHUB_APP_SLUG ?? null,
+    managed: Boolean(env.PLATFORM_ORG) && repo.owner === env.PLATFORM_ORG,
   };
 }

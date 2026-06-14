@@ -31,6 +31,8 @@ import { resolve as resolveTenantHost, tenantAvailable } from "./handlers/resolv
 import { grant, listEditors, revoke } from "./handlers/rights";
 import { status as connectionStatus } from "./handlers/status";
 import { listSuppressed, suppress, unsuppress } from "./handlers/suppress";
+import type { TransferBody } from "./handlers/transfer";
+import { transfer, transferComplete } from "./handlers/transfer";
 import { corsHeaders, HttpError, json, message, ndjsonStream } from "./http";
 import { whoami } from "./identity";
 import { authCallback, authLogin, authStatus } from "./identity/auth";
@@ -98,6 +100,10 @@ export default {
         "GET /tenant-available": () => tenantAvailable(env, url),
         "POST /claim": async () =>
           claim(env, request, (await request.json()) as ClaimBody),
+        "POST /transfer": async () =>
+          transfer(env, request, (await request.json()) as TransferBody),
+        "POST /transfer/complete": async () =>
+          transferComplete(env, request, (await request.json()) as TransferBody),
       };
       const pre = preTenant[key];
       if (pre) {

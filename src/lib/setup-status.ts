@@ -11,6 +11,7 @@ export interface EngineStatus {
   signin: { enabled: boolean; providers: Record<string, boolean> };
   writeCredential: "app" | "token" | "none";
   appSlug: string | null;
+  managed?: boolean; // managed (platform-org) repo → offer the transfer bridge
 }
 
 // Fetch the Engine's self-report. Returns null when the backend is unreachable —

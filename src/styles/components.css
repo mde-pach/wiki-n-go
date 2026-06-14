@@ -2389,6 +2389,27 @@ a.preview-body:focus-visible .pv-foot {
   padding-top: var(--space-section);
   border-top: 1px solid var(--color-border);
 }
+.settings-transfer {
+  margin-top: var(--space-section);
+  padding-top: var(--space-section);
+  border-top: 1px solid var(--color-border);
+}
+.settings-transfer h3 {
+  margin: 0 0 0.25rem;
+}
+.settings-transfer-sub {
+  margin: 0 0 1rem;
+  color: var(--color-ink-subtle);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+.settings-transfer-steps {
+  margin: 0 0 1rem;
+  padding-left: 1.2rem;
+  color: var(--color-ink-subtle);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
 .setup-firstrun h3 {
   margin: 0 0 0.25rem;
 }
