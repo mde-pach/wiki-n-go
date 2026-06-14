@@ -1,6 +1,6 @@
 import { For, Show } from "solid-js";
-import { config } from "../config";
 import { type Contribution, getContributions } from "../lib/contributions";
+import { repoWebUrl } from "../lib/engine";
 import { timeAgo } from "../lib/format";
 import { prettify, readHref } from "../lib/paths";
 import { clientResource } from "../lib/solid";
@@ -14,7 +14,7 @@ const TIER_LABEL: Record<string, string> = {
 };
 
 function commitUrl(sha: string): string {
-  return `https://github.com/${config.repoOwner}/${config.repoName}/commit/${sha}`;
+  return repoWebUrl(`/commit/${sha}`);
 }
 
 const net = (c: Contribution) => c.additions - c.deletions;

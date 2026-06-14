@@ -1,6 +1,6 @@
 import { config } from "../config";
 import { onSwapReset } from "./cache-reset";
-import { engineUrl } from "./engine";
+import { engineFetch } from "./tenant";
 
 // Set of all existing page slugs — powers wikilink resolution, red links,
 // search, and backlinks. Fetched once per session from the Worker.
@@ -19,7 +19,7 @@ onSwapReset(() => {
 async function load(): Promise<Set<string>> {
   if (!config.workerUrl) return new Set();
   try {
-    const res = await fetch(engineUrl("/pages"), { cache: "no-store" });
+    const res = await engineFetch("/pages", { cache: "no-store" });
     if (!res.ok) return new Set();
     return new Set(((await res.json()) as { pages: string[] }).pages);
   } catch {

@@ -2,6 +2,7 @@ import { createSignal, For, Show } from "solid-js";
 import { config } from "../config";
 import { restoreRevision } from "../lib/admin";
 import { type DLine, parseDiff } from "../lib/diff";
+import { repoWebUrl } from "../lib/engine";
 import { getDiff, getHistory, type Revision } from "../lib/history";
 import { readHref, slugFromLocation, viewHref } from "../lib/paths";
 import { clientResource, useWhoami } from "../lib/solid";
@@ -291,5 +292,5 @@ function short(sha: string): string {
   return sha.slice(0, 7);
 }
 function commitUrl(sha: string): string {
-  return `https://github.com/${config.repoOwner}/${config.repoName}/commit/${sha}`;
+  return repoWebUrl(`/commit/${sha}`);
 }

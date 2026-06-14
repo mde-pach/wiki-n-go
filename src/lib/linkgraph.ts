@@ -2,6 +2,7 @@ import { config } from "../config";
 import { engineUrl } from "./engine";
 import { fetchFirstOk } from "./net";
 import { BASE, slugifyLabel } from "./paths";
+import { bootTenant } from "./tenant";
 
 export interface PageNode {
   slug: string;
@@ -154,7 +155,8 @@ let cache: Promise<LinkGraph | null> | undefined;
 
 // Prefer the Worker's live index (fresh on every edit, no rebuild); fall back to
 // the static build file when there's no Worker / it's unreachable. Fetched once.
-function load(): Promise<LinkGraph | null> {
+async function load(): Promise<LinkGraph | null> {
+  await bootTenant();
   return fetchFirstOk<LinkGraph>([
     config.workerUrl ? engineUrl("/link-graph") : null,
     `${BASE}/link-graph.json`,

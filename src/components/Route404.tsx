@@ -1,5 +1,6 @@
 import { For, Match, Show, Switch } from "solid-js";
 import { config } from "../config";
+import { repoWebUrl } from "../lib/engine";
 import {
   adminHref,
   BASE,
@@ -122,7 +123,7 @@ function PageHead(props: { slug: string; view: string }) {
     { label: "Move or rename", href: `${BASE}/move?page=${ref}` },
     {
       label: "View page source",
-      href: `https://github.com/${config.repoOwner}/${config.repoName}/blob/${config.branch}/${source}`,
+      href: repoWebUrl(`/blob/${config.branch}/${source}`),
       external: true,
     },
   ];
@@ -240,7 +241,7 @@ function NoProfile(props: { anon?: string }) {
 
 function Footer(props: { slug: string }) {
   const source = `${config.contentDir}/${props.slug}.md`;
-  const sourceUrl = `https://github.com/${config.repoOwner}/${config.repoName}/blob/${config.branch}/${source}`;
+  const sourceUrl = repoWebUrl(`/blob/${config.branch}/${source}`);
   return (
     <footer class="site-footer">
       <div class="footer-inner">

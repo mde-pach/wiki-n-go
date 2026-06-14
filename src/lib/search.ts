@@ -3,6 +3,7 @@ import { engineUrl } from "./engine";
 import { fetchFirstOk } from "./net";
 import { BASE } from "./paths";
 import { stripMarkdownInline } from "./previews";
+import { bootTenant } from "./tenant";
 import { escapeRegExp } from "./util";
 
 export interface SearchDoc {
@@ -13,6 +14,7 @@ export interface SearchDoc {
 
 // Prefer the Worker's live index; fall back to the static build file.
 export async function getSearchDocs(): Promise<SearchDoc[]> {
+  await bootTenant();
   const data = await fetchFirstOk<{ docs: SearchDoc[] }>([
     config.workerUrl ? engineUrl("/search-index") : null,
     `${BASE}/search-index.json`,

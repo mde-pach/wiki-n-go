@@ -1,5 +1,6 @@
 import { For, type JSX, Show } from "solid-js";
 import { config } from "../config";
+import { repoSlug } from "../lib/engine";
 import {
   appInstallUrl,
   type EngineStatus,
@@ -23,7 +24,7 @@ const ICON: Record<State, string> = { ok: "✓", warn: "!", error: "✕", info: 
 // Turn the Engine's self-report into a friendly, non-technical checklist. Each
 // line is one thing a wiki owner cares about, with a one-click fix where relevant.
 function buildItems(status: EngineStatus | null): Item[] {
-  const repo = `${config.repoOwner}/${config.repoName}`;
+  const repo = repoSlug();
   const items: Item[] = [];
 
   // 1. Backend reachability.

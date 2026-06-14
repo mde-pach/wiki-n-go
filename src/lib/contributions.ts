@@ -3,6 +3,7 @@ import type { Tier } from "./api";
 import { engineUrl } from "./engine";
 import { fetchFirstOk } from "./net";
 import { BASE } from "./paths";
+import { bootTenant } from "./tenant";
 
 export interface Contribution {
   sha: string;
@@ -26,6 +27,7 @@ export interface Contributions {
 // no Worker / it's unreachable. The fallback can't derive trust, so it reports
 // the base `open` tier.
 export async function getContributions(login: string): Promise<Contributions> {
+  await bootTenant();
   const live = config.workerUrl
     ? await fetchFirstOk<Contributions>([
         engineUrl(`/contributions?author=${encodeURIComponent(login)}`),

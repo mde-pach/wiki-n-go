@@ -2,6 +2,7 @@ import { createMemo, createSignal, For, type JSX, Show } from "solid-js";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
 import { allCategories } from "../lib/categories";
+import { repoWebUrl } from "../lib/engine";
 import { getLinkGraph, graphStats, type LinkGraph, mostLinked } from "../lib/linkgraph";
 import { BASE, categoryHref, prettify, readHref, viewHref } from "../lib/paths";
 import { clientResource } from "../lib/solid";
@@ -284,7 +285,9 @@ export default function Special() {
                   <a href={`${BASE}/merge?page=${page()}`}>Merge</a> ·{" "}
                   <a href={`${BASE}/split?page=${page()}`}>Split</a> ·{" "}
                   <a
-                    href={`https://github.com/${config.repoOwner}/${config.repoName}/blob/${config.branch}/${config.contentDir}/${page()}.md`}
+                    href={repoWebUrl(
+                      `/blob/${config.branch}/${config.contentDir}/${page()}.md`,
+                    )}
                     target="_blank"
                     rel="noreferrer"
                   >

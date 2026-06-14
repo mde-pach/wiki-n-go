@@ -1,5 +1,6 @@
 import { config } from "../config";
-import { engineUrl } from "./engine";
+import { activeRepo } from "./engine";
+import { engineFetch } from "./tenant";
 
 // Connection status from the Engine's /status endpoint (see worker handlers/status).
 export interface EngineStatus {
@@ -17,7 +18,7 @@ export interface EngineStatus {
 export async function fetchEngineStatus(): Promise<EngineStatus | null> {
   if (!config.workerUrl) return null;
   try {
-    const res = await fetch(engineUrl("/status"), { cache: "no-store" });
+    const res = await engineFetch("/status", { cache: "no-store" });
     if (!res.ok) return null;
     return (await res.json()) as EngineStatus;
   } catch {
@@ -33,11 +34,12 @@ export function appInstallUrl(slug?: string | null): string | null {
   return s ? `https://github.com/apps/${s}/installations/new` : null;
 }
 
-export const repoUrl = (): string =>
-  `https://github.com/${config.repoOwner}/${config.repoName}`;
+export const repoUrl = (): string => {
+  const { owner, name } = activeRepo();
+  return `https://github.com/${owner}/${name}`;
+};
 
-export const pagesSettingsUrl = (): string =>
-  `https://github.com/${config.repoOwner}/${config.repoName}/settings/pages`;
+export const pagesSettingsUrl = (): string => `${repoUrl()}/settings/pages`;
 
 // Is this reader using the operator-run hosted Engine, or a self-hosted one?
 export const usingHostedBackend = (): boolean => config.hostedBackend;
