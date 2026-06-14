@@ -70,6 +70,13 @@ export interface Env {
   // Per-identity ceiling on managed (platform-lane) wikis, counted from the
   // registry's `owner`. Unset/invalid → DEFAULT_MAX_WIKIS.
   MAX_WIKIS_PER_OWNER?: string;
+  // Write-time email notifications for Wikigit-account (`wg:`) users. The IdP is
+  // the only place their address lives, so the Engine POSTs an event here and the
+  // IdP resolves the email + sends via the SMTP it already runs (see NOTIFY.md).
+  // Unset → email notifications are inert (gh: users are still reached natively
+  // by GitHub). `IDP_MAIL_TOKEN` is a shared secret bearer for that endpoint.
+  IDP_MAIL_URL?: string;
+  IDP_MAIL_TOKEN?: string;
 }
 
 export interface EditBody {
