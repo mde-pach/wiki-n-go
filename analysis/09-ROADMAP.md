@@ -1,5 +1,20 @@
 # 09 — Prioritized Roadmap (de-duplicated action plan)
 
+> **Implementation status (updated 2026-06-14).** All P0 (P0-0…P0-9) shipped +
+> tested. P1 shipped: P1-1 (lazy editor, −43% read chunk), P1-2 (defer
+> revalidation), P1-3 (cache headers), P1-4 (commitJson), P1-7 (a11y
+> dialogs/contrast/alert), plus P1-8 WB-7/WB-8 and the TEST-4/TEST-7 gaps. P2
+> shipped: P2-1 (doc reconciliation), P2-2 (ban expires), P2-7 (search
+> term-frequency), P2-8 (favicon/image/CI). M11.1 (MemoryKV) shipped.
+> **Deferred with reasons (see end of each item / the wrap-up):** P1-1 PERF-2
+> (yaml-off-read — risky parser rewrite, mitigated by PERF-3), CQ-2 (cross-package
+> frontmatter), CQ-3/P1-5 (large admin UI refactor), full Playwright e2e suite
+> (needs @playwright/test). **Decision-bound / large:** P2-3 (spam approach),
+> P2-4 (trailing-run rollback), P2-5 (suppression privacy), P2-6 (M10 Hub),
+> M11.2–M11.6 (Bun runtime cutover — changes the deploy contract).
+> Test count: 300→415 app, 194→246 worker (+167).
+
+
 Grouped P0 (correctness/security, fix now) → P1 (high-leverage quality/perf/tests)
 → P2 (features/spec gaps). Effort: S ≈ <½ day, M ≈ 1–2 days, L ≈ 3+ days.
 Where multiple dimensions point at one root cause, items are **merged** and the
