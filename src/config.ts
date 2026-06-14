@@ -12,8 +12,9 @@ export const config = {
   branch: "main",
   contentDir: "content",
   homeSlug: "index",
-  workerUrl:
-    env.PUBLIC_WORKER_URL || "https://wiki-n-go.maxime-depachtere-80f.workers.dev",
+  // The Engine backend (portable Bun server, M11) — set PUBLIC_WORKER_URL at build
+  // to point a fork at its own deployment; the literal is the canonical instance.
+  workerUrl: env.PUBLIC_WORKER_URL || "https://wikigit-engine.147.135.128.22.sslip.io",
   // Self-hosted proof-of-work bot check (no third-party service): anonymous
   // writes solve a SHA-256 puzzle of this many leading zero bits before the
   // Worker accepts them. Must match the Worker's POW_BITS; `0` disables it.
