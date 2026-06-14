@@ -3,6 +3,7 @@ import { ghGraphQL } from "../github";
 import { HttpError } from "../http";
 import { resolve, type Writer } from "../identity";
 import { cached } from "../kv";
+import { mentionFor, notifyByEmail } from "../notify";
 import type { Env } from "../types";
 import {
   type CommentBody,
@@ -57,13 +58,31 @@ const ANON_MARKER = /<!--\s*anon:([a-z0-9-]+)\s*-->/;
 // Signed-in attribution: `<!-- gh:<login>|<avatarUrl> -->`. The bot posts the
 // comment; this marker tells the renderer to show the signed-in user instead.
 const GH_MARKER = /<!--\s*gh:([A-Za-z0-9-]+)\|([^\s>]*)\s*-->/;
+// Wikigit-account attribution: `<!-- wg:<sub>|<avatarUrl>|<handle> -->`. The sub
+// (not the handle) is the routing key, so a notification reaches the right
+// account and we never mistake a wg handle for a GitHub login.
+const WG_MARKER = /<!--\s*wg:([^|>]+)\|([^|>]*)\|([^>]*?)\s*-->/;
 const REPLY_MARKER = /<!--\s*reply-to:([A-Za-z0-9_=-]+)\s*-->/;
 
 // The identity marker embedded in a Discussion body for in-site posts.
 function identityMarker(writer: Writer): string {
-  return writer.isAnon
-    ? `<!-- anon:${writer.name} -->`
-    : `<!-- gh:${writer.name}|${writer.avatar ?? ""} -->`;
+  if (writer.isAnon) return `<!-- anon:${writer.name} -->`;
+  if (writer.key.startsWith("wg:"))
+    return `<!-- wg:${writer.key.slice(3)}|${writer.avatar ?? ""}|${writer.name} -->`;
+  return `<!-- gh:${writer.name}|${writer.avatar ?? ""} -->`;
+}
+
+// The provider-qualified identity key of a comment's author, recovered from its
+// marker — for routing a reply notification. Null when unmarked (a legacy or
+// bot-authored comment with no in-site identity to reach).
+export function participantKeyOf(body: string): string | null {
+  const anon = body.match(ANON_MARKER);
+  if (anon) return anon[1]; // `anon-<hash>` is itself the key
+  const wg = body.match(WG_MARKER);
+  if (wg) return `wg:${wg[1]}`;
+  const gh = body.match(GH_MARKER);
+  if (gh) return `gh:${gh[1]}`;
+  return null;
 }
 
 // One titled GitHub Discussion per talk topic, namespaced so a page's topics are
@@ -140,6 +159,8 @@ export function authorOf(
 ) {
   const anon = body.match(ANON_MARKER);
   if (anon) return { author: anon[1], isAnon: true, avatarUrl: null };
+  const wg = body.match(WG_MARKER);
+  if (wg) return { author: wg[3].trim(), isAnon: false, avatarUrl: wg[2] || null };
   const gh = body.match(GH_MARKER);
   if (gh) return { author: gh[1], isAnon: false, avatarUrl: gh[2] || null };
   return {
@@ -268,7 +289,66 @@ export async function postComment(
     throw new HttpError(413, "Comment too large.");
 
   const writer = await resolve(env, request, { token: body.token });
+
+  // Who this reply is for: the parent comment's author, or the topic author for a
+  // top-level comment ("check the previous message", no index). Best-effort.
+  const { key: recipient, url } = await replyRecipient(
+    env,
+    topicId,
+    replyTo,
+    writer.key,
+  );
+  const mention = recipient ? mentionFor(recipient) : null;
+
   const marker = `${identityMarker(writer)}${replyTo ? `\n<!-- reply-to:${replyTo} -->` : ""}`;
-  await ghGraphQL(env, ADD_COMMENT, { d: topicId, body: `${marker}\n\n${text}` });
+  // A *visible* `@login` is what triggers GitHub's native notification (the hidden
+  // identity marker doesn't); wg: recipients get an email instead (below).
+  const lead = mention ? `@${mention} ` : "";
+  await ghGraphQL(env, ADD_COMMENT, {
+    d: topicId,
+    body: `${marker}\n\n${lead}${text}`,
+  });
+
+  if (recipient?.startsWith("wg:"))
+    await notifyByEmail(env, recipient, {
+      subject: "New reply on a discussion you're in",
+      body: "Someone replied to you in a discussion on this wiki.",
+      link: url,
+    });
   return { ok: true };
+}
+
+const REPLY_RECIPIENT_QUERY = `query($id:ID!){
+  node(id:$id){ ... on Discussion {
+    url body comments(first:100){ nodes{ id body } }
+  } }
+}`;
+
+// The identity to notify for a new comment: the replied-to comment's author, or
+// the topic author for a top-level comment. Never the replier themselves, and
+// never throws — a lookup miss just means no notification.
+async function replyRecipient(
+  env: Env,
+  topicId: string,
+  replyTo: string,
+  selfKey: string,
+): Promise<{ key: string | null; url: string }> {
+  try {
+    const data = await ghGraphQL<{
+      node: {
+        url: string;
+        body: string;
+        comments: { nodes: { id: string; body: string }[] };
+      } | null;
+    }>(env, REPLY_RECIPIENT_QUERY, { id: topicId });
+    const d = data.node;
+    if (!d) return { key: null, url: "" };
+    const targetBody = replyTo
+      ? d.comments.nodes.find((c) => c.id === replyTo)?.body
+      : d.body;
+    const key = targetBody ? participantKeyOf(targetBody) : null;
+    return { key: key && key !== selfKey ? key : null, url: d.url };
+  } catch {
+    return { key: null, url: "" };
+  }
 }
