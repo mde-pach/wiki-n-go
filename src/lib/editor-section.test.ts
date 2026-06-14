@@ -38,6 +38,38 @@ describe("findSection", () => {
   });
 });
 
+const DUP = `## Notes
+First notes body.
+
+## Other
+Middle.
+
+## Notes
+Second notes body.
+`;
+
+describe("findSection with duplicate headings (FE-5)", () => {
+  it("resolves the first occurrence by its base id", () => {
+    const span = findSection(DUP, "notes");
+    expect(DUP.slice(span?.start, span?.end)).toBe("## Notes\nFirst notes body.\n\n");
+  });
+
+  it("resolves the second occurrence by its -1 suffix, not the first", () => {
+    const span = findSection(DUP, "notes-1");
+    expect(span).toBeDefined();
+    expect(DUP.slice(span?.start, span?.end)).toBe("## Notes\nSecond notes body.\n");
+  });
+
+  it("a section edit splices the correct duplicate", () => {
+    const span = findSection(DUP, "notes-1");
+    if (!span) throw new Error("span not found");
+    const out = spliceSection(DUP, span, "## Notes\nEDITED.\n");
+    expect(out).toContain("First notes body."); // first untouched
+    expect(out).toContain("EDITED.");
+    expect(out).not.toContain("Second notes body."); // second replaced
+  });
+});
+
 describe("spliceSection round-trip", () => {
   it("an unchanged splice reproduces the document exactly", () => {
     const span = findSection(DOC, "first-section");

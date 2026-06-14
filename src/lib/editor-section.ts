@@ -27,14 +27,28 @@ export function listSections(body: string): SectionSpan[] {
   }));
 }
 
-// The span of one section by its slugified heading, for editing it in isolation
+// Reproduce markdown-it-anchor's unique-id numbering (v9, uniqueSlugStartIndex 1):
+// a repeated heading slug gets `-1`, `-2`, … against a used set, so duplicate
+// headings stay addressable — `## Notes` twice → `notes` and `notes-1`. The
+// `[edit]` link carries this exact id, so findSection must compute the same one.
+function uniqueId(base: string, used: Set<string>): string {
+  let id = base;
+  let i = 1;
+  while (used.has(id)) id = `${base}-${i++}`;
+  used.add(id);
+  return id;
+}
+
+// The span of one section by its (unique) anchor id, for editing it in isolation
 // (a heading's `[edit]`). Unlike listSections' shallow spans, this runs from the
 // matched heading through everything beneath it — *including* deeper subsections
 // — up to the next heading of the same or higher level (or end of text), so
-// editing a `##` carries its `###` children with it. Returns undefined when the
-// heading is absent.
+// editing a `##` carries its `###` children with it. Duplicate headings are
+// disambiguated by occurrence (`notes`, `notes-1`, …) so the right one is found,
+// not always the first. Returns undefined when the section is absent.
 export function findSection(body: string, section: string): SectionSpan | undefined {
   const lines = body.split("\n");
+  const used = new Set<string>();
   let offset = 0;
   let start = -1;
   let level = 0;
@@ -45,7 +59,8 @@ export function findSection(body: string, section: string): SectionSpan | undefi
     if (m) {
       const lvl = m[1].length;
       if (start === -1) {
-        if (slugifyLabel(m[2]) === section) {
+        // Advance the used set in document order so suffixes match the anchors.
+        if (uniqueId(slugifyLabel(m[2]), used) === section) {
           start = offset;
           level = lvl;
           heading = m[2];
