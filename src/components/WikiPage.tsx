@@ -13,7 +13,7 @@ import {
   splitTitle,
 } from "../lib/markdown";
 import { BASE, langOf, prettify, readHref, slugFromLocation } from "../lib/paths";
-import { errMessage } from "../lib/util";
+import { deferIdle, errMessage } from "../lib/util";
 import { markRedLinksHtml } from "../lib/wikilink";
 import { Icons } from "./Icons";
 
@@ -116,13 +116,7 @@ export default function WikiPage(props: {
     queueMicrotask(decorate);
   }
 
-  onMount(async () => {
-    const params = new URLSearchParams(window.location.search);
-    setRedirectedFrom(params.get("redirectedfrom") ?? undefined);
-    if (html()) decorate(); // server-rendered content: build the TOC + red links now
-    const rev = params.get("rev");
-    if (rev) return showRevision(rev); // historical view; skip the latest fetch
-    if (props.fresh) return; // SSR rendered request-time-fresh content already
+  async function revalidate() {
     try {
       const latest = await fetchMarkdown(slug());
       setRaw(latest);
@@ -134,6 +128,21 @@ export default function WikiPage(props: {
       if (e instanceof PageNotFoundError) setNotFound(true);
       else setErr(errMessage(e));
     }
+  }
+
+  onMount(() => {
+    const params = new URLSearchParams(window.location.search);
+    setRedirectedFrom(params.get("redirectedfrom") ?? undefined);
+    if (html()) decorate(); // server-rendered content: build the TOC + red links now
+    const rev = params.get("rev");
+    if (rev) return void showRevision(rev); // historical view; skip the latest fetch
+    if (props.fresh) return; // SSR rendered request-time-fresh content already
+    // The content is already painted from SSR; the /latest→jsDelivr revalidation
+    // only matters if the page changed since the build, so run it off the
+    // hydration critical path (it swaps in shortly after if newer). On a missing
+    // SSR page (a fresh slug) there's nothing painted, so revalidate immediately.
+    if (props.initialHtml) deferIdle(revalidate);
+    else void revalidate();
   });
 
   // A section `[edit]` opens a focused editor in place rather than navigating
