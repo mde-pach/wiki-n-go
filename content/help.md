@@ -1,35 +1,38 @@
 ---
 kicker: Help
-description: How to read, edit, and format pages — and where to find everything.
+description: Guides for creating, writing, customizing, and running a Wikigit,
+  with pointers to the concept pages behind each one.
 protection: auto
 tags:
-  - Documentation
+  - Guides
   - Getting started
 ---
 
 # Help
 
-Everything you need to read, write, and run a Wikigit. New here? Start with [[create-your-wiki|Create your wiki]], then come back for the details.
+The guides here cover the things you actually *do* with a Wikigit. Each one is practical and to the point, and links to the concept page that explains the "why" where that's worth reading. New here? Start with [[help/create-your-wiki|Create your wiki]] and come back for the rest.
 
 ## Get started
 
-- [[create-your-wiki|Create your wiki]] — set up your own, step by step.
-- [[customize|Make it yours]] — name, logo, colors, home page, address, and languages.
+- [[help/create-your-wiki|Create your wiki]] — pick a name and be live in a minute.
+- [[help/customize|Customize]] — name, tagline, look, home page, address, and languages.
 
 ## Write and edit
 
-- [[editing|Editing pages]] — make, preview, and publish a change.
-- [[formatting|Formatting]] — headings, links, pictures, and references, with examples.
-- [[organizing|Organizing your wiki]] — names, categories, renaming, and merging.
-- [[discussions|Discussions]] — talk pages for working things out.
+- [[help/editing|Editing pages]] — make, preview, and publish a change.
+- [[help/formatting|Formatting]] — headings, links, images, and references, with examples to copy.
+- [[help/organizing|Organizing]] — page names, categories, renaming, merging, and languages.
 
 ## Run your wiki
 
-- [[managing|Managing changes]] — who can edit, reviewing edits, and keeping out trouble.
-- [[admin|The admin area]] — your control panel for the day-to-day.
-- [[sign-in|Letting people sign in]] — GitHub, a Wikigit account, or anonymous editing.
+- [[help/administration|Administration]] — the control panel for reviewing edits and keeping order.
+- [[help/signing-in|Signing in]] — the sign-in options you can offer, and how to set them.
 
-## Look things up
+## Understand it
 
-- [[settings|Settings]] — page settings and site-wide options.
-- [[faq|FAQ]] — quick answers.
+- [[index|Wikigit]] — what it is and how it fits together.
+- [[how-it-works|Architecture]] — why edits appear instantly and what actually runs.
+- [[reference/glossary|Glossary]] — short definitions of the terms used here.
+- [[reference/faq|FAQ]] — quick answers.
+
+{{shared/concepts-navbox}}

@@ -1,43 +1,38 @@
 ---
-kicker: Documentation
-description: Wikigit est un wiki que vous pouvez mettre en place en quelques minutes et faire écrire par tous — gratuit à héberger, et qui vous appartient.
+kicker: Concepts
+description: Wikigit est un moteur de wiki qui stocke chaque page sous forme de
+  fichier Markdown dans un dépôt Git et l'affiche en direct, sans reconstruction.
 protection: auto
 translationKey: index
 tags:
-  - Documentation
+  - Concepts
   - Démarrer
 infobox:
   Type: Moteur de wiki
-  Mise en place: Quelques clics
-  Hébergement: Gratuit
-  Votre contenu: Des fichiers qui vous appartiennent
+  Pages stockées en: Markdown dans Git
+  Dorsale: L'Engine (un serveur Bun)
+  Lecture: Servie par un CDN
   Édition: Dans le navigateur
+  Identité: Anonyme ou connexion
   Licence:
     v: MIT
     mono: true
 banner:
   kind: info
-  text: Ce site est un Wikigit qui tourne sur Wikigit — chaque page ici est un simple fichier que vous pouvez modifier.
+  text: Ce site est un Wikigit qui tourne sur Wikigit — chaque page ici est un
+    simple fichier que vous pouvez modifier.
 ---
 
-# Bienvenue sur Wikigit
+# Wikigit
 
-**Wikigit** est un wiki — un site web qu'un groupe de personnes construit ensemble, une page à la fois. Pensez à un manuel communautaire, un guide de jeu, une base de connaissances d'équipe, ou une encyclopédie comme [[w:Wikipedia|Wikipédia]]. Toute personne que vous autorisez peut ajouter et améliorer des pages, directement dans son navigateur.
+**Wikigit** est un moteur de wiki — un logiciel pour faire tourner un site qu'un groupe écrit ensemble, une page à la fois. Il fonctionne comme [[w:Wikipedia|Wikipédia]] vous a appris à l'attendre : on ouvre une page, on clique sur *Modifier*, on change, on enregistre. Ce qui le distingue tient en dessous : chaque page est un simple fichier [[w:Markdown|Markdown]] conservé dans un dépôt [[w:Git|Git]], et non une ligne dans une base de données.
 
-Ce qui le distingue, c'est le peu de choses à gérer. Vous pouvez en créer un en quelques minutes, sans écrire la moindre ligne de code.
-
-## Ce que vous obtenez
-
-- **Gratuit à héberger.** Votre wiki tourne sur des services gratuits — aucun serveur à louer, aucune facture mensuelle.
-- **Aucune base de données à gérer.** Vos pages sont de simples fichiers texte.
-- **Modification dans le navigateur.** On clique sur *Modifier*, on change, on enregistre — rien à installer.
-- **Rien n'est jamais perdu.** Chaque modification est conservée, et toute page revient à une version antérieure en un clic.
-- **Il vous appartient.** Votre contenu vit dans votre propre compte [[w:GitHub|GitHub]] — rien n'est verrouillé.
+Cette seule décision règle la plupart des autres. L'historique de la page est celui du dépôt, donc rien n'est jamais vraiment perdu. Le contenu vous appartient, puisqu'il vit dans votre propre compte [[w:GitHub|GitHub]]. Et il n'y a presque rien à faire tourner : la lecture vient d'un CDN, et la seule pièce sur mesure est un petit serveur, l'**Engine**, qui enregistre les modifications.
 
 ## Pour commencer
 
-- [[create-your-wiki|Créer votre wiki]] — la mise en place, étape par étape *(en anglais)*.
-- [[editing|Modifier des pages]] — écrire et publier une modification *(en anglais)*.
-- [[faq|Questions fréquentes]] *(en anglais)*.
+- [[help/create-your-wiki|Créer votre wiki]] — la mise en place, étape par étape *(en anglais)*.
+- [[help/editing|Modifier des pages]] — écrire et publier une modification *(en anglais)*.
+- [[reference/faq|Questions fréquentes]] *(en anglais)*.
 
-*Cette page existe aussi en anglais — utilisez le sélecteur de langue en haut pour basculer.*
+*Cette page existe aussi en anglais — utilisez le sélecteur de langue en haut pour basculer. La documentation complète est pour l'instant en anglais.*
