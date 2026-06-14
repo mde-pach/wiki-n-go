@@ -9,7 +9,7 @@ import {
   type Provider,
 } from "../lib/auth";
 import { type Availability, checkName, createWiki } from "../lib/claim";
-import { appInstallUrl } from "../lib/setup-status";
+import { appInstallUrl, templateGenerateUrl } from "../lib/setup-status";
 import { errMessage } from "../lib/util";
 import { ErrorNote, Status, ViewHead } from "./ui";
 
@@ -171,6 +171,18 @@ export default function CreateWiki() {
                 autocomplete="off"
                 onInput={(e) => setRepo(e.currentTarget.value)}
               />
+              <Show when={templateGenerateUrl()}>
+                {(href) => (
+                  <span class="create-hint">
+                    No repo yet?{" "}
+                    <a href={href()} target="_blank" rel="noreferrer">
+                      Create one from our template
+                    </a>{" "}
+                    — a ready wiki with the reader and publishing set up. Then enter it
+                    above.
+                  </span>
+                )}
+              </Show>
               <Show when={appInstallUrl()}>
                 {(href) => (
                   <span class="create-hint">

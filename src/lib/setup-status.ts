@@ -35,6 +35,13 @@ export function appInstallUrl(slug?: string | null): string | null {
   return s ? `https://github.com/apps/${s}/installations/new` : null;
 }
 
+// One-click "Use this template": GitHub's tokenless web flow that copies the
+// starter template into the user's own account (no token to paste — they're
+// already signed into GitHub). Null when no template is configured.
+export function templateGenerateUrl(repo: string = config.templateRepo): string | null {
+  return repo ? `https://github.com/${repo}/generate` : null;
+}
+
 export const repoUrl = (): string => {
   const { owner, name } = activeRepo();
   return `https://github.com/${owner}/${name}`;

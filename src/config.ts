@@ -30,6 +30,12 @@ export const config = {
   // The Wikigit GitHub App slug — builds the one-click "Connect" (install) URL on
   // the setup page (github.com/apps/<slug>/installations/new). Override per instance.
   githubAppSlug: env.PUBLIC_GITHUB_APP_SLUG || "wikigit-app",
+  // The starter template repo (reader + Pages workflow + seed content) for the
+  // bring-your-own lane. The Create page deep-links to GitHub's tokenless "use
+  // this template" web flow so a user makes their own copy with no token to paste
+  // (honours the in-site invariant). Operators publish/override this; empty hides
+  // the button.
+  templateRepo: env.PUBLIC_TEMPLATE_REPO || "wikigit/template",
   // The hosted platform's apex (e.g. `wikigit.org`). When the reader is served from
   // a subdomain of it (`foo.wikigit.org`), the active wiki/repo is resolved from the
   // hostname at runtime rather than baked at build — one shared frontend serves

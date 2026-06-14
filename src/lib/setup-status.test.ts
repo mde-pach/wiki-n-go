@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { appInstallUrl, pagesSettingsUrl, repoUrl } from "./setup-status";
+import {
+  appInstallUrl,
+  pagesSettingsUrl,
+  repoUrl,
+  templateGenerateUrl,
+} from "./setup-status";
 
 describe("setup-status URL builders", () => {
   it("builds the GitHub App install (connect) URL from a slug", () => {
@@ -20,5 +25,12 @@ describe("setup-status URL builders", () => {
     expect(pagesSettingsUrl()).toBe(
       "https://github.com/mde-pach/wiki-n-go/settings/pages",
     );
+  });
+
+  it("builds GitHub's tokenless template-generate URL", () => {
+    expect(templateGenerateUrl("acme/starter")).toBe(
+      "https://github.com/acme/starter/generate",
+    );
+    expect(templateGenerateUrl("")).toBeNull();
   });
 });
