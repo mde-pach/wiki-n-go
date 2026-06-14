@@ -652,8 +652,22 @@ editing/dynamic backend moves. Full design + migration plan:
   to a static-on-Coolify app (`wikigit-web`, root `Dockerfile` → nginx) — this un-freezes it
   (the legacy-GitHub-Pages-claim problem is moot once neither Pages is used). **DNS moved off
   Cloudflare** to Namecheap BasicDNS (registrar), email zone replicated byte-intact (SRV added
-  manually — not API-settable). CF retained only as rollback. Onboarding/tenant design:
-  `analysis/12-hosted-platform-plan.md`; next is the Hub MVP (subdomain registry + claim flow).
+  manually — not API-settable). CF retained only as rollback. Onboarding/tenant design +
+  confirmed journey: `analysis/12-hosted-platform-plan.md`.
+- [x] ✅ **M11.8 — Hub foundations (phases 1–3)** (2026-06-14): the plumbing for
+  `foo.wikigit.org` tenants. **(1) Tenant registry** — `.wikigit/tenants.jsonl` append-log in
+  the operator repo (no DB) + `GET /resolve?host=` (name→repo, apex/www→flagship, else 404) +
+  `GET /tenant-available`, answered before `resolveTenant`, KV-cached; `registerTenant()` write
+  primitive ready for the claim flow. **(2) Runtime tenant boot** — one shared static build
+  serves every subdomain: `bootTenant()` resolves the hostname → repo at load and points
+  `activeRepo()` at it (memoized, sessionStorage-cached, no-op on apex/non-platform hosts);
+  `engineFetch()` is the single gated chokepoint so every Engine call carries the resolved
+  `?repo=`. **(3) Config-as-data** — owner-editable `wikigit.json` (title/languages/theme),
+  read live + tenant-aware via `GET /config`, written maintainer-gated + whitelisted via
+  `POST /config`; the in-site `/settings` form round-trips it with no rebuild; `SiteBoot`
+  applies title/description to the shared chrome at runtime. **Still to build (phase 4):** the
+  claim flow itself (sign in → pick name → choose lane → provision repo/install → register) and
+  the platform-stored provisioning (needs a `wikigit-tenants` org + the App with repo-admin).
 
 The §5 "one piece of infra is irreducible" argument is **runtime-agnostic** — it
 holds for the Bun server exactly as for the Worker (the browser still can't hold a
