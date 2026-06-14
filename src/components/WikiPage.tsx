@@ -1,4 +1,4 @@
-import { createSignal, onMount, Show } from "solid-js";
+import { createSignal, lazy, onMount, Show, Suspense } from "solid-js";
 import { Portal } from "solid-js/web";
 import { fetchMarkdown, fetchMarkdownAt, PageNotFoundError } from "../lib/content";
 import { decorate as decorateArticle } from "../lib/decorate";
@@ -15,8 +15,12 @@ import {
 import { BASE, langOf, prettify, readHref, slugFromLocation } from "../lib/paths";
 import { errMessage } from "../lib/util";
 import { markRedLinksHtml } from "../lib/wikilink";
-import FocusedEditor from "./editor/FocusedEditor";
 import { Icons } from "./Icons";
+
+// The section editor (and the diff/submit stack it pulls in) is only needed once
+// a reader clicks a heading's [edit], so keep it off the read-path island bundle
+// and load it on demand — the read path stays light. Mermaid uses the same trick.
+const FocusedEditor = lazy(() => import("./editor/FocusedEditor"));
 
 // A section `[edit]` that's been opened in place: the editor is portaled into
 // `mountEl` (inserted right after the heading) so it edits the section without
@@ -248,17 +252,19 @@ export default function WikiPage(props: {
         <Show when={sectionEdit()}>
           {(s) => (
             <Portal mount={s().mountEl}>
-              <FocusedEditor
-                slug={slug()}
-                original={s().doc}
-                source={s().body}
-                span={s().span}
-                reconstruct={(b) => withFrontmatter(s().data, b)}
-                onClose={closeSectionEdit}
-                onPublished={(r, doc) => {
-                  if (r.live) publishedDoc = doc;
-                }}
-              />
+              <Suspense>
+                <FocusedEditor
+                  slug={slug()}
+                  original={s().doc}
+                  source={s().body}
+                  span={s().span}
+                  reconstruct={(b) => withFrontmatter(s().data, b)}
+                  onClose={closeSectionEdit}
+                  onPublished={(r, doc) => {
+                    if (r.live) publishedDoc = doc;
+                  }}
+                />
+              </Suspense>
             </Portal>
           )}
         </Show>
