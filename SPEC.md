@@ -644,6 +644,16 @@ editing/dynamic backend moves. Full design + migration plan:
   is the shared app, `server.ts` the entry. Netlify retained as the optional edge-SSR
   adapter. Frontend hosting repoint (wikigit.org DNS off Cloudflare Pages) deferred to
   the "proper multi-service deploy config". PKCE-watch moot (the server holds the secret).
+- [x] ✅ **M11.7 — hosted multi-tenant live + Cloudflare exit** (2026-06-14): the Engine
+  runs `MULTI_TENANT=1` on the **GitHub App** `wikigit-app` (id 3976515, `writeCredential=app`),
+  so wikigit.org serves any repo that installs the App (`?repo=`); the PAT stopgap is retired.
+  The App key is stored **base64** in Coolify (its build-args mangle multiline secrets) and the
+  Engine normalizes base64/`\n`/raw PEM (`normalizePrivateKey`). **Frontend moved off CF Pages**
+  to a static-on-Coolify app (`wikigit-web`, root `Dockerfile` → nginx) — this un-freezes it
+  (the legacy-GitHub-Pages-claim problem is moot once neither Pages is used). **DNS moved off
+  Cloudflare** to Namecheap BasicDNS (registrar), email zone replicated byte-intact (SRV added
+  manually — not API-settable). CF retained only as rollback. Onboarding/tenant design:
+  `analysis/12-hosted-platform-plan.md`; next is the Hub MVP (subdomain registry + claim flow).
 
 The §5 "one piece of infra is irreducible" argument is **runtime-agnostic** — it
 holds for the Bun server exactly as for the Worker (the browser still can't hold a
