@@ -14,7 +14,7 @@ export interface CiteQuery {
   value: string;
 }
 
-const DOI_RE = /(?:https?:\/\/(?:dx\.)?doi\.org\/|doi:)?(10\.\d{4,}\/\S+)$/i;
+const DOI_RE = /^(?:https?:\/\/(?:dx\.)?doi\.org\/|doi:)?(10\.\d{4,}\/\S+)$/i;
 
 export function classify(input: string): CiteQuery | null {
   const s = input.trim();

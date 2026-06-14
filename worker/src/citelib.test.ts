@@ -38,6 +38,12 @@ describe("classify", () => {
     expect(classify("  ")).toBeNull();
     expect(classify("not a citation")).toBeNull();
   });
+
+  it("does not treat a DOI embedded mid-string as a bare DOI (WB-8)", () => {
+    // Anchored regex: text that merely contains a DOI is not classified as one.
+    const r = classify("see 10.1000/xyz123 for details");
+    expect(r?.kind).not.toBe("doi");
+  });
 });
 
 describe("parsers", () => {

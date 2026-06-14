@@ -19,14 +19,24 @@ describe("revertRisk", () => {
     const score = revertRisk({ ...base, additions: 0, deletions: 300, isAnon: true });
     expect(score).toBeGreaterThanOrEqual(RISK_HIGH);
   });
-  it("treats edit-war + a filter tag as compounding", () => {
+  it("treats edit-war + a recognized risk tag as compounding", () => {
     const score = revertRisk({
       ...base,
       additions: 5,
       deletions: 5,
-      tags: ["edit-war", "added-links"],
+      tags: ["edit-war", "spam"],
     });
-    expect(score).toBe(45); // edit-war 25 + filter tag 20
+    expect(score).toBe(45); // edit-war 25 + risk tag 20
+  });
+  it("does NOT bump risk for a manual maintenance tag (WB-7)", () => {
+    const withTag = revertRisk({
+      ...base,
+      additions: 5,
+      deletions: 5,
+      tags: ["cleanup"],
+    });
+    const without = revertRisk({ ...base, additions: 5, deletions: 5, tags: [] });
+    expect(withTag).toBe(without);
   });
   it("caps at 100", () => {
     const score = revertRisk({
@@ -34,7 +44,7 @@ describe("revertRisk", () => {
       deletions: 1000,
       isAnon: true,
       created: true,
-      tags: ["edit-war", "blocked-domain"],
+      tags: ["edit-war", "vandalism"],
     });
     expect(score).toBe(100);
   });
