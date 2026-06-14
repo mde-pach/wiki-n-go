@@ -6,6 +6,7 @@ export interface Ban {
   reason?: string;
   by?: string;
   at?: string;
+  expires?: string;
 }
 
 export interface AuditEntry {
@@ -38,8 +39,9 @@ export async function addBan(
   key: string,
   paths: string[],
   reason?: string,
+  expires?: string,
 ): Promise<void> {
-  await postJson<{ ok: true }>("/ban", { key, paths, reason });
+  await postJson<{ ok: true }>("/ban", { key, paths, reason, expires });
 }
 
 export async function removeBan(key: string): Promise<void> {

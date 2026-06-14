@@ -121,6 +121,8 @@ export interface BanBody {
   key?: unknown;
   paths?: unknown;
   reason?: unknown;
+  // Optional ISO timestamp or a duration like "24h" / "7d" / "2w" → temp block.
+  expires?: unknown;
 }
 
 export interface UnbanBody {

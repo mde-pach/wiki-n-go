@@ -13,6 +13,7 @@ export default function Bans() {
   const [key, setKey] = createSignal("");
   const [paths, setPaths] = createSignal("");
   const [reason, setReason] = createSignal("");
+  const [expires, setExpires] = createSignal("");
   const [busy, setBusy] = createSignal(false);
   const [error, setError] = createSignal<string>();
 
@@ -27,10 +28,16 @@ export default function Bans() {
         .split(",")
         .map((p) => p.trim())
         .filter(Boolean);
-      await addBan(k, scope, reason().trim() || undefined);
+      await addBan(
+        k,
+        scope,
+        reason().trim() || undefined,
+        expires().trim() || undefined,
+      );
       setKey("");
       setPaths("");
       setReason("");
+      setExpires("");
       refetch();
     } catch (e) {
       setError(errMessage(e));
@@ -76,6 +83,12 @@ export default function Bans() {
           value={reason()}
           onInput={(e) => setReason(e.currentTarget.value)}
         />
+        <input
+          class="ban-input"
+          placeholder="expires — e.g. 24h, 7d (optional)"
+          value={expires()}
+          onInput={(e) => setExpires(e.currentTarget.value)}
+        />
         <button
           type="submit"
           class="btn btn-primary btn-sm"
@@ -104,6 +117,7 @@ export default function Bans() {
                   <span class="ban-meta">
                     {b.by}
                     {b.at ? ` · ${timeAgo(b.at)}` : ""}
+                    {b.expires ? ` · expires ${timeAgo(b.expires)}` : ""}
                   </span>
                   <button
                     type="button"

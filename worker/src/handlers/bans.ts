@@ -1,5 +1,11 @@
 import { type AuditEntry, appendAudit, listAudit } from "../audit";
-import { type NormalBan, normalizeBan, parseBans, serializeBan } from "../bans";
+import {
+  type NormalBan,
+  normalizeBan,
+  parseBans,
+  parseExpiry,
+  serializeBan,
+} from "../bans";
 import { HttpError } from "../http";
 import { requireMaintainer } from "../identity";
 import { commitJson, getCurrentFile } from "../repo";
@@ -35,6 +41,7 @@ export async function ban(
     ? body.paths.map((p) => String(p).trim()).filter(Boolean)
     : [];
   const reason = body.reason ? String(body.reason).slice(0, 280) : undefined;
+  const expires = body.expires ? parseExpiry(String(body.expires)) : undefined;
 
   const writer = await requireMaintainer(env, request, "Banning");
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
@@ -48,6 +55,7 @@ export async function ban(
         reason,
         by: writer.name,
         at: new Date().toISOString(),
+        expires,
       }),
     ),
   );
@@ -61,7 +69,11 @@ export async function ban(
     writer.email,
     "ban",
     key,
-    [paths.length ? `paths: ${paths.join(", ")}` : "site-wide", reason]
+    [
+      paths.length ? `paths: ${paths.join(", ")}` : "site-wide",
+      expires ? `until ${expires}` : null,
+      reason,
+    ]
       .filter(Boolean)
       .join(" · "),
   );

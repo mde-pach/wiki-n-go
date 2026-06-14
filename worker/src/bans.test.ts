@@ -1,5 +1,49 @@
 import { describe, expect, it } from "vitest";
-import { banApplies, normalizeBan, parseBans, serializeBan } from "./bans";
+import {
+  banApplies,
+  banExpired,
+  normalizeBan,
+  parseBans,
+  parseExpiry,
+  serializeBan,
+} from "./bans";
+
+describe("ban expiry (P2-2)", () => {
+  const now = Date.parse("2026-06-14T00:00:00Z");
+
+  it("parseExpiry turns a duration into a future ISO timestamp", () => {
+    expect(parseExpiry("24h", now)).toBe("2026-06-15T00:00:00.000Z");
+    expect(parseExpiry("7d", now)).toBe("2026-06-21T00:00:00.000Z");
+    expect(parseExpiry("2w", now)).toBe("2026-06-28T00:00:00.000Z");
+    expect(parseExpiry("90m", now)).toBe("2026-06-14T01:30:00.000Z");
+  });
+
+  it("parseExpiry passes through an absolute ISO date and rejects junk", () => {
+    expect(parseExpiry("2026-07-01T12:00:00Z", now)).toBe("2026-07-01T12:00:00.000Z");
+    expect(parseExpiry("", now)).toBeUndefined();
+    expect(parseExpiry("soon", now)).toBeUndefined();
+  });
+
+  it("banExpired is true only once the timestamp is past", () => {
+    const b = normalizeBan({ key: "x", expires: "2026-06-14T01:00:00Z" });
+    expect(banExpired(b, now)).toBe(false);
+    expect(banExpired(b, now + 3_600_001)).toBe(true);
+  });
+
+  it("an indefinite ban (no expires) never expires", () => {
+    expect(banExpired(normalizeBan("x"), now)).toBe(false);
+  });
+
+  it("banApplies ignores an expired ban", () => {
+    const expired = normalizeBan({ key: "x", expires: "2020-01-01T00:00:00Z" });
+    expect(banApplies(expired, "x")).toBe(false);
+  });
+
+  it("serializeBan round-trips expires", () => {
+    const b = normalizeBan({ key: "x", expires: "2026-07-01T00:00:00.000Z" });
+    expect(serializeBan(b)).toEqual({ key: "x", expires: "2026-07-01T00:00:00.000Z" });
+  });
+});
 
 describe("normalizeBan", () => {
   it("treats a bare string as a site-wide block", () => {
