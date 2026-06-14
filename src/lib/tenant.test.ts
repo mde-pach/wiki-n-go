@@ -1,6 +1,9 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { activeRepo, engineUrl } from "./engine";
-import { bootTenant, resetTenantBoot, subdomainLabel } from "./tenant";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// Module-level boot state is isolated per test with resetModules + dynamic
+// import — no test-only reset hook leaks into the production module.
+beforeEach(() => vi.resetModules());
+afterEach(() => vi.unstubAllGlobals());
 
 function fakeSession() {
   const m = new Map<string, string>();
@@ -19,24 +22,23 @@ function onHost(host: string) {
   return store;
 }
 
-afterEach(() => {
-  resetTenantBoot();
-  vi.unstubAllGlobals();
-});
-
 describe("subdomainLabel", () => {
   const P = "wikigit.org";
-  it("extracts a subdomain label", () => {
+  it("extracts a subdomain label", async () => {
+    const { subdomainLabel } = await import("./tenant");
     expect(subdomainLabel("recipes.wikigit.org", P)).toBe("recipes");
   });
-  it("apex → empty, www stays www", () => {
+  it("apex → empty, www stays www", async () => {
+    const { subdomainLabel } = await import("./tenant");
     expect(subdomainLabel("wikigit.org", P)).toBe("");
     expect(subdomainLabel("www.wikigit.org", P)).toBe("www");
   });
-  it("ignores port + trailing dot", () => {
+  it("ignores port + trailing dot", async () => {
+    const { subdomainLabel } = await import("./tenant");
     expect(subdomainLabel("recipes.wikigit.org:443.", P)).toBe("recipes");
   });
-  it("null for a host outside the platform domain", () => {
+  it("null for a host outside the platform domain", async () => {
+    const { subdomainLabel } = await import("./tenant");
     expect(subdomainLabel("bob.github.io", P)).toBeNull();
   });
 });
@@ -48,12 +50,13 @@ describe("bootTenant", () => {
       Response.json({ repo: "bob/cookbook", lane: "byo", name: "recipes" }),
     );
     vi.stubGlobal("fetch", fetchMock);
+    const { bootTenant } = await import("./tenant");
+    const { activeRepo, engineUrl } = await import("./engine");
 
     await bootTenant();
 
     expect(activeRepo()).toEqual({ owner: "bob", name: "cookbook" });
     expect(engineUrl("/pages")).toContain("repo=bob%2Fcookbook");
-    // The single /resolve request carried the hostname.
     expect(String(fetchMock.mock.calls[0][0])).toContain(
       "/resolve?host=recipes.wikigit.org",
     );
@@ -64,6 +67,8 @@ describe("bootTenant", () => {
     store.setItem("wikigit:tenant:recipes.wikigit.org", "bob/cookbook");
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
+    const { bootTenant } = await import("./tenant");
+    const { activeRepo } = await import("./engine");
 
     await bootTenant();
 
@@ -75,6 +80,8 @@ describe("bootTenant", () => {
     onHost("wikigit.org");
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
+    const { bootTenant } = await import("./tenant");
+    const { activeRepo } = await import("./engine");
 
     await bootTenant();
 
@@ -85,6 +92,8 @@ describe("bootTenant", () => {
   it("falls back to baked config when the subdomain is unregistered (404)", async () => {
     onHost("ghost.wikigit.org");
     vi.stubGlobal("fetch", async () => new Response("nope", { status: 404 }));
+    const { bootTenant } = await import("./tenant");
+    const { activeRepo } = await import("./engine");
 
     await bootTenant();
 

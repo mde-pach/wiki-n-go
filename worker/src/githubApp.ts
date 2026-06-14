@@ -81,10 +81,16 @@ function jwtSegment(obj: unknown): string {
   return b64urlEncode(new TextEncoder().encode(JSON.stringify(obj)));
 }
 
-export async function appJwt(env: Env, nowSec: number): Promise<string> {
-  const key = await importSigningKey(env.GITHUB_APP_PRIVATE_KEY as string);
+// Sign an App JWT from an explicit id + key, so the same primitive serves both
+// the content App (wikigit-app) and the operator provisioning App (wikigit-platform).
+export async function signAppJwt(
+  appId: string,
+  privateKey: string,
+  nowSec: number,
+): Promise<string> {
+  const key = await importSigningKey(privateKey);
   const signingInput = `${jwtSegment({ alg: "RS256", typ: "JWT" })}.${jwtSegment(
-    buildClaims(env.GITHUB_APP_ID as string, nowSec),
+    buildClaims(appId, nowSec),
   )}`;
   const sig = await crypto.subtle.sign(
     "RSASSA-PKCS1-v1_5",
@@ -94,13 +100,39 @@ export async function appJwt(env: Env, nowSec: number): Promise<string> {
   return `${signingInput}.${b64urlEncode(new Uint8Array(sig))}`;
 }
 
-function appHeaders(jwt: string, env: Env): Record<string, string> {
+export function appJwt(env: Env, nowSec: number): Promise<string> {
+  return signAppJwt(
+    env.GITHUB_APP_ID as string,
+    env.GITHUB_APP_PRIVATE_KEY as string,
+    nowSec,
+  );
+}
+
+export function appHeaders(jwt: string, env: Env): Record<string, string> {
   return {
     Authorization: `Bearer ${jwt}`,
     Accept: "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
     "User-Agent": `${env.REPO_NAME}-worker`,
   };
+}
+
+// Mint an installation access token from an App JWT + installation id. Shared by
+// the content App (per-repo) and the provisioning App (the org installation).
+export async function installationAccessToken(
+  env: Env,
+  jwt: string,
+  installationId: string,
+): Promise<{ token: string; expiresAtMs: number }> {
+  const res = await fetch(
+    `https://api.github.com/app/installations/${installationId}/access_tokens`,
+    { method: "POST", headers: appHeaders(jwt, env) },
+  );
+  if (!res.ok) {
+    throw new HttpError(502, `App token mint ${res.status}: ${await res.text()}`);
+  }
+  const data = (await res.json()) as { token: string; expires_at: string };
+  return { token: data.token, expiresAtMs: new Date(data.expires_at).getTime() };
 }
 
 async function fetchInstallationId(
@@ -147,15 +179,7 @@ async function mintInstallationToken(
 ): Promise<{ token: string; expiresAtMs: number }> {
   const jwt = await appJwt(env, Math.floor(Date.now() / 1000));
   const installationId = await resolveInstallationId(env, jwt);
-  const res = await fetch(
-    `https://api.github.com/app/installations/${installationId}/access_tokens`,
-    { method: "POST", headers: appHeaders(jwt, env) },
-  );
-  if (!res.ok) {
-    throw new HttpError(502, `App token mint ${res.status}: ${await res.text()}`);
-  }
-  const data = (await res.json()) as { token: string; expires_at: string };
-  return { token: data.token, expiresAtMs: new Date(data.expires_at).getTime() };
+  return installationAccessToken(env, jwt, installationId);
 }
 
 async function installationToken(env: Env): Promise<string> {

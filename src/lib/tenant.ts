@@ -74,9 +74,3 @@ async function resolveOnce(): Promise<void> {
     // network hiccup → fall back to baked config rather than blocking the reader
   }
 }
-
-// Test seam: drop the memoized boot so a new hostname can be resolved afresh.
-export function resetTenantBoot(): void {
-  booted = null;
-  setActiveRepo(null);
-}

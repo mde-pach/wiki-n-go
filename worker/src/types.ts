@@ -55,6 +55,14 @@ export interface Env {
   // derive the base as the host's registrable two labels (fine for `x.y`; set it
   // explicitly for multi-part TLDs).
   PLATFORM_HOST?: string;
+  // Managed-hosting provisioning: a SECOND, operator-only GitHub App
+  // (wikigit-platform) with Administration write on PLATFORM_ORG, used solely to
+  // create tenant repos. Distinct from the content App above so org-admin never
+  // rides on the App users install on their own repos. All three unset → the
+  // platform-stored lane is disabled (bring-your-own still works).
+  GITHUB_PLATFORM_APP_ID?: string;
+  GITHUB_PLATFORM_APP_PRIVATE_KEY?: string;
+  PLATFORM_ORG?: string; // the GitHub org that holds managed tenant repos
 }
 
 export interface EditBody {

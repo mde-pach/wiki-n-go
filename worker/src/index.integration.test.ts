@@ -1,6 +1,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { signSession } from "./identity/auth";
 import worker from "./index";
 import type { LinkGraph } from "./indexlib";
+
+const TEST_PEM = `-----BEGIN RSA PRIVATE KEY-----
+MIIBOwIBAAJBALVh4ios5EUmPMWZh4q0Yb/bLxhoG9UTq4WzNtXVHq8wOf1USuzW
+lc0TKIGmNTqPr+Fh66Qir56ofAABbdCQF+cCAwEAAQJBAKaOX7QCzQqCdkOtG73O
+rgQTLUfoMcaT7Wk0jCIHNcn/nygpnnj8WjUaK+012g10pO2dOlorHt0Etrdfwxwm
+3eECIQDcSIcwni8TUTXeOGhWXmRo7x9X8FsGqTEPeUSTnDcwDQIhANLKqbdQ+TSD
+GC1G79/DyozamWQLSPURsnx8kZ9DQvbDAiBIkKfgLyvIzEbXhnNwiDXBj4wetvH1
+dsTPmR4rFhnj/QIhAJ+IQmo7HmBf1yxtQ55W0DVKPE07PTw86JjOrmeawFOBAiB9
+DJPdlG5QQzgJkaj/LtI377B/tWYOuCEzTRtzak7kiQ==
+-----END RSA PRIVATE KEY-----`;
 
 type Env = Parameters<typeof worker.fetch>[1];
 
@@ -164,6 +175,83 @@ describe("GET /config (owner-editable wiki config)", () => {
     vi.stubGlobal("fetch", async () => new Response("", { status: 404 }));
     const res = await worker.fetch(req("/config"), makeEnv());
     expect((await res.json()) as { config: unknown }).toEqual({ config: {} });
+  });
+});
+
+describe("POST /claim (create a wiki, open self-serve)", () => {
+  function claimEnv() {
+    const env = makeEnv() as Env & {
+      RATE_LIMIT: ReturnType<typeof fakeKV>;
+      SESSION_SECRET: string;
+      PLATFORM_HOST: string;
+      PLATFORM_ORG: string;
+      GITHUB_PLATFORM_APP_ID: string;
+      GITHUB_PLATFORM_APP_PRIVATE_KEY: string;
+    };
+    env.SESSION_SECRET = "sess";
+    env.PLATFORM_HOST = "wikigit.org";
+    env.PLATFORM_ORG = "wikigit-tenants";
+    env.GITHUB_PLATFORM_APP_ID = "999";
+    env.GITHUB_PLATFORM_APP_PRIVATE_KEY = TEST_PEM;
+    env.RATE_LIMIT.put("registry:raw", ""); // empty registry → name free
+    return env;
+  }
+  const claimReq = (body: object, token?: string) =>
+    new Request("https://w.dev/claim", {
+      method: "POST",
+      headers: {
+        Origin: "https://example.test",
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+
+  it("401s when not signed in", async () => {
+    const res = await worker.fetch(
+      claimReq({ name: "recipes", lane: "platform" }),
+      claimEnv(),
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("409s a reserved name", async () => {
+    const token = await signSession("sess", { login: "alice", id: 1, avatar: "" });
+    const res = await worker.fetch(
+      claimReq({ name: "api", lane: "platform" }, token),
+      claimEnv(),
+    );
+    expect(res.status).toBe(409);
+  });
+
+  it("provisions a managed wiki and returns its subdomain url", async () => {
+    vi.stubGlobal("fetch", async (input: string | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+      if (url.endsWith("/orgs/wikigit-tenants/installation"))
+        return Response.json({ id: 7 });
+      if (url.includes("/access_tokens"))
+        return Response.json({ token: "t", expires_at: "2999-01-01T00:00:00Z" });
+      if (url.endsWith("/orgs/wikigit-tenants/repos"))
+        return new Response("{}", { status: 201 });
+      if (url.includes("/contents/")) {
+        return method === "GET"
+          ? new Response("", { status: 404 }) // registry file absent → first write
+          : new Response("{}", { status: 201 });
+      }
+      throw new Error(`unexpected ${url}`);
+    });
+    const token = await signSession("sess", { login: "alice", id: 1, avatar: "" });
+    const res = await worker.fetch(
+      claimReq({ name: "recipes", lane: "platform" }, token),
+      claimEnv(),
+    );
+    expect(res.status).toBe(200);
+    expect((await res.json()) as { url: string; repo: string }).toMatchObject({
+      name: "recipes",
+      repo: "wikigit-tenants/recipes",
+      url: "https://recipes.wikigit.org",
+    });
   });
 });
 

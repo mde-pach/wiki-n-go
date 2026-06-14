@@ -1,5 +1,7 @@
 import { auditLog, ban, listBans, unban } from "./handlers/bans";
 import { cite } from "./handlers/cite";
+import type { ClaimBody } from "./handlers/claim";
+import { claim } from "./handlers/claim";
 import { createTopic, getThread, listTopics, postComment } from "./handlers/comments";
 import { getConfig, putConfig } from "./handlers/config";
 import {
@@ -83,21 +85,24 @@ export default {
     const headers = corsHeaders(env, request);
     if (request.method === "OPTIONS") return new Response(null, { headers });
 
-    // Operator-global endpoints, answered BEFORE the tenant gate: they read the
-    // operator repo (registry / diagnostics), not the requested tenant, so they
-    // must run on the base env. `/status` also has to stay reachable for an
+    // Operator-global endpoints, answered BEFORE the tenant gate: they read/write
+    // the operator repo (registry / diagnostics / claim), not the requested tenant,
+    // so they must run on the base env. `/status` also has to stay reachable for an
     // un-connected repo (it's what tells the setup page to connect).
-    if (request.method === "GET") {
-      const path = new URL(request.url).pathname;
+    {
+      const url = new URL(request.url);
+      const key = `${request.method} ${url.pathname}`;
       const preTenant: Record<string, () => Promise<unknown>> = {
-        "/status": () => connectionStatus(env, request),
-        "/resolve": () => resolveTenantHost(env, request, new URL(request.url)),
-        "/tenant-available": () => tenantAvailable(env, new URL(request.url)),
+        "GET /status": () => connectionStatus(env, request),
+        "GET /resolve": () => resolveTenantHost(env, request, url),
+        "GET /tenant-available": () => tenantAvailable(env, url),
+        "POST /claim": async () =>
+          claim(env, request, (await request.json()) as ClaimBody),
       };
-      const pre = preTenant[path];
+      const pre = preTenant[key];
       if (pre) {
         try {
-          const cc = CACHE_CONTROL[`GET ${path}`];
+          const cc = CACHE_CONTROL[key];
           return json(
             await pre(),
             200,
