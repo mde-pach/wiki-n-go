@@ -19,6 +19,7 @@ interface Opts {
   mergeable?: boolean; // does PUT …/merge succeed (default true)
   branchExists?: boolean; // does the author's deterministic branch already exist
   existingPr?: boolean; // is there already an open PR for that branch
+  refConflict?: boolean; // ref-create 422s (a concurrent submit won the race)
 }
 
 function stubGitHub(o: Opts = {}) {
@@ -39,7 +40,10 @@ function stubGitHub(o: Opts = {}) {
       );
     if (url.endsWith("/pulls") && method === "POST")
       return Response.json({ number: 7, html_url: "https://pr.example/7" });
-    if (url.endsWith("/git/refs") && method === "POST") return Response.json({});
+    if (url.endsWith("/git/refs") && method === "POST")
+      return o.refConflict
+        ? new Response("Reference already exists", { status: 422 })
+        : Response.json({ object: { sha: "branchsha" } });
     if (url.includes("/git/refs/heads/") && method === "DELETE")
       return new Response(null, { status: 204 });
     if (url.includes("/git/ref/heads/")) {
@@ -141,6 +145,19 @@ describe("POST /edit — PR-always with auto-merge", () => {
     expect(result?.prUrl).toBe("https://pr.example/7");
     expect(merged()).toBe(true); // merge was attempted…
     expect(branchDeleted()).toBe(false); // …but the branch survives for the human
+  });
+
+  it("reconciles a ref-create 422 (concurrent submit) instead of 502ing (WB-3)", async () => {
+    stubGitHub({ files: { "content/foo.md": "# Foo" }, refConflict: true });
+    const res = await worker.fetch(
+      edit({ slug: "foo", content: "# Foo edited" }),
+      makeEnv(),
+    );
+    expect(res.status).toBe(200); // streaming started → not a 502
+    const { result, error } = await drain(res);
+    expect(error).toBeUndefined();
+    expect(result?.live).toBe(true); // fell through to the update + merge path
+    expect(result?.sha).toBe("mergesha");
   });
 
   it("an untrusted edit opens a PR and never attempts a merge", async () => {

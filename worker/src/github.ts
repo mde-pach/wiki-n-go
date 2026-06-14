@@ -2,7 +2,15 @@ import { ghToken } from "./githubApp";
 import { HttpError } from "./http";
 import type { Env } from "./types";
 
-export type GhInit = { method?: string; body?: string; allow404?: boolean };
+export type GhInit = {
+  method?: string;
+  body?: string;
+  allow404?: boolean;
+  // Return undefined on 422 instead of throwing — used for a ref-create that
+  // races a concurrent submit ("Reference already exists"), so the caller can
+  // reconcile against the existing branch rather than 502.
+  allow422?: boolean;
+};
 
 export interface CommitItem {
   sha: string;
@@ -36,6 +44,7 @@ export async function gh<T = unknown>(
     headers: await ghHeaders(env),
   });
   if (res.status === 404 && init.allow404) return undefined as T;
+  if (res.status === 422 && init.allow422) return undefined as T;
   if (!res.ok) throw new HttpError(502, `GitHub ${res.status}: ${await res.text()}`);
   if (res.status === 204) return undefined as T; // e.g. DELETE a ref → no body
   const text = await res.text();

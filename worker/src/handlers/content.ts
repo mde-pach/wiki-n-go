@@ -435,23 +435,43 @@ async function openOrReusePr(
     { allow404: true },
   );
   let fileSha: string | undefined;
+  let branchRaw: string | undefined;
   if (ref) {
-    fileSha = (await getCurrentFile(env, repo, path, branch))?.sha;
+    const f = await getCurrentFile(env, repo, path, branch);
+    fileSha = f?.sha;
+    branchRaw = f?.raw;
   } else {
     const base = await gh<{ object: { sha: string } }>(
       env,
       `/repos/${repo}/git/ref/heads/${env.BRANCH}`,
     );
-    await gh(env, `/repos/${repo}/git/refs`, {
-      method: "POST",
-      body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: base.object.sha }),
-    });
-    fileSha = current?.sha; // fresh branch tracks BRANCH, so the file sha matches
+    const created = await gh<{ object: { sha: string } } | undefined>(
+      env,
+      `/repos/${repo}/git/refs`,
+      {
+        method: "POST",
+        body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: base.object.sha }),
+        allow422: true,
+      },
+    );
+    if (created) {
+      fileSha = current?.sha; // fresh branch tracks BRANCH, so the file sha matches
+    } else {
+      // A concurrent submit created the branch between our check and create.
+      // Reconcile against it rather than 502.
+      const f = await getCurrentFile(env, repo, path, branch);
+      fileSha = f?.sha;
+      branchRaw = f?.raw;
+    }
   }
-  await gh(env, `/repos/${repo}/contents/${path}`, {
-    method: "PUT",
-    body: editCommit(env, ctx, branch, fileSha),
-  });
+  // Skip the commit when the branch already holds this exact content — a resubmit
+  // would otherwise stack an empty/duplicate commit (which also inflates trust).
+  if (branchRaw !== ctx.content) {
+    await gh(env, `/repos/${repo}/contents/${path}`, {
+      method: "PUT",
+      body: editCommit(env, ctx, branch, fileSha),
+    });
+  }
 
   const open = await gh<{ number: number; html_url: string }[]>(
     env,
