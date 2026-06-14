@@ -83,40 +83,54 @@ only needed for *custom* domains, a later add.
 
 ## Further facilitation for non-technical users (prioritised)
 
+> **Status (2026-06-15):** items 1, 3, 4, 5, 7, 9, 11, 12 shipped + deployed (SPEC
+> M11.10). Plus three not originally listed: per-tenant runtime chrome (F1),
+> email sign-in in `/create` (F2), and the export/transfer bridge (F4). **Remaining:**
+> item 8 (content import) and the full multi-wiki dashboard part of item 6.
+
 1. **Use-this-template** one-click repo creation (reader + Pages workflow + starter
-   content) → path B with no manual file copying. *(repo setup)*
+   content) → path B with no manual file copying. *(✅ F8 — tokenless GitHub "generate"
+   deep-link; the template repo itself is operator-published via `PUBLIC_TEMPLATE_REPO`)*
 2. **Click-to-connect app install** — the single most important action; deep-links
-   to install the App on the chosen repo. *(built: link; Hub records the mapping)*
-3. **Setup/status page** with live health + guided fixes. *(this slice)*
-4. **Zero-config repo detection** — baked (fork) or hostname (subdomain). *(this slice)*
+   to install the App on the chosen repo. *(✅ built: link; Hub records the mapping)*
+3. **Setup/status page** with live health + guided fixes. *(✅ built)*
+4. **Zero-config repo detection** — baked (fork) or hostname (subdomain). *(✅ built)*
 5. **In-UI settings editor** — edit site title, languages, appearance, sign-in,
    protection defaults through a form that **commits a `wikigit.config.*` file to
-   the repo** (no code editing). The reader already reads config; make it
-   repo-file-driven + UI-editable. *(high-value next)*
+   the repo** (no code editing). *(✅ built — config-as-data + `/settings`; F3 added
+   in-wiki maintainers)*
 6. **Hub dashboard** (`wikigit.org`) — manage your wiki(s): status, content stats,
    recent changes, moderation queue, editors, custom domain, (later) quotas/billing.
+   *(partial — settings, transfer bridge, custom-domain, first-run all in `/settings`/`/setup`;
+   a unified multi-wiki dashboard is the remaining piece)*
 7. **Health + notifications** — "your backend/Pages build is down", "you were
-   reverted/replied-to" (ties into watchlist/notifications, FEATURES §Q).
-8. **One-click content import** — Markdown upload, Notion/Confluence/Wikipedia.
+   reverted/replied-to". *(✅ F9 — write-time notifications; backend-down is surfaced
+   in-site, not via an external monitor)*
+8. **One-click content import** — Markdown upload, Notion/Confluence/Wikipedia. *(remaining)*
 9. **Guided first-run** — after connect: "write your first page → invite editors →
-   set who can edit." A checklist that completes itself from live state.
+   set who can edit." A checklist that completes itself from live state. *(✅ F6)*
 10. **Maintenance-free updates** — the Engine is operator-run (always current for
     hosted users); the reader is a thin static shell. Self-hosters get a
-    "your Engine is N versions behind" nudge on the status page.
+    "your Engine is N versions behind" nudge on the status page. *(operator-run; nudge TBD)*
 11. **Abuse/quota controls** for the shared Engine — per-repo rate limits already
-    namespaced (M9); add per-tenant ceilings + a kill-switch in the Hub.
-12. **Custom-domain helper** — guided CNAME/verification for `wiki.mybrand.com`.
+    namespaced (M9); add per-tenant ceilings + a kill-switch in the Hub. *(✅ F5 —
+    per-owner quota + claim rate-limit + `PROVISION_PAUSED`)*
+12. **Custom-domain helper** — guided CNAME/verification for `wiki.mybrand.com`. *(✅ F7 —
+    `resolveHost` off-platform match + DoH CNAME verify; per-domain TLS cert = one infra step)*
 
 ## Phased roadmap
 
-- **P1 — this slice (built now):** tenant-aware reader (`activeRepo`, `?repo=`
-  plumbing) · Engine `/status` · `/setup` status+connect page · config flags.
-- **P2 — Hub MVP:** subdomain registry (`tenants.jsonl`) + `/resolve` + the shared
-  frontend's hostname→tenant boot + the claim flow (sign-in → name → connect).
-  Requires the Engine on the **GitHub App** credential + `MULTI_TENANT=1` (today
-  it runs a PAT, single-tenant — flip once the App key is set).
-- **P3 — In-UI settings editor** (repo-file-driven config) + use-this-template.
-- **P4 — Hub dashboard, notifications, import, quotas, custom domains.**
+- **P1 — ✅ done:** tenant-aware reader (`activeRepo`, `?repo=` plumbing) · Engine
+  `/status` · `/setup` status+connect page · config flags.
+- **P2 — ✅ done (M11.9):** subdomain registry (`tenants.jsonl`) + `/resolve` + the
+  shared frontend's hostname→tenant boot + the claim flow. Engine on the GitHub App
+  + `MULTI_TENANT=1` (live).
+- **P3 — ✅ done:** in-UI settings editor (repo-file-driven config; + F3 maintainers)
+  + use-this-template (F8).
+- **P4 — mostly done (M11.10):** notifications (F9) ✅ · quotas/kill-switch (F5) ✅ ·
+  custom domains (F7) ✅ · per-tenant chrome (F1) ✅ · email onboarding (F2) ✅ ·
+  export/transfer bridge (F4) ✅ · guided first-run (F6) ✅. **Remaining:** content
+  import + a unified multi-wiki Hub dashboard.
 
 ## Hard dependency to flip the hosted model on
 

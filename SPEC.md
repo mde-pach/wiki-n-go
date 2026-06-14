@@ -685,6 +685,24 @@ editing/dynamic backend moves. Full design + migration plan:
   verified against the real org. Engine env: `GITHUB_PLATFORM_APP_ID`/`_PRIVATE_KEY` (base64),
   `PLATFORM_ORG`, `PLATFORM_HOST`. Tests isolate via `vi.resetModules()` (no prod reset hooks);
   `worker/.dockerignore` `**/*.test.ts` keeps fixtures out of the runtime image.
+- [x] ✅ **M11.10 — remaining hosted-platform features, live + e2e-verified (Hub)** (2026-06-15):
+  the nine follow-on features that finish the Hub, each with tests + a decision-log entry below.
+  **F1** per-tenant runtime chrome (title→wordmark, tagline, appearance, languages; cached for
+  pre-paint, flagship untouched). **F2** email/Wikigit sign-in surfaced in `/create`
+  (`enabledProviders()`). **F3** maintainers declarable in `wikigit.json`, unioned into
+  `editorTier`. **F4** export/transfer bridge ("move to my own GitHub": platform-App transfer →
+  accept → registry re-point once App-installed). **F5** managed-lane per-owner quota + claim
+  rate-limit + `PROVISION_PAUSED` kill-switch. **F6** guided first-run checklist on `/setup`
+  (live-state, no store). **F7** custom-domain helper (`resolveHost` off-platform match +
+  DoH-verified CNAME; per-domain TLS cert is the one Traefik infra step). **F8** use-this-template
+  (tokenless GitHub "generate" deep-link). **F9** write-time notifications — reverted /
+  pending-review / replied-to — no store/index: `gh:` via a GitHub `@mention`, `wg:` via the IdP's
+  SMTP (`POST /notify`, built in `accounts/`); contract in `worker/NOTIFY.md`. **All merged to
+  `main`, deployed to the three Coolify apps** (web/engine/accounts, one monorepo), envs wired
+  (`NOTIFY_TOKEN`=`IDP_MAIL_TOKEN`, `IDP_MAIL_URL`), and the **F9 email loop verified end-to-end in
+  production** (email sign-in → wg account → edit → maintainer rollback → delivered email). Still
+  open (not in this batch): one-click content import, a unified multi-wiki Hub dashboard,
+  `PUBLIC_TEMPLATE_REPO`'s actual template repo.
 
 The §5 "one piece of infra is irreducible" argument is **runtime-agnostic** — it
 holds for the Bun server exactly as for the Worker (the browser still can't hold a
