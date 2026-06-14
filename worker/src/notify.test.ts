@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { keyFromCommitEmail, mentionFor, notifyByEmail } from "./notify";
+import { keyFromCommitEmail, mentionFor, notifyByEmail, notifyRevert } from "./notify";
 import type { Env } from "./types";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -78,5 +78,50 @@ describe("notifyByEmail", () => {
     await expect(
       notifyByEmail({ IDP_MAIL_URL: "https://idp/notify" } as Env, "wg:42", note),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe("notifyRevert", () => {
+  const env = () =>
+    ({
+      REPO_OWNER: "acme",
+      REPO_NAME: "wiki",
+      GITHUB_TOKEN: "tok",
+      IDP_MAIL_URL: "https://idp/notify",
+    }) as Env;
+
+  it("posts a commit comment that @-mentions a gh author", async () => {
+    let captured: { url: string; body: string } | undefined;
+    vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+      captured = { url, body: String(init.body) };
+      return Response.json({});
+    });
+    await notifyRevert(env(), "gh:octocat", "deadbeef", ["coffee", "tea"]);
+    expect(captured?.url).toBe(
+      "https://api.github.com/repos/acme/wiki/commits/deadbeef/comments",
+    );
+    expect(JSON.parse(captured?.body ?? "{}").body).toContain("@octocat");
+    expect(JSON.parse(captured?.body ?? "{}").body).toContain("coffee, tea");
+  });
+
+  it("emails a wg author via the IdP", async () => {
+    let captured: { url: string; body: string } | undefined;
+    vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+      captured = { url, body: String(init.body) };
+      return Response.json({});
+    });
+    await notifyRevert(env(), "wg:42", "deadbeef", ["coffee"]);
+    expect(captured?.url).toBe("https://idp/notify");
+    expect(JSON.parse(captured?.body ?? "{}").sub).toBe("42");
+  });
+
+  it("does nothing for an unknown/anon author", async () => {
+    const calls: unknown[] = [];
+    vi.stubGlobal("fetch", async (...a: unknown[]) => {
+      calls.push(a);
+      return Response.json({});
+    });
+    await notifyRevert(env(), null, "deadbeef", ["coffee"]);
+    expect(calls).toHaveLength(0);
   });
 });

@@ -1,3 +1,4 @@
+import { gh } from "./github";
 import type { Env } from "./types";
 
 // Write-time notifications. We hold NO notification state: each event is pushed,
@@ -56,4 +57,37 @@ export async function notifyByEmail(
   } catch {
     // best-effort: a mail hiccup must never break the action that triggered it
   }
+}
+
+// Tell the author of a rolled-back commit. gh: → a commit comment that
+// `@`-mentions them (GitHub notifies natively); wg: → an email via the IdP;
+// anon/unknown → nothing. Best-effort; never throws into the rollback path.
+export async function notifyRevert(
+  env: Env,
+  key: string | null,
+  sha: string,
+  pages: string[],
+): Promise<void> {
+  if (!key) return;
+  const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
+  const where = pages.join(", ");
+  const mention = mentionFor(key);
+  if (mention) {
+    try {
+      await gh(env, `/repos/${repo}/commits/${sha}/comments`, {
+        method: "POST",
+        body: JSON.stringify({
+          body: `@${mention} — your edit to **${where}** was rolled back by a maintainer.`,
+        }),
+      });
+    } catch {
+      // best-effort (e.g. the App lacks commit-comment permission)
+    }
+    return;
+  }
+  await notifyByEmail(env, key, {
+    subject: `Your edit to ${where} was rolled back`,
+    body: `A maintainer rolled back your recent edit to ${where} on this wiki.`,
+    link: `https://github.com/${repo}/commit/${sha}`,
+  });
 }

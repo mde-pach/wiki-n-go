@@ -5,6 +5,7 @@ import { requireMaintainer } from "../identity";
 import { invalidateContent } from "../kv";
 import { autopatrol } from "../moderation";
 import { appendModLog } from "../modlog";
+import { notifyRevert } from "../notify";
 import { botCommitter, commitPayload, getCurrentFile } from "../repo";
 import { revertCommit } from "../revert";
 import type { DeleteBody, Env, RestoreBody } from "../types";
@@ -136,7 +137,7 @@ export async function rollback(
   const writer = await requireMaintainer(env, request, "Rollback");
 
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
-  const { restored } = await revertCommit(env, sha, {
+  const { restored, revertedKey } = await revertCommit(env, sha, {
     name: writer.name,
     email: writer.email,
   });
@@ -149,6 +150,7 @@ export async function rollback(
     sha.slice(0, 7),
     `restored ${restored.join(", ")}`,
   );
+  await notifyRevert(env, revertedKey, sha, restored);
   return { ok: true, restored };
 }
 

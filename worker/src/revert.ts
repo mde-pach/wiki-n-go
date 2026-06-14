@@ -3,6 +3,7 @@ import { removeIndexEntry, updateIndexEntry } from "./handlers/index-cache";
 import { HttpError } from "./http";
 import { invalidateContent } from "./kv";
 import { autopatrol } from "./moderation";
+import { keyFromCommitEmail } from "./notify";
 import { botCommitter, commitPayload, getCurrentFile } from "./repo";
 import type { Env } from "./types";
 
@@ -17,13 +18,17 @@ export async function revertCommit(
   sha: string,
   by: { name: string; email: string },
   message: string = `Roll back ${sha.slice(0, 7)}`,
-): Promise<{ restored: string[] }> {
+): Promise<{ restored: string[]; revertedKey: string | null }> {
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
   const commit = await gh<{
     parents: { sha: string }[];
     files?: { filename: string }[];
+    commit?: { author?: { email?: string } };
   }>(env, `/repos/${repo}/commits/${sha}`);
   const parentSha = commit.parents[0]?.sha;
+  // Who authored the reverted edit (for "you were reverted") — recovered from the
+  // commit-author email, which encodes the provider-qualified identity key.
+  const revertedKey = keyFromCommitEmail(commit.commit?.author?.email ?? "");
 
   const prefix = `${env.CONTENT_DIR}/`;
   const paths = (commit.files ?? [])
@@ -75,5 +80,5 @@ export async function revertCommit(
     restored.push(slug);
   }
   await invalidateContent(env, by.name, { keepIndex: true });
-  return { restored };
+  return { restored, revertedKey };
 }
