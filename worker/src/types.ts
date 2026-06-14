@@ -7,6 +7,7 @@ export interface Env {
   GITHUB_APP_ID?: string;
   GITHUB_APP_PRIVATE_KEY?: string; // PKCS#8 PEM
   GITHUB_APP_INSTALLATION_ID?: string; // optional; derived from the repo install when unset
+  GITHUB_APP_SLUG?: string; // the App's URL slug, for the setup page's one-click install link
   HASH_SECRET: string;
   REPO_OWNER: string;
   REPO_NAME: string;

@@ -60,6 +60,27 @@ const req = (path: string) =>
 
 afterEach(() => vi.unstubAllGlobals());
 
+describe("GET /status (setup-page diagnostics)", () => {
+  it("reports single-tenant mode, served, and the credential/sign-in state", async () => {
+    stubGitHub();
+    const res = await worker.fetch(req("/status"), makeEnv());
+    expect(res.status).toBe(200);
+    const s = (await res.json()) as {
+      ok: boolean;
+      mode: string;
+      repo: string;
+      served: boolean;
+      writeCredential: string;
+      signin: { enabled: boolean };
+    };
+    expect(s.ok).toBe(true);
+    expect(s.mode).toBe("single");
+    expect(s.repo).toBe("o/r");
+    expect(s.served).toBe(true); // single-tenant is always served
+    expect(s.writeCredential).toBe("token"); // makeEnv has GITHUB_TOKEN
+  });
+});
+
 describe("reverse-proxy scheme (X-Forwarded-Proto)", () => {
   it("builds an https OAuth redirect_uri when proxied over http", async () => {
     const env = {
