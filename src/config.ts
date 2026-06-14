@@ -29,7 +29,7 @@ export const config = {
     (env.PUBLIC_WORKER_URL || CANONICAL_ENGINE) === CANONICAL_ENGINE,
   // The Wikigit GitHub App slug — builds the one-click "Connect" (install) URL on
   // the setup page (github.com/apps/<slug>/installations/new). Override per instance.
-  githubAppSlug: env.PUBLIC_GITHUB_APP_SLUG || "wikigit",
+  githubAppSlug: env.PUBLIC_GITHUB_APP_SLUG || "wikigit-app",
   // The hosted platform's apex (e.g. `wikigit.org`). When the reader is served from
   // a subdomain of it (`foo.wikigit.org`), the active wiki/repo is resolved from the
   // hostname at runtime rather than baked at build — one shared frontend serves

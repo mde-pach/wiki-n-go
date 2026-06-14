@@ -9,9 +9,9 @@ describe("setup-status URL builders", () => {
   });
 
   it("falls back to the configured app slug when none is passed", () => {
-    // config.githubAppSlug defaults to "wikigit"
+    // config.githubAppSlug defaults to "wikigit-app"
     expect(appInstallUrl(null)).toBe(
-      "https://github.com/apps/wikigit/installations/new",
+      "https://github.com/apps/wikigit-app/installations/new",
     );
   });
 
