@@ -1,0 +1,103 @@
+name: Deploy to Coolify
+
+# The frontend (web), Engine (worker/) and accounts/IdP (accounts/) apps all
+# deploy from this one repo on Coolify. Coolify does not pull on push by default,
+# so this triggers its deploy API when the relevant code changes.
+#
+# Content-only commits are skipped on purpose: the frontend reads page content
+# from the CDN at runtime (the no-rebuild principle), so a Markdown edit never
+# needs a redeploy.
+#
+# Required to actually deploy (set in repo Settings → Secrets and variables →
+# Actions). Until they're set, every step is skipped and the run is a green no-op.
+#   Secrets:   COOLIFY_URL    e.g. https://coolify.example.com   (no trailing slash)
+#              COOLIFY_TOKEN  a Coolify API token (Keys & Tokens → API tokens)
+#   Variables: COOLIFY_WEB_UUID       the web app's resource UUID  (required for web)
+#              COOLIFY_ENGINE_UUID    the Engine app's UUID        (optional)
+#              COOLIFY_ACCOUNTS_UUID  the accounts app's UUID      (optional)
+# A resource's UUID is the last path segment of its URL in the Coolify dashboard.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Which app(s) to deploy
+        type: choice
+        options: [all, web, engine, accounts]
+        default: all
+
+concurrency:
+  group: coolify-deploy
+  cancel-in-progress: false
+
+env:
+  COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+  COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Decide which apps to deploy
+        id: pick
+        env:
+          MANUAL: ${{ github.event_name == 'workflow_dispatch' && inputs.target || '' }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          web=false; engine=false; accounts=false
+          if [ -n "$MANUAL" ]; then
+            case "$MANUAL" in
+              all) web=true; engine=true; accounts=true ;;
+              web) web=true ;;
+              engine) engine=true ;;
+              accounts) accounts=true ;;
+            esac
+          else
+            base="$BEFORE"
+            if ! git rev-parse -q --verify "$base^{commit}" >/dev/null 2>&1; then
+              base="$SHA~1"
+            fi
+            changed=$(git diff --name-only "$base" "$SHA")
+            echo "Changed files:"; echo "$changed"
+            while IFS= read -r f; do
+              [ -z "$f" ] && continue
+              case "$f" in
+                content/*|*.md) ;;            # content is served from the CDN — no rebuild
+                worker/*)   engine=true ;;
+                accounts/*) accounts=true ;;
+                *)          web=true ;;        # any other code/asset → frontend
+              esac
+            done <<< "$changed"
+          fi
+          echo "web=$web"           >> "$GITHUB_OUTPUT"
+          echo "engine=$engine"     >> "$GITHUB_OUTPUT"
+          echo "accounts=$accounts" >> "$GITHUB_OUTPUT"
+          echo "Deploy plan → web=$web engine=$engine accounts=$accounts"
+
+      - name: Deploy frontend (web)
+        if: steps.pick.outputs.web == 'true' && env.COOLIFY_URL != '' && vars.COOLIFY_WEB_UUID != ''
+        run: |
+          curl -fsS -X GET \
+            "$COOLIFY_URL/api/v1/deploy?uuid=${{ vars.COOLIFY_WEB_UUID }}&force=false" \
+            -H "Authorization: Bearer $COOLIFY_TOKEN"
+
+      - name: Deploy Engine
+        if: steps.pick.outputs.engine == 'true' && env.COOLIFY_URL != '' && vars.COOLIFY_ENGINE_UUID != ''
+        run: |
+          curl -fsS -X GET \
+            "$COOLIFY_URL/api/v1/deploy?uuid=${{ vars.COOLIFY_ENGINE_UUID }}&force=false" \
+            -H "Authorization: Bearer $COOLIFY_TOKEN"
+
+      - name: Deploy accounts (IdP)
+        if: steps.pick.outputs.accounts == 'true' && env.COOLIFY_URL != '' && vars.COOLIFY_ACCOUNTS_UUID != ''
+        run: |
+          curl -fsS -X GET \
+            "$COOLIFY_URL/api/v1/deploy?uuid=${{ vars.COOLIFY_ACCOUNTS_UUID }}&force=false" \
+            -H "Authorization: Bearer $COOLIFY_TOKEN"
