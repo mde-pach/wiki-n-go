@@ -187,6 +187,9 @@ hr {
   margin: var(--space-section) 0 0.6em;
   padding-bottom: 0.28em;
   border-bottom: var(--border-w) solid var(--color-border);
+  /* Establish a block context so the heading (and its underline) shrinks beside
+     a floated figure instead of its border running behind the image. */
+  display: flow-root;
 }
 .prose h3 {
   font-size: var(--text-lg);
