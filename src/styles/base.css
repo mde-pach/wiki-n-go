@@ -360,6 +360,12 @@ hr {
 .figure {
   margin: 1.5em 0;
 }
+/* Any image in prose is capped to the column — a wide image must never break
+   the layout. Figures and the infobox add their own framing on top of this. */
+.prose img {
+  max-width: 100%;
+  height: auto;
+}
 .img-placeholder {
   position: relative;
   width: 100%;

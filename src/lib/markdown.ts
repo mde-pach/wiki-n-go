@@ -65,6 +65,19 @@ md.renderer.rules.footnote_anchor = (tokens, idx) => {
   return ` <a href="#${citeMark(n, subId)}" class="ref-backlink" aria-label="Back to text">${label}</a>`;
 };
 
+// Plain `![]()` images load lazily and decode off the main thread — they're
+// almost never above the fold, and eager decoding competes with first paint.
+// (The `::image` directive sets these on its own <img>.)
+const defaultImage =
+  md.renderer.rules.image ??
+  ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options));
+md.renderer.rules.image = (tokens, idx, options, env, self) => {
+  const token = tokens[idx];
+  if (token.attrIndex("loading") < 0) token.attrPush(["loading", "lazy"]);
+  if (token.attrIndex("decoding") < 0) token.attrPush(["decoding", "async"]);
+  return defaultImage(tokens, idx, options, env, self);
+};
+
 // A ```mermaid fence becomes a placeholder holding the diagram source; the
 // client decorator lazy-loads mermaid and renders it (no diagram engine at
 // build/SSR or in the base bundle). Without JS, the source shows as a code block.

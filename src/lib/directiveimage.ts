@@ -113,7 +113,7 @@ export function directiveImage(md: MarkdownIt): void {
   md.renderer.rules.dimage_figure_close = () => "</figure>\n";
   md.renderer.rules.dimage_img = (tokens, i) => {
     const t = tokens[i];
-    return `<img src="${esc(t.attrGet("src") ?? "")}" alt="${esc(t.attrGet("alt") ?? "")}" loading="lazy">`;
+    return `<img src="${esc(t.attrGet("src") ?? "")}" alt="${esc(t.attrGet("alt") ?? "")}" loading="lazy" decoding="async">`;
   };
   md.renderer.rules.dimage_caption_open = () => "<figcaption>";
   md.renderer.rules.dimage_caption_close = () => "</figcaption>";

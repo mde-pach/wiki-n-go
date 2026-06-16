@@ -26,3 +26,23 @@ describe("named-reference reuse", () => {
     expect(html).not.toContain("<sup>");
   });
 });
+
+describe("images load lazily", () => {
+  it("adds loading=lazy + decoding=async to a plain image", () => {
+    const html = md.render("![a cat](cat.jpg)");
+    expect(html).toContain('loading="lazy"');
+    expect(html).toContain('decoding="async"');
+  });
+
+  it("keeps the attrs on an image promoted to a figure", () => {
+    const html = md.render("![a cat](cat.jpg)");
+    expect(html).toContain("<figure");
+    expect(html).toContain('loading="lazy"');
+  });
+
+  it("adds the attrs to a ::image directive", () => {
+    const html = md.render("::image[A cat]{src=cat.jpg align=right}");
+    expect(html).toContain('loading="lazy"');
+    expect(html).toContain('decoding="async"');
+  });
+});
