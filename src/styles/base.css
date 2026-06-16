@@ -404,6 +404,14 @@ hr {
   margin: 1.4em 0;
   text-align: center;
 }
+/* A plain `![]()` figure is a tidy centered thumbnail, not a column-filling
+   block; never upscaled past the image's own size. For a specific size or a
+   float, `::image` carries a `figure--*` modifier + its own width and overrides
+   this. */
+.prose figure.figure:not([class*="figure--"]) {
+  max-width: 22rem;
+  margin-inline: auto;
+}
 .prose figure.figure img {
   max-width: 100%;
   height: auto;
