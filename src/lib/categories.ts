@@ -88,7 +88,8 @@ export function intersectMembers(
   if (!request.length) return [];
   const lists = request.map((t) => categories[t] ?? []);
   const [first, ...rest] = lists;
-  return first.filter((slug) => rest.every((list) => list.includes(slug)));
+  const sets = rest.map((list) => new Set(list));
+  return first.filter((slug) => sets.every((s) => s.has(slug)));
 }
 
 export interface CatMember {

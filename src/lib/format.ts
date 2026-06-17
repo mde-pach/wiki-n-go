@@ -13,11 +13,3 @@ export function timeAgo(iso: string): string {
     if (s >= sec) return `${Math.floor(s / sec)}${label} ago`;
   return "just now";
 }
-
-export function shortDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}

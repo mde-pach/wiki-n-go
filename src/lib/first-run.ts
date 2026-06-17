@@ -14,7 +14,7 @@ export interface FirstRunState {
   signinAvailable: boolean; // a sign-in provider is enabled
 }
 
-export interface ChecklistItem {
+interface ChecklistItem {
   done: boolean;
   title: string;
   detail: string;

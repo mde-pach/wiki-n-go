@@ -1,5 +1,5 @@
+import { getJson } from "./api";
 import { onSwapReset } from "./cache-reset";
-import { engineFetch } from "./tenant";
 
 export interface Revision {
   sha: string;
@@ -29,11 +29,10 @@ export function getHistory(slug: string): Promise<Revision[]> {
 onSwapReset(() => cache.clear());
 
 async function loadHistory(slug: string): Promise<Revision[]> {
-  const res = await engineFetch(`/history?slug=${encodeURIComponent(slug)}`, {
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`Failed to load history (HTTP ${res.status}).`);
-  return ((await res.json()) as { revisions: Revision[] }).revisions;
+  const { revisions } = await getJson<{ revisions: Revision[] }>(
+    `/history?slug=${encodeURIComponent(slug)}`,
+  );
+  return revisions;
 }
 
 export async function getDiff(
@@ -41,10 +40,8 @@ export async function getDiff(
   base: string,
   head: string,
 ): Promise<string | null> {
-  const res = await engineFetch(
+  const { patch } = await getJson<{ patch: string | null }>(
     `/diff?slug=${encodeURIComponent(slug)}&base=${base}&head=${head}`,
-    { cache: "no-store" },
   );
-  if (!res.ok) throw new Error(`Failed to load diff (HTTP ${res.status}).`);
-  return ((await res.json()) as { patch: string | null }).patch;
+  return patch;
 }
