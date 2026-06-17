@@ -53,34 +53,43 @@ describe("leadingZeroBits", () => {
   });
 });
 
+// PoW is fail-closed without a store, so the enabled-path tests bind one.
+const powEnv = (bits: string) =>
+  ({ POW_BITS: bits, RATE_LIMIT: fakeKV() }) as unknown as Env;
+
 describe("verifyPow", () => {
   it("is a no-op when POW_BITS <= 0", async () => {
     expect(await status(verifyPow({ POW_BITS: "0" } as Env, ""))).toBe("ok");
   });
 
+  it("503s when enabled but no replay store is bound (fail closed)", async () => {
+    const token = await mine(8);
+    expect(await status(verifyPow({ POW_BITS: "8" } as Env, token))).toBe(503);
+  });
+
   it("400s on a missing token when enabled", async () => {
-    expect(await status(verifyPow({ POW_BITS: "8" } as Env, ""))).toBe(400);
+    expect(await status(verifyPow(powEnv("8"), ""))).toBe(400);
   });
 
   it("403s on an expired timestamp", async () => {
     const stale = `${Date.now() - 200_000}.salt.0`;
-    expect(await status(verifyPow({ POW_BITS: "8" } as Env, stale))).toBe(403);
+    expect(await status(verifyPow(powEnv("8"), stale))).toBe(403);
   });
 
   it("403s on a timestamp too far in the future", async () => {
     const future = `${Date.now() + 200_000}.salt.0`;
-    expect(await status(verifyPow({ POW_BITS: "8" } as Env, future))).toBe(403);
+    expect(await status(verifyPow(powEnv("8"), future))).toBe(403);
   });
 
   it("403s when the hash has too few leading zero bits", async () => {
     // A token whose hash almost certainly has < 16 leading zeros.
     const token = `${Date.now()}.salt.weak`;
-    expect(await status(verifyPow({ POW_BITS: "16" } as Env, token))).toBe(403);
+    expect(await status(verifyPow(powEnv("16"), token))).toBe(403);
   });
 
   it("accepts a correctly mined token", async () => {
     const token = await mine(8);
-    expect(await status(verifyPow({ POW_BITS: "8" } as Env, token))).toBe("ok");
+    expect(await status(verifyPow(powEnv("8"), token))).toBe("ok");
   });
 
   it("rejects a replay of an already-used token (single-use)", async () => {

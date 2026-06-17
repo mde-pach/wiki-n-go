@@ -66,6 +66,12 @@ export function leadingZeroBits(hash: Uint8Array): number {
 export async function verifyPow(env: Env, token: string): Promise<void> {
   const bits = powBits(env);
   if (bits <= 0) return;
+  // The check is only sound with the single-use replay guard below, which needs a
+  // bound store. Without one we can't stop a solved token being replayed, so fail
+  // closed rather than wave writes through. (The Engine always binds it; a missing
+  // binding with PoW enabled is a misconfiguration, not a supported mode.)
+  if (!env.RATE_LIMIT)
+    throw new HttpError(503, "Bot check temporarily unavailable — try again shortly.");
   if (!token) throw new HttpError(400, "Missing proof-of-work.");
   const [tsStr, salt] = token.split(".");
   const ts = Number.parseInt(tsStr ?? "", 10);
@@ -85,16 +91,14 @@ export async function verifyPow(env: Env, token: string): Promise<void> {
     throw new HttpError(403, "Proof-of-work check failed.");
 
   // Single-use within its freshness window, so a solved token can't be replayed
-  // across many submits. KV is eventually consistent — coarse, like the rate
-  // limit — and simply unavailable (no replay guard) until a namespace is bound.
-  if (env.RATE_LIMIT) {
-    const key = `pow:${tsStr}.${salt}`;
-    if (await env.RATE_LIMIT.get(key))
-      throw new HttpError(403, "Proof-of-work already used — please try again.");
-    await env.RATE_LIMIT.put(key, "1", {
-      expirationTtl: Math.ceil(POW_WINDOW_MS / 1000),
-    });
-  }
+  // across many submits (the store is guaranteed present by the fail-closed check
+  // above). KV is eventually consistent — coarse, like the rate limit.
+  const key = `pow:${tsStr}.${salt}`;
+  if (await env.RATE_LIMIT.get(key))
+    throw new HttpError(403, "Proof-of-work already used — please try again.");
+  await env.RATE_LIMIT.put(key, "1", {
+    expirationTtl: Math.ceil(POW_WINDOW_MS / 1000),
+  });
 }
 
 // Fixed-window per-source limit. KV is eventually consistent, so this is coarse
