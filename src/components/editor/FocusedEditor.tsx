@@ -7,10 +7,14 @@ import { type SectionSpan, spliceSection } from "../../lib/editor-section";
 import { renderMarkdown } from "../../lib/markdown";
 import { viewHref } from "../../lib/paths";
 import { useSubmit, useWhoami } from "../../lib/solid";
-import DiffView from "../DiffView";
 import { ErrorNote } from "../ui";
-import { ConfirmDialog } from "./ConfirmDialog";
 import { MarkdownToolbar } from "./MarkdownToolbar";
+import {
+  AttributionRow,
+  PublishProgress,
+  SubmitConfirm,
+  useTextareaTools,
+} from "./shared";
 
 // The generic in-page focused-edit surface: edit one slice of a document — a
 // section body today; a header card or infobox row tomorrow — without leaving
@@ -49,7 +53,6 @@ export default function FocusedEditor(props: {
     props.reconstruct(spliceSection(props.source, props.span, slice()));
   const preview = () =>
     isServer ? "" : renderMarkdown(slice() || "_Nothing to preview yet._");
-  const delta = () => content().length - props.original.length;
 
   const previewDiff = createMemo(() => {
     if (!modal()) return null;
@@ -57,25 +60,7 @@ export default function FocusedEditor(props: {
     return lines.length ? lines : null;
   });
 
-  function wrap(before: string, after = before) {
-    if (!ta) return;
-    const s = ta.selectionStart;
-    const e = ta.selectionEnd;
-    const v = slice();
-    setSlice(v.slice(0, s) + before + v.slice(s, e) + after + v.slice(e));
-    ta.focus();
-    queueMicrotask(() => {
-      if (ta) ta.selectionStart = ta.selectionEnd = e + before.length + after.length;
-    });
-  }
-  function prefixLine(prefix: string) {
-    if (!ta) return;
-    const s = ta.selectionStart;
-    const v = slice();
-    const lineStart = v.lastIndexOf("\n", s - 1) + 1;
-    setSlice(v.slice(0, lineStart) + prefix + v.slice(lineStart));
-    ta.focus();
-  }
+  const { wrap, prefixLine } = useTextareaTools(() => ta, slice, setSlice);
 
   function confirmSubmit() {
     setModal(false);
@@ -135,13 +120,7 @@ export default function FocusedEditor(props: {
             aria-label="Edit summary"
             onInput={(e) => setSummary(e.currentTarget.value)}
           />
-          <div class="attribution-row">
-            Signed as{" "}
-            <span class="pseudonym">{who()?.author ?? "anon · your IP, hashed"}</span>
-            <Show when={who()}>
-              {(w) => <span class="tier-badge"> · {w().tier}</span>}
-            </Show>
-          </div>
+          <AttributionRow who={who()} />
           <div class="editor-actions">
             <button
               type="button"
@@ -158,57 +137,18 @@ export default function FocusedEditor(props: {
               Cancel
             </button>
           </div>
-          <Show when={busy() && progress()}>
-            {(p) => (
-              <div class="publish-progress" role="status" aria-live="polite">
-                <div class="publish-progress-head">
-                  <span>{p().label}…</span>
-                  <span class="mono">{Math.round(p().progress * 100)}%</span>
-                </div>
-                <div class="publish-progress-track">
-                  <div
-                    class="publish-progress-fill"
-                    style={{ width: `${Math.max(4, p().progress * 100)}%` }}
-                  />
-                </div>
-              </div>
-            )}
-          </Show>
+          <PublishProgress busy={busy()} progress={progress()} />
           <ErrorNote msg={error()} />
         </div>
       </Show>
 
       <Show when={modal()}>
-        <ConfirmDialog
-          title="Submit this change"
-          subtitle="Depending on your trust level and the page, this either publishes immediately or is submitted for review."
-          wide
-          body={
-            <>
-              <p>
-                Summary: <strong>{summary() || "(none)"}</strong>
-              </p>
-              <p>
-                Size:{" "}
-                <span class="mono">
-                  {props.original.length} → {content().length} chars (
-                  {delta() >= 0 ? "+" : ""}
-                  {delta()})
-                </span>
-              </p>
-              <p class="field-label" style={{ "margin-bottom": "0.4rem" }}>
-                Changes
-              </p>
-              <DiffView
-                lines={previewDiff()}
-                a="current"
-                b="your edit"
-                initialMode="unified"
-              />
-            </>
-          }
-          confirmLabel={busy() ? "Submitting…" : "Submit change"}
-          cancelLabel="Back"
+        <SubmitConfirm
+          summary={summary()}
+          fromLen={props.original.length}
+          toLen={content().length}
+          lines={previewDiff()}
+          aLabel="current"
           busy={busy()}
           onConfirm={confirmSubmit}
           onCancel={() => setModal(false)}

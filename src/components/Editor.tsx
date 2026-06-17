@@ -21,10 +21,14 @@ import { BASE, prettify, readHref, slugFromLocation, userLogin } from "../lib/pa
 import { useSubmit, useWhoami } from "../lib/solid";
 import { templateById } from "../lib/templates";
 import { errMessage } from "../lib/util";
-import DiffView from "./DiffView";
 import DraftList from "./DraftList";
-import { ConfirmDialog } from "./editor/ConfirmDialog";
 import { MarkdownToolbar } from "./editor/MarkdownToolbar";
+import {
+  AttributionRow,
+  PublishProgress,
+  SubmitConfirm,
+  useTextareaTools,
+} from "./editor/shared";
 import PageProperties, {
   assemble,
   extraFrom,
@@ -219,7 +223,6 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   };
 
   const cancelHref = () => readHref(slug());
-  const delta = () => content().length - original().length;
 
   // Computed only while the confirm dialog is open, so it never costs anything
   // per keystroke. Empty (no net change) → null, so DiffView shows its
@@ -230,25 +233,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     return lines.length ? lines : null;
   });
 
-  function wrap(before: string, after = before) {
-    if (!ta) return;
-    const s = ta.selectionStart;
-    const e = ta.selectionEnd;
-    const v = body();
-    setBody(v.slice(0, s) + before + v.slice(s, e) + after + v.slice(e));
-    ta.focus();
-    queueMicrotask(() => {
-      if (ta) ta.selectionStart = ta.selectionEnd = e + before.length + after.length;
-    });
-  }
-  function prefixLine(prefix: string) {
-    if (!ta) return;
-    const s = ta.selectionStart;
-    const v = body();
-    const lineStart = v.lastIndexOf("\n", s - 1) + 1;
-    setBody(v.slice(0, lineStart) + prefix + v.slice(lineStart));
-    ta.focus();
-  }
+  const { wrap, prefixLine } = useTextareaTools(() => ta, body, setBody);
 
   function openConfirm() {
     setError(undefined);
@@ -349,13 +334,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
               </a>
             </div>
           </div>
-          <div class="attribution-row">
-            Signed as{" "}
-            <span class="pseudonym">{who()?.author ?? "anon · your IP, hashed"}</span>
-            <Show when={who()}>
-              {(w) => <span class="tier-badge"> · {w().tier}</span>}
-            </Show>
-          </div>
+          <AttributionRow who={who()} />
           <Show when={reverting()}>
             {(rev) => (
               <p class="editor-hint">
@@ -395,22 +374,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
               </p>
             </Show>
           </div>
-          <Show when={busy() && progress()}>
-            {(p) => (
-              <div class="publish-progress" role="status" aria-live="polite">
-                <div class="publish-progress-head">
-                  <span>{p().label}…</span>
-                  <span class="mono">{Math.round(p().progress * 100)}%</span>
-                </div>
-                <div class="publish-progress-track">
-                  <div
-                    class="publish-progress-fill"
-                    style={{ width: `${Math.max(4, p().progress * 100)}%` }}
-                  />
-                </div>
-              </div>
-            )}
-          </Show>
+          <PublishProgress busy={busy()} progress={progress()} />
           <ErrorNote msg={error()} />
           <Show when={result()}>
             {(r) => (
@@ -460,36 +424,12 @@ export default function Editor(props: { slug?: string; initialContent?: string }
         />
 
         <Show when={modal()}>
-          <ConfirmDialog
-            title="Submit this change"
-            subtitle="Depending on your trust level and the page, this either publishes immediately or is submitted for review."
-            wide
-            body={
-              <>
-                <p>
-                  Summary: <strong>{summary() || "(none)"}</strong>
-                </p>
-                <p>
-                  Size:{" "}
-                  <span class="mono">
-                    {original().length} → {content().length} chars (
-                    {delta() >= 0 ? "+" : ""}
-                    {delta()})
-                  </span>
-                </p>
-                <p class="field-label" style={{ "margin-bottom": "0.4rem" }}>
-                  Changes
-                </p>
-                <DiffView
-                  lines={previewDiff()}
-                  a={isNew() ? "(new page)" : "current"}
-                  b="your edit"
-                  initialMode="unified"
-                />
-              </>
-            }
-            confirmLabel={busy() ? "Submitting…" : "Submit change"}
-            cancelLabel="Back"
+          <SubmitConfirm
+            summary={summary()}
+            fromLen={original().length}
+            toLen={content().length}
+            lines={previewDiff()}
+            aLabel={isNew() ? "(new page)" : "current"}
             busy={busy()}
             onConfirm={confirmSubmit}
             onCancel={() => setModal(false)}
