@@ -4,7 +4,12 @@ import { classifyTags } from "../lib/categories";
 import { fetchMarkdown, fetchMarkdownAt, PageNotFoundError } from "../lib/content";
 import { decorate as decorateArticle } from "../lib/decorate";
 import { findSection, type SectionSpan } from "../lib/editor-section";
-import { type PageMeta, splitFrontmatter, withFrontmatter } from "../lib/frontmatter";
+import {
+  type PageMeta,
+  splitFrontmatter,
+  splitTitle,
+  withFrontmatter,
+} from "../lib/frontmatter";
 import { infoboxHtml } from "../lib/infobox";
 import { pageSet } from "../lib/manifest";
 import {
@@ -95,7 +100,7 @@ export default function WikiPage(props: {
   // Render markdown with red links already resolved, so missing-target links
   // paint red on first frame instead of flashing blue until `decorate` runs.
   async function renderResolved(raw: string) {
-    const { splitTitle, renderMarkdown, decorateHeadingsHtml, emphasizeLeadHtml } =
+    const { renderMarkdown, decorateHeadingsHtml, emphasizeLeadHtml } =
       await loadMarkdown();
     const { title, body, meta } = splitTitle(raw);
     const html = emphasizeLeadHtml(

@@ -144,6 +144,25 @@ export function splitDiff(lines: DLine[]): SplitRow[] {
   return rows;
 }
 
+// LCS runs on the main thread on every edit/preview, so cap the work: above this
+// many cells we fall back to a coarse block diff rather than freeze the tab (a
+// ~5k-line edit is 25M cells). Below it, a flat Int32Array LCS table — far lighter
+// than number[][] — and the table is kept because the backtrace below needs it.
+const MAX_LCS_CELLS = 2_000_000;
+
+function lcsTable(A: string[], B: string[]): Int32Array {
+  const n = A.length;
+  const w = B.length + 1;
+  const dp = new Int32Array((n + 1) * w);
+  for (let i = n - 1; i >= 0; i--)
+    for (let j = B.length - 1; j >= 0; j--)
+      dp[i * w + j] =
+        A[i] === B[j]
+          ? dp[(i + 1) * w + (j + 1)] + 1
+          : Math.max(dp[(i + 1) * w + j], dp[i * w + (j + 1)]);
+  return dp;
+}
+
 // Word-level diff of two lines via LCS, so a small edit highlights only the
 // changed words instead of the whole line.
 export function wordDiff(a: string, b: string): { left: Seg[]; right: Seg[] } {
@@ -151,11 +170,14 @@ export function wordDiff(a: string, b: string): { left: Seg[]; right: Seg[] } {
   const B = tokenize(b);
   const n = A.length;
   const m = B.length;
-  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
-  for (let i = n - 1; i >= 0; i--)
-    for (let j = m - 1; j >= 0; j--)
-      dp[i][j] =
-        A[i] === B[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  // Pathological line (e.g. minified): skip the word LCS, mark the whole line.
+  if (n * m > MAX_LCS_CELLS)
+    return {
+      left: a ? [{ t: a, changed: true }] : [],
+      right: b ? [{ t: b, changed: true }] : [],
+    };
+  const w = m + 1;
+  const dp = lcsTable(A, B);
 
   const left: Seg[] = [];
   const right: Seg[] = [];
@@ -167,7 +189,7 @@ export function wordDiff(a: string, b: string): { left: Seg[]; right: Seg[] } {
       merge(right, B[j], false);
       i++;
       j++;
-    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+    } else if (dp[(i + 1) * w + j] >= dp[i * w + (j + 1)]) {
       merge(left, A[i++], true);
     } else {
       merge(right, B[j++], true);
@@ -187,11 +209,6 @@ export function diffLines(a: string, b: string, context = 3): DLine[] {
   const B = b.length ? b.split("\n") : [];
   const n = A.length;
   const m = B.length;
-  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
-  for (let i = n - 1; i >= 0; i--)
-    for (let j = m - 1; j >= 0; j--)
-      dp[i][j] =
-        A[i] === B[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
 
   const ops: DLine[] = [];
   let i = 0;
@@ -222,6 +239,15 @@ export function diffLines(a: string, b: string, context = 3): DLine[] {
     j++;
     newLn++;
   };
+  // Above the cell cap, skip the LCS and emit a coarse block diff (all removals
+  // then all additions) — non-minimal but instant; collapseContext still trims it.
+  if (n * m > MAX_LCS_CELLS) {
+    while (i < n) del();
+    while (j < m) add();
+    return collapseContext(ops, context);
+  }
+  const w = m + 1;
+  const dp = lcsTable(A, B);
   while (i < n && j < m) {
     if (A[i] === B[j]) {
       ops.push({
@@ -236,7 +262,7 @@ export function diffLines(a: string, b: string, context = 3): DLine[] {
       j++;
       oldLn++;
       newLn++;
-    } else if (dp[i + 1][j] >= dp[i][j + 1]) del();
+    } else if (dp[(i + 1) * w + j] >= dp[i * w + (j + 1)]) del();
     else add();
   }
   while (i < n) del();

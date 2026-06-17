@@ -5,13 +5,24 @@ import footnote from "markdown-it-footnote";
 import { citeTemplate } from "./citetemplate";
 import { directiveImage } from "./directiveimage";
 import { figures } from "./figures";
-import { type PageMeta, parseFrontmatter } from "./frontmatter";
+import { type PageMeta, splitTitle } from "./frontmatter";
 import { langOf, slugifyLabel, viewHref } from "./paths";
 import { transclusion } from "./transclude";
 import { escapeRegExp } from "./util";
 import { markRedLinksHtml, mention, wikilink } from "./wikilink";
 
 // Shared markdown-it instance (no DOMPurify, so it runs at build/SSR too).
+//
+// XSS invariant — read before adding a plugin. The SSR/static paths inject
+// md.render() output via `set:html` with NO sanitizer (DOMPurify needs a DOM;
+// the edge-SSR Worker has none), and renderMarkdown's client-side DOMPurify is
+// defense-in-depth, not the only line. So md output must be safe BY CONSTRUCTION:
+//   • html:false drops raw HTML in source;
+//   • markdown-it's default validateLink blocks javascript:/data: in [](links);
+//   • every custom plugin below MUST escapeHtml each attribute value it emits and
+//     must never emit a user-controlled event handler (onerror=…) or scheme.
+// A plugin that emits an unescaped href/src is an SSR-only XSS the client path
+// would silently scrub — don't rely on that.
 export const md = new MarkdownIt({ html: false, linkify: true, typographer: true })
   .use(anchor, {
     level: [2, 3, 4],
@@ -104,21 +115,9 @@ export interface ParsedPage {
   meta: PageMeta;
 }
 
-// Strip frontmatter, then split the leading `# Title` (it lives in the chrome,
-// not the body) so the SSR pages and the client renderer share one rule.
-export function splitTitle(raw: string): {
-  title: string;
-  body: string;
-  meta: PageMeta;
-} {
-  const { meta, body: afterMeta } = parseFrontmatter(raw);
-  const m = afterMeta.match(/^#\s+(.+?)\s*$/m);
-  return {
-    title: m ? m[1] : "",
-    body: m ? afterMeta.replace(m[0], "").trimStart() : afterMeta,
-    meta,
-  };
-}
+// Re-exported for callers that already import it from here; defined in
+// frontmatter.ts so the read/preview paths can use it without markdown-it.
+export { splitTitle };
 
 // Render the body and pull out the heading outline so the TOC can render
 // server-side too.

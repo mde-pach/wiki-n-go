@@ -48,6 +48,23 @@ export function normalizeRow(value: string | InfoboxRow): InfoboxRow {
   return typeof value === "string" ? { v: value } : value;
 }
 
+// Strip frontmatter, then split the leading `# Title` (it lives in the chrome,
+// not the body) so every render path shares one rule. Lives here (not markdown.ts)
+// so the read/preview paths can split a title without pulling in markdown-it.
+export function splitTitle(raw: string): {
+  title: string;
+  body: string;
+  meta: PageMeta;
+} {
+  const { meta, body: afterMeta } = parseFrontmatter(raw);
+  const m = afterMeta.match(/^#\s+(.+?)\s*$/m);
+  return {
+    title: m ? m[1] : "",
+    body: m ? afterMeta.replace(m[0], "").trimStart() : afterMeta,
+    meta,
+  };
+}
+
 // Split a page into its raw frontmatter object (all keys, including ones we
 // don't model) and its body — the basis for editing properties via a form
 // while preserving everything else on round-trip.

@@ -1,6 +1,6 @@
 import { onSwapReset } from "./cache-reset";
 import { fetchMarkdown, PageNotFoundError } from "./content";
-import { splitTitle } from "./markdown";
+import { splitTitle } from "./frontmatter";
 import { BASE, prettify, readHref } from "./paths";
 
 type Card =

@@ -41,6 +41,29 @@ export function toPlainText(md: string): string {
     .trim();
 }
 
+interface IndexedDoc {
+  doc: SearchDoc;
+  title: string; // lowercased once
+  text: string; // lowercased once
+}
+
+// Lowercasing every doc on every keystroke is O(corpus) per character. Cache the
+// lowercased index keyed on the docs array (same reference across keystrokes), so
+// it's built once per corpus, not once per query.
+const indexCache = new WeakMap<SearchDoc[], IndexedDoc[]>();
+function indexDocs(docs: SearchDoc[]): IndexedDoc[] {
+  let idx = indexCache.get(docs);
+  if (!idx) {
+    idx = docs.map((doc) => ({
+      doc,
+      title: doc.title.toLowerCase(),
+      text: doc.text.toLowerCase(),
+    }));
+    indexCache.set(docs, idx);
+  }
+  return idx;
+}
+
 // Rank docs against a query: every term must appear (AND); title matches and
 // exact/prefix title hits are boosted over body matches.
 export function search(docs: SearchDoc[], query: string, limit = 7): SearchHit[] {
@@ -49,9 +72,7 @@ export function search(docs: SearchDoc[], query: string, limit = 7): SearchHit[]
   const terms = q.split(/\s+/);
 
   const scored: { doc: SearchDoc; score: number }[] = [];
-  for (const doc of docs) {
-    const title = doc.title.toLowerCase();
-    const text = doc.text.toLowerCase();
+  for (const { doc, title, text } of indexDocs(docs)) {
     let score = 0;
     let missing = false;
     for (const t of terms) {
