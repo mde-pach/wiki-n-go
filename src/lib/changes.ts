@@ -22,9 +22,32 @@ export const RISK_HIGH = 50;
 // Keep in sync with AUTOMOD_AUTHOR in worker/src/automod.ts.
 export const AUTOMOD_AUTHOR = "automoderator";
 
+export interface ChangesQuery {
+  limit?: number;
+  page?: number;
+  author?: string;
+  unreviewed?: boolean;
+  highRisk?: boolean;
+}
+export interface ChangesPage {
+  changes: Change[];
+  hasMore: boolean;
+}
+
+// Filtering/paging is server-side, so a filter spans the whole feed and "load
+// more" pages through it. `hasMore` says whether another page exists.
+export async function fetchChanges(query: ChangesQuery = {}): Promise<ChangesPage> {
+  const params = new URLSearchParams();
+  if (query.limit) params.set("limit", String(query.limit));
+  if (query.page) params.set("page", String(query.page));
+  if (query.author) params.set("author", query.author);
+  if (query.unreviewed) params.set("unreviewed", "1");
+  if (query.highRisk) params.set("highRisk", "1");
+  return getJson<ChangesPage>(`/changes?${params}`);
+}
+
 export async function listChanges(limit = 30): Promise<Change[]> {
-  const data = await getJson<{ changes: Change[] }>(`/changes?limit=${limit}`);
-  return data.changes;
+  return (await fetchChanges({ limit })).changes;
 }
 
 export async function markPatrolled(sha: string): Promise<void> {

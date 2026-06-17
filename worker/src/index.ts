@@ -157,7 +157,14 @@ export default {
       "GET /topic": () => getThread(env, q.get("id") ?? ""),
       "GET /whoami": () => whoami(env, request),
       "GET /config": () => getConfig(env),
-      "GET /changes": () => listChanges(env, q.get("limit") ?? ""),
+      "GET /changes": () =>
+        listChanges(env, {
+          limit: q.get("limit") ?? undefined,
+          page: q.get("page") ?? undefined,
+          author: q.get("author") ?? undefined,
+          unreviewed: q.get("unreviewed") ?? undefined,
+          highRisk: q.get("highRisk") ?? undefined,
+        }),
       "GET /contributions": () => contributions(env, q.get("author") ?? ""),
       "GET /pending": () => listPending(env),
       "GET /pending-diff": () => pendingDiff(env, q.get("number") ?? ""),

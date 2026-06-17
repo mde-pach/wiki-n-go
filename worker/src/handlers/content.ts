@@ -15,7 +15,7 @@ import { autopatrol, bumpEditWar } from "../moderation";
 import { notifyPendingReview } from "../notify";
 import { commitPayload, getCurrentFile } from "../repo";
 import { revertCommit } from "../revert";
-import { revertRisk } from "../risk";
+import { RISK_HIGH, revertRisk } from "../risk";
 import { loadSuppressions, makeRedactor } from "../suppression";
 import {
   editorTier,
@@ -93,20 +93,35 @@ export async function changeDetail(env: Env, sha: string): Promise<ChangeDetail>
   return detail;
 }
 
+export interface ChangesQuery {
+  limit?: string;
+  page?: string;
+  author?: string;
+  unreviewed?: string;
+  highRisk?: string;
+}
+
+// Filters are applied here, not in the client, so "unreviewed/high-risk/author"
+// scan the whole feed (paged) rather than a single loaded window. `hasMore` is
+// true when GitHub returned a full page, so the client can ask for the next.
 export async function listChanges(
   env: Env,
-  limitStr: string,
-): Promise<{ changes: OutChange[] }> {
-  const limit = Math.min(Math.max(Number.parseInt(limitStr, 10) || 30, 1), 100);
+  query: ChangesQuery,
+): Promise<{ changes: OutChange[]; hasMore: boolean }> {
+  const limit = Math.min(
+    Math.max(Number.parseInt(query.limit ?? "", 10) || 30, 1),
+    100,
+  );
+  const page = Math.max(Number.parseInt(query.page ?? "", 10) || 1, 1);
   const [commits, suppressions] = await Promise.all([
     gh<CommitItem[]>(
       env,
-      `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits?path=${env.CONTENT_DIR}&sha=${env.BRANCH}&per_page=${limit}`,
+      `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits?path=${env.CONTENT_DIR}&sha=${env.BRANCH}&per_page=${limit}&page=${page}`,
     ),
     loadSuppressions(env),
   ]);
   const redact = makeRedactor(suppressions);
-  const changes = await Promise.all(
+  const all = await Promise.all(
     commits.map(async (c) => {
       const [detail, patrolled, tags] = await Promise.all([
         changeDetail(env, c.sha),
@@ -136,7 +151,11 @@ export async function listChanges(
       };
     }),
   );
-  return { changes };
+  let changes = all;
+  if (query.author) changes = changes.filter((c) => c.author === query.author);
+  if (query.unreviewed === "1") changes = changes.filter((c) => !c.patrolled);
+  if (query.highRisk === "1") changes = changes.filter((c) => c.risk >= RISK_HIGH);
+  return { changes, hasMore: commits.length === limit };
 }
 
 interface OutPending {
