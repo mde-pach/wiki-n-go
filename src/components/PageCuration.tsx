@@ -84,7 +84,6 @@ export default function PageCuration(props: {
 
   const [patrolledOpt, setPatrolledOpt] = createSignal<boolean>();
   const [tagsOpt, setTagsOpt] = createSignal<string[]>();
-  const [tagOpen, setTagOpen] = createSignal(false);
   const [deleted, setDeleted] = createSignal(false);
   const cur = createMemo(() => {
     const b = base();
@@ -114,7 +113,6 @@ export default function PageCuration(props: {
 
   async function applyTag(label: string) {
     const c = cur();
-    setTagOpen(false);
     if (!c?.sha || tags().includes(label)) return;
     setError();
     const prev = tags();
@@ -211,32 +209,7 @@ export default function PageCuration(props: {
                     </a>
                   }
                 >
-                  <span class="cur-tagger">
-                    <button
-                      type="button"
-                      class="link-btn cur-action"
-                      aria-expanded={tagOpen()}
-                      onClick={() => setTagOpen((o) => !o)}
-                    >
-                      tag
-                    </button>
-                    <Show when={tagOpen()}>
-                      <span class="cur-tagmenu">
-                        <For each={TAG_PRESETS}>
-                          {(t) => (
-                            <button
-                              type="button"
-                              class="link-btn cur-tagopt"
-                              disabled={tags().includes(t)}
-                              onClick={() => applyTag(t)}
-                            >
-                              {t}
-                            </button>
-                          )}
-                        </For>
-                      </span>
-                    </Show>
-                  </span>
+                  <TagMenu applied={tags()} onPick={applyTag} />
                 </Show>
                 <a class="cur-action" href={viewHref("talk", c().slug)}>
                   message author
@@ -306,5 +279,41 @@ export default function PageCuration(props: {
         )}
       </Show>
     </Show>
+  );
+}
+
+// The one-click maintenance-tag dropdown. Owns its open/close; closes on pick.
+function TagMenu(props: { applied: string[]; onPick: (tag: string) => void }) {
+  const [open, setOpen] = createSignal(false);
+  return (
+    <span class="cur-tagger">
+      <button
+        type="button"
+        class="link-btn cur-action"
+        aria-expanded={open()}
+        onClick={() => setOpen((o) => !o)}
+      >
+        tag
+      </button>
+      <Show when={open()}>
+        <span class="cur-tagmenu">
+          <For each={TAG_PRESETS}>
+            {(t) => (
+              <button
+                type="button"
+                class="link-btn cur-tagopt"
+                disabled={props.applied.includes(t)}
+                onClick={() => {
+                  setOpen(false);
+                  props.onPick(t);
+                }}
+              >
+                {t}
+              </button>
+            )}
+          </For>
+        </span>
+      </Show>
+    </span>
   );
 }
