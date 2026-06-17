@@ -1,6 +1,6 @@
 import { repoInstallationId } from "../githubApp";
 import { HttpError } from "../http";
-import { sessionIdentity } from "../identity/auth";
+import { type Session, sessionIdentity } from "../identity/auth";
 import { platformEnabled, transferRepo } from "../provision";
 import { readRegistry, repointTenant, type Tenant } from "../registry";
 import { botCommitter } from "../repo";
@@ -26,14 +26,18 @@ export interface TransferBody {
 // non-trailing hyphens).
 const OWNER_RE = /^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$/;
 
-async function ownTenant(env: Env, request: Request, name: string): Promise<Tenant> {
+async function ownTenant(
+  env: Env,
+  request: Request,
+  name: string,
+): Promise<{ tenant: Tenant; session: Session }> {
   const session = await sessionIdentity(env, request);
   if (!session) throw new HttpError(401, "Sign in to move your wiki.");
   const tenant = (await readRegistry(env)).get(name);
   if (!tenant) throw new HttpError(404, "No such wiki.");
   if (tenant.owner !== ownerKey(session))
     throw new HttpError(403, "Only the wiki's owner can move it.");
-  return tenant;
+  return { tenant, session };
 }
 
 export async function transfer(
@@ -48,7 +52,7 @@ export async function transfer(
   if (!OWNER_RE.test(target))
     throw new HttpError(400, "Enter a valid GitHub username.");
 
-  const tenant = await ownTenant(env, request, name);
+  const { tenant } = await ownTenant(env, request, name);
   if (tenant.lane !== "platform" || tenant.repo !== `${env.PLATFORM_ORG}/${name}`)
     throw new HttpError(400, "Only a managed wiki can be moved to your GitHub.");
 
@@ -66,7 +70,19 @@ export async function transferComplete(
   if (!OWNER_RE.test(target))
     throw new HttpError(400, "Enter a valid GitHub username.");
 
-  const tenant = await ownTenant(env, request, name);
+  const { tenant, session } = await ownTenant(env, request, name);
+  // Re-pointing makes the subdomain serve from — and relay edits to — target/name.
+  // So the caller must control `target`, not merely have found a repo there with
+  // the content App installed (an attacker could point their own subdomain at a
+  // victim's installed repo). Proven by the verified GitHub login: you can only
+  // move a wiki to your own GitHub account. (Transferring into an org would need
+  // a repo-admin check against target/name; unsupported for now — fail closed.)
+  if (
+    session.provider === "wikigit" ||
+    session.login.toLowerCase() !== target.toLowerCase()
+  )
+    throw new HttpError(403, "You can only move a wiki to your own GitHub account.");
+
   const repo = `${target}/${name}`;
   if (!(await repoInstallationId(env, target, name)))
     throw new HttpError(

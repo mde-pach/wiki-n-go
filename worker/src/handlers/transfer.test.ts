@@ -94,4 +94,12 @@ describe("transferComplete guards", () => {
       transferComplete(env(), await req("bob"), { name: "acme", target: "bob" }),
     ).rejects.toMatchObject({ status: 403 });
   });
+
+  it("forbids re-pointing at a target the caller doesn't control", async () => {
+    // jane owns acme, but `evil` is not her account — re-pointing there would
+    // serve/relay edits under someone else's repo. Must 403 before any GitHub call.
+    await expect(
+      transferComplete(env(), await req("jane"), { name: "acme", target: "evil" }),
+    ).rejects.toMatchObject({ status: 403 });
+  });
 });
