@@ -24,19 +24,32 @@ export interface ContributionsResult {
   tier: Tier;
   isAnon: boolean;
   contributions: Contribution[];
+  hasMore: boolean;
 }
 
 const CONTRIB_TTL_MS = 300_000; // 5 min, matching the link-graph cache window
+const CONTRIB_PAGE = 50;
 
 // Per-author edit history for a profile page: every commit the identity authored
 // on the live branch (direct or merged-PR — both land as commits), newest first.
 // Read-only; KV-cached like /link-graph so a busy profile doesn't hammer GitHub.
-export function contributions(env: Env, author: string): Promise<ContributionsResult> {
+export function contributions(
+  env: Env,
+  author: string,
+  pageStr?: string,
+): Promise<ContributionsResult> {
   if (!AUTHOR_RE.test(author)) throw new HttpError(400, "Invalid user.");
-  return cached(env, `contrib:${author}`, CONTRIB_TTL_MS, () => build(env, author));
+  const page = Math.max(Number.parseInt(pageStr ?? "", 10) || 1, 1);
+  return cached(env, `contrib:${author}:${page}`, CONTRIB_TTL_MS, () =>
+    build(env, author, page),
+  );
 }
 
-async function build(env: Env, author: string): Promise<ContributionsResult> {
+async function build(
+  env: Env,
+  author: string,
+  page: number,
+): Promise<ContributionsResult> {
   const isAnon = author.startsWith("anon-");
   // Anon commits author as `<name>@anon.invalid`; a login's commits map to the
   // account via its no-reply email, which GitHub's `author` filter resolves from
@@ -55,7 +68,7 @@ async function build(env: Env, author: string): Promise<ContributionsResult> {
       env,
       `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits?author=${encodeURIComponent(
         email,
-      )}&sha=${env.BRANCH}&per_page=50`,
+      )}&sha=${env.BRANCH}&per_page=${CONTRIB_PAGE}&page=${page}`,
     ),
     editorTier(env, email, key),
     loadSuppressions(env),
@@ -77,5 +90,13 @@ async function build(env: Env, author: string): Promise<ContributionsResult> {
     }),
   );
   const list = detailed.filter((c): c is Contribution => c !== null);
-  return { login: author, tier, isAnon, contributions: list };
+  // hasMore tracks whether GitHub had a full page, not the post-filter count, so
+  // a page that's all non-content commits still lets the client ask for the next.
+  return {
+    login: author,
+    tier,
+    isAnon,
+    contributions: list,
+    hasMore: commits.length === CONTRIB_PAGE,
+  };
 }

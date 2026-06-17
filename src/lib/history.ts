@@ -9,31 +9,37 @@ export interface Revision {
   message: string;
 }
 
+export interface HistoryPage {
+  revisions: Revision[];
+  hasMore: boolean;
+}
+
 // Memoised per slug so the read view's PageMeta + Infobox share one request.
 // Drop a rejected lookup so a transient failure can be retried on the next call.
 const cache = new Map<string, Promise<Revision[]>>();
 
+// First page only — used where just the latest revision is needed (PageMeta,
+// Infobox). The history view pages explicitly via getHistoryPage.
 export function getHistory(slug: string): Promise<Revision[]> {
   let p = cache.get(slug);
   if (!p) {
-    p = loadHistory(slug).catch((e) => {
-      cache.delete(slug);
-      throw e;
-    });
+    p = getHistoryPage(slug, 1)
+      .then((r) => r.revisions)
+      .catch((e) => {
+        cache.delete(slug);
+        throw e;
+      });
     cache.set(slug, p);
   }
   return p;
 }
 
+export async function getHistoryPage(slug: string, page = 1): Promise<HistoryPage> {
+  return getJson<HistoryPage>(`/history?slug=${encodeURIComponent(slug)}&page=${page}`);
+}
+
 // A new revision lands on edit — drop the memoised history so it shows up.
 onSwapReset(() => cache.clear());
-
-async function loadHistory(slug: string): Promise<Revision[]> {
-  const { revisions } = await getJson<{ revisions: Revision[] }>(
-    `/history?slug=${encodeURIComponent(slug)}`,
-  );
-  return revisions;
-}
 
 export async function getDiff(
   slug: string,

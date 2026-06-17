@@ -1,10 +1,10 @@
-import { createSignal, For, Show } from "solid-js";
+import { createEffect, createSignal, For, Show } from "solid-js";
 import { config } from "../config";
 import { restoreRevision } from "../lib/admin";
 import { type DLine, parseDiff } from "../lib/diff";
 import { repoWebUrl } from "../lib/engine";
 import { isoDateTime } from "../lib/format";
-import { getDiff, getHistory, type Revision } from "../lib/history";
+import { getDiff, getHistoryPage, type Revision } from "../lib/history";
 import { isAnonName, readHref, slugFromLocation, viewHref } from "../lib/paths";
 import { clientResource, useWhoami } from "../lib/solid";
 import { errMessage } from "../lib/util";
@@ -16,7 +16,18 @@ export default function History(props: { slug?: string }) {
   if (!config.workerUrl) return null;
 
   const slug = () => props.slug ?? slugFromLocation();
-  const [revs] = clientResource(slug, getHistory);
+  // Paginate so a long-lived page's older revisions aren't silently truncated;
+  // each page appends, keeping the newest-first index the compare radios use.
+  const [page, setPage] = createSignal(1);
+  const [revs, setRevs] = createSignal<Revision[]>([]);
+  const [feed] = clientResource(
+    () => ({ slug: slug(), page: page() }),
+    ({ slug, page }) => getHistoryPage(slug, page),
+  );
+  createEffect(() => {
+    const d = feed();
+    if (d) setRevs((prev) => (page() === 1 ? d.revisions : [...prev, ...d.revisions]));
+  });
   const [diff, setDiff] = createSignal<{
     a: string;
     b: string;
@@ -26,7 +37,7 @@ export default function History(props: { slug?: string }) {
     permalink?: string;
   }>();
   const [err, setErr] = createSignal<string>();
-  const latest = () => revs()?.[0]?.sha;
+  const latest = () => revs()[0]?.sha;
 
   // Revisions are listed newest-first, so the "newer" pick is always the lower
   // index. Defaults compare the two most recent (current vs previous).
@@ -35,8 +46,8 @@ export default function History(props: { slug?: string }) {
 
   function compareSelected() {
     const list = revs();
-    const older = list?.[cmpOld()];
-    const newer = list?.[cmpNew()];
+    const older = list[cmpOld()];
+    const newer = list[cmpNew()];
     if (older && newer) show(older.sha, newer.sha);
   }
 
@@ -111,12 +122,12 @@ export default function History(props: { slug?: string }) {
         sub="Every edit is a revision. Compare any revision with the previous one or the current page."
       />
 
-      <Show when={revs()} fallback={<RevSkeleton />}>
+      <Show when={revs().length > 0} fallback={<RevSkeleton />}>
         <div class="rev-compare-bar">
           <button
             type="button"
             class="btn btn-outline btn-sm"
-            disabled={(revs()?.length ?? 0) < 2}
+            disabled={revs().length < 2}
             onClick={compareSelected}
           >
             Compare selected revisions
@@ -225,6 +236,16 @@ export default function History(props: { slug?: string }) {
             )}
           </For>
         </ol>
+        <Show when={feed()?.hasMore}>
+          <button
+            type="button"
+            class="btn btn-ghost rev-more"
+            disabled={feed.loading}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            {feed.loading ? "Loading…" : "Load older revisions"}
+          </button>
+        </Show>
       </Show>
 
       <Show when={diff()}>

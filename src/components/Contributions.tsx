@@ -1,4 +1,4 @@
-import { For, Show } from "solid-js";
+import { createEffect, createSignal, For, Show } from "solid-js";
 import { type Contribution, getContributions } from "../lib/contributions";
 import { repoWebUrl } from "../lib/engine";
 import { timeAgo } from "../lib/format";
@@ -23,8 +23,20 @@ const net = (c: Contribution) => c.additions - c.deletions;
 // history (direct commits + merged PRs) newest-first plus its trust tier. Mirrors
 // the Recent-changes data shape and markup; links out to the existing diff views.
 export default function Contributions(props: { login: string }) {
-  const [data] = clientResource(() => props.login, getContributions);
-  const rows = () => data()?.contributions ?? [];
+  const [page, setPage] = createSignal(1);
+  const [rows, setRows] = createSignal<Contribution[]>([]);
+  // Persist tier/hasMore so the panel doesn't blank out while a later page loads.
+  const [meta, setMeta] = createSignal<{ tier: string; hasMore: boolean }>();
+  const [data] = clientResource(
+    () => ({ login: props.login, page: page() }),
+    ({ login, page }) => getContributions(login, page),
+  );
+  createEffect(() => {
+    const d = data();
+    if (!d) return;
+    setMeta({ tier: d.tier, hasMore: d.hasMore });
+    setRows((prev) => (page() === 1 ? d.contributions : [...prev, ...d.contributions]));
+  });
 
   return (
     <section class="contribs">
@@ -32,13 +44,14 @@ export default function Contributions(props: { login: string }) {
         title="Contributions"
         sub="Edits by this user, newest first — from the wiki's git history."
       />
-      <Show when={data()} fallback={<Status>Loading contributions…</Status>}>
-        {(d) => (
+      <Show when={meta()} fallback={<Status>Loading contributions…</Status>}>
+        {(m) => (
           <>
             <p class="contribs-tier">
-              <span class="chip">{TIER_LABEL[d().tier] ?? d().tier}</span>
+              <span class="chip">{TIER_LABEL[m().tier] ?? m().tier}</span>
               <span class="dot">·</span>
-              {rows().length} edit{rows().length === 1 ? "" : "s"}
+              {rows().length}
+              {m().hasMore ? "+" : ""} edit{rows().length === 1 ? "" : "s"}
             </p>
             <Show when={rows().length > 0} fallback={<Status>No edits yet.</Status>}>
               <ul class="rc-list">
@@ -89,6 +102,16 @@ export default function Contributions(props: { login: string }) {
                   )}
                 </For>
               </ul>
+            </Show>
+            <Show when={m().hasMore}>
+              <button
+                type="button"
+                class="btn btn-ghost contribs-more"
+                disabled={data.loading}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                {data.loading ? "Loading…" : "Load more"}
+              </button>
             </Show>
           </>
         )}

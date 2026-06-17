@@ -150,7 +150,8 @@ export default {
       "GET /link-graph": () => linkGraph(env),
       "GET /search-index": () => searchIndex(env),
       "GET /cite": () => cite(env, q.get("q") ?? ""),
-      "GET /history": () => history(env, q.get("slug") ?? ""),
+      "GET /history": () =>
+        history(env, q.get("slug") ?? "", q.get("page") ?? undefined),
       "GET /diff": () =>
         diff(env, q.get("slug") ?? "", q.get("base") ?? "", q.get("head") ?? ""),
       "GET /topics": () => listTopics(env, q.get("slug") ?? ""),
@@ -165,7 +166,8 @@ export default {
           unreviewed: q.get("unreviewed") ?? undefined,
           highRisk: q.get("highRisk") ?? undefined,
         }),
-      "GET /contributions": () => contributions(env, q.get("author") ?? ""),
+      "GET /contributions": () =>
+        contributions(env, q.get("author") ?? "", q.get("page") ?? undefined),
       "GET /pending": () => listPending(env),
       "GET /pending-diff": () => pendingDiff(env, q.get("number") ?? ""),
       "GET /bans": () => listBans(env),

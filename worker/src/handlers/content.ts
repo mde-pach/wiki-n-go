@@ -29,13 +29,16 @@ import type { Env } from "../types";
 import { type EditBody, MAX_CONTENT_BYTES, SHA_RE, SLUG_RE } from "../types";
 import { updateIndexEntry } from "./index-cache";
 
-export async function history(env: Env, slug: string) {
-  if (!SLUG_RE.test(slug)) return { revisions: [] };
+const HISTORY_PAGE = 50;
+
+export async function history(env: Env, slug: string, pageStr?: string) {
+  if (!SLUG_RE.test(slug)) return { revisions: [], hasMore: false };
+  const page = Math.max(Number.parseInt(pageStr ?? "", 10) || 1, 1);
   const path = `${env.CONTENT_DIR}/${slug}.md`;
   const [commits, suppressions] = await Promise.all([
     gh<CommitItem[]>(
       env,
-      `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits?path=${path}&sha=${env.BRANCH}&per_page=50`,
+      `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/commits?path=${path}&sha=${env.BRANCH}&per_page=${HISTORY_PAGE}&page=${page}`,
     ),
     loadSuppressions(env),
   ]);
@@ -48,6 +51,7 @@ export async function history(env: Env, slug: string) {
       date: c.commit.author.date,
       message: redact.revisionSummary(c.sha, c.commit.message.split("\n")[0]),
     })),
+    hasMore: commits.length === HISTORY_PAGE,
   };
 }
 
