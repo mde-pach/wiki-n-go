@@ -196,18 +196,24 @@ async function prContentFiles(env: Env, number: number): Promise<PrFile[]> {
 }
 
 export async function listPending(env: Env): Promise<{ pending: OutPending[] }> {
-  const prs = await gh<PrItem[]>(
-    env,
-    `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/pulls?state=open&base=${env.BRANCH}&per_page=50`,
-  );
+  const [prs, suppressions] = await Promise.all([
+    gh<PrItem[]>(
+      env,
+      `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/pulls?state=open&base=${env.BRANCH}&per_page=50`,
+    ),
+    loadSuppressions(env),
+  ]);
+  const redact = makeRedactor(suppressions);
   const inSite = prs.filter((p) => isInSiteRef(p.head.ref));
   const prefix = `${env.CONTENT_DIR}/`;
   const pending = await Promise.all(
     inSite.map(async (p) => {
       const files = await prContentFiles(env, p.number);
+      const { author, isAnon } = refIdentity(p.head.ref);
       return {
         number: p.number,
-        ...refIdentity(p.head.ref),
+        author: redact.author(author),
+        isAnon,
         slug: files[0] ? files[0].filename.slice(prefix.length, -3) : "",
         title: p.title,
         createdAt: p.created_at,

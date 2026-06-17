@@ -4,6 +4,7 @@ import { HttpError } from "../http";
 import { resolve, type Writer } from "../identity";
 import { cached } from "../kv";
 import { mentionFor, notifyByEmail } from "../notify";
+import { loadSuppressions, makeRedactor, type Redactor } from "../suppression";
 import type { Env } from "../types";
 import {
   type CommentBody,
@@ -170,16 +171,30 @@ export function authorOf(
   };
 }
 
-function normalizeComment(c: RawComment): OutComment {
+// Suppress a hidden author on the public talk feeds: replace the pseudonym and
+// drop the avatar (a GitHub avatar would otherwise de-anonymize them). Body HTML
+// is content, not a label, so — like /diff — it's left as-is.
+function redactAuthor<T extends { author: string; avatarUrl: string | null }>(
+  out: T,
+  redact: Redactor,
+): T {
+  const author = redact.author(out.author);
+  return author === out.author ? out : { ...out, author, avatarUrl: null };
+}
+
+function normalizeComment(c: RawComment, redact: Redactor): OutComment {
   const reply = c.body.match(REPLY_MARKER);
-  return {
-    id: c.id,
-    ...authorOf(c.body, c.author),
-    bodyHtml: c.bodyHTML,
-    createdAt: c.createdAt,
-    url: c.url,
-    replyTo: reply ? reply[1] : null,
-  };
+  return redactAuthor(
+    {
+      id: c.id,
+      ...authorOf(c.body, c.author),
+      bodyHtml: c.bodyHTML,
+      createdAt: c.createdAt,
+      url: c.url,
+      replyTo: reply ? reply[1] : null,
+    },
+    redact,
+  );
 }
 
 export async function listTopics(
@@ -189,19 +204,30 @@ export async function listTopics(
   if (!SLUG_RE.test(slug)) return { topics: [] };
   const prefix = topicPrefix(slug);
   const q = `repo:${env.REPO_OWNER}/${env.REPO_NAME} in:title "talk:${slug}"`;
-  const data = await ghGraphQL<{
-    search: { nodes: (RawTopic | Record<string, never>)[] };
-  }>(env, LIST_TOPICS, { q });
+  const [data, suppressions] = await Promise.all([
+    ghGraphQL<{ search: { nodes: (RawTopic | Record<string, never>)[] } }>(
+      env,
+      LIST_TOPICS,
+      { q },
+    ),
+    loadSuppressions(env),
+  ]);
+  const redact = makeRedactor(suppressions);
   const topics = data.search.nodes
     .filter((n): n is RawTopic => "title" in n && n.title.startsWith(prefix))
-    .map((n) => ({
-      id: n.id,
-      title: n.title.slice(prefix.length),
-      ...authorOf(n.body, n.author),
-      createdAt: n.createdAt,
-      replyCount: n.comments.totalCount,
-      lastAt: n.comments.nodes[0]?.createdAt ?? n.createdAt,
-    }))
+    .map((n) =>
+      redactAuthor(
+        {
+          id: n.id,
+          title: n.title.slice(prefix.length),
+          ...authorOf(n.body, n.author),
+          createdAt: n.createdAt,
+          replyCount: n.comments.totalCount,
+          lastAt: n.comments.nodes[0]?.createdAt ?? n.createdAt,
+        },
+        redact,
+      ),
+    )
     .sort((a, b) => (a.lastAt < b.lastAt ? 1 : -1));
   return { topics };
 }
@@ -215,29 +241,36 @@ interface OutThread {
 
 export async function getThread(env: Env, id: string): Promise<OutThread> {
   if (!NODE_ID_RE.test(id)) throw new HttpError(400, "Invalid topic id.");
-  const data = await ghGraphQL<{
-    node:
-      | (RawComment & {
-          title: string;
-          comments: { nodes: RawComment[] };
-        })
-      | null;
-  }>(env, GET_THREAD, { id });
+  const [data, suppressions] = await Promise.all([
+    ghGraphQL<{
+      node:
+        | (RawComment & {
+            title: string;
+            comments: { nodes: RawComment[] };
+          })
+        | null;
+    }>(env, GET_THREAD, { id }),
+    loadSuppressions(env),
+  ]);
   const d = data.node;
   if (!d || typeof d.title !== "string") throw new HttpError(404, "Topic not found.");
-  const root: OutComment = {
-    id: d.id,
-    ...authorOf(d.body, d.author),
-    bodyHtml: d.bodyHTML,
-    createdAt: d.createdAt,
-    url: d.url,
-    replyTo: null,
-  };
+  const redact = makeRedactor(suppressions);
+  const root: OutComment = redactAuthor(
+    {
+      id: d.id,
+      ...authorOf(d.body, d.author),
+      bodyHtml: d.bodyHTML,
+      createdAt: d.createdAt,
+      url: d.url,
+      replyTo: null,
+    },
+    redact,
+  );
   return {
     id: d.id,
     title: d.title.replace(/^talk:.*? · /s, ""),
     root,
-    comments: d.comments.nodes.map(normalizeComment),
+    comments: d.comments.nodes.map((c) => normalizeComment(c, redact)),
   };
 }
 
