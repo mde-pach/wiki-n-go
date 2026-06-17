@@ -67,12 +67,25 @@ export function requestedRepo(request: Request): Repo | null {
 // the raw, un-prefixed KV under a `tenant:` key — distinct from the `r:` tenant
 // prefix, so no collision). Stops a shared Worker being pointed at a repo that
 // never opted in.
+const NOT_SERVED = "0"; // sentinel: a real installation id is never "0"
+const NEG_TTL_S = 60; // brief negative cache (see below)
+
 async function assertServed(env: Env, repo: Repo): Promise<void> {
   const kv = env.RATE_LIMIT;
   const cacheKey = `tenant:served:${repo.owner}/${repo.name}`;
-  if (kv && (await kv.get(cacheKey))) return;
+  if (kv) {
+    const hit = await kv.get(cacheKey);
+    if (hit === NOT_SERVED)
+      throw new HttpError(404, "This repository hasn't installed the wiki app.");
+    if (hit) return;
+  }
   const id = await repoInstallationId(env, repo.owner, repo.name);
-  if (!id) throw new HttpError(404, "This repository hasn't installed the wiki app.");
+  if (!id) {
+    // Negative-cache the miss: minting an App JWT (RSA sign) + the API round-trip
+    // on every request would let a flood of bogus X-Wiki-Repo values amplify load.
+    if (kv) await kv.put(cacheKey, NOT_SERVED, { expirationTtl: NEG_TTL_S });
+    throw new HttpError(404, "This repository hasn't installed the wiki app.");
+  }
   if (kv) await kv.put(cacheKey, id, { expirationTtl: TENANT_TTL_S });
 }
 

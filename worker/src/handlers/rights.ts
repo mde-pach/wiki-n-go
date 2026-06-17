@@ -59,6 +59,9 @@ async function writeEditors(
     { name: writer.name, email: writer.email },
     current?.sha,
   );
+  // Drop the cached maintainer set so the grant/revoke takes effect now, not
+  // after the TTL (config-maintainers via wikigit.json go through putConfig).
+  await env.RATE_LIMIT?.delete("maintainers:set");
   await appendAudit(env, repo, writer.name, writer.email, action, key);
   return { ok: true };
 }

@@ -536,13 +536,16 @@ const AUTOMOD_WINDOW_S = 86_400; // per-page revert-cap window (24h), like 3RR
 
 // Merge `tag` into a commit's KV tag set (preserving any tags already stored),
 // so RecentChanges shows it. Read-merge, not overwrite.
-export async function addTag(env: Env, sha: string, tag: string): Promise<void> {
-  if (!env.RATE_LIMIT) return;
+// Returns the merged tag set (so callers needn't re-read it, avoiding a second
+// KV round-trip and a race with a concurrent tag write).
+export async function addTag(env: Env, sha: string, tag: string): Promise<string[]> {
+  if (!env.RATE_LIMIT) return [];
   const raw = await env.RATE_LIMIT.get(`tag:${sha}`);
   const tags = raw ? (JSON.parse(raw) as string[]) : [];
-  if (tags.includes(tag)) return;
+  if (tags.includes(tag)) return tags;
   tags.push(tag);
   await env.RATE_LIMIT.put(`tag:${sha}`, JSON.stringify(tags));
+  return tags;
 }
 
 // Automoderator: right after an edit auto-merges live, score it and — if it's

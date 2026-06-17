@@ -52,6 +52,33 @@ export async function commitJson(
   });
 }
 
+// Append one JSON object as a line to a repo-root JSONL log (audit / moderation /
+// tenant registry) and commit it. Reads the current file unless the caller already
+// holds it (`current`) — they pass it to avoid a second fetch. One write path so
+// the three logs can't drift (and all go through UTF-8-safe base64, not raw btoa).
+export async function appendJsonl(
+  env: Env,
+  repo: string,
+  path: string,
+  entry: unknown,
+  message: string,
+  author: { name: string; email: string },
+  current?: { raw?: string; sha?: string } | null,
+): Promise<void> {
+  const file = current !== undefined ? current : await getCurrentFile(env, repo, path);
+  const prefix = file?.raw ? file.raw.replace(/\n*$/, "\n") : "";
+  await gh(env, `/repos/${repo}/contents/${path}`, {
+    method: "PUT",
+    body: commitPayload(env, {
+      message,
+      content: `${prefix}${JSON.stringify(entry)}\n`,
+      branch: env.BRANCH,
+      sha: file?.sha,
+      author,
+    }),
+  });
+}
+
 // Current file on the live branch: blob sha (for the next commit) + raw text
 // (for protection / field checks). Null when the page is new.
 export async function getCurrentFile(

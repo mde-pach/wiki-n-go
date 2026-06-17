@@ -1,5 +1,4 @@
-import { gh } from "./github";
-import { commitPayload, getCurrentFile } from "./repo";
+import { appendJsonl, getCurrentFile } from "./repo";
 import type { Env } from "./types";
 
 // Durable record of *human* moderation decisions that aren't otherwise in git:
@@ -55,18 +54,14 @@ export async function appendModLog(
   by: { name: string; email: string },
 ): Promise<void> {
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
-  const current = await getCurrentFile(env, repo, MOD_LOG_PATH);
-  const prefix = current?.raw ? current.raw.replace(/\n*$/, "\n") : "";
-  await gh(env, `/repos/${repo}/contents/${MOD_LOG_PATH}`, {
-    method: "PUT",
-    body: commitPayload(env, {
-      message: `mod: ${entry.type} ${entry.sha.slice(0, 7)}`,
-      content: `${prefix}${JSON.stringify(entry)}\n`,
-      branch: env.BRANCH,
-      sha: current?.sha,
-      author: by,
-    }),
-  });
+  await appendJsonl(
+    env,
+    repo,
+    MOD_LOG_PATH,
+    entry,
+    `mod: ${entry.type} ${entry.sha.slice(0, 7)}`,
+    by,
+  );
 }
 
 // Boot-time hydration for the Bun runtime: read the git log and seed the

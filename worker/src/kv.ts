@@ -37,7 +37,13 @@ export async function cached<T>(
     }
   }
   const v = await produce();
-  if (kv) await kv.put(key, JSON.stringify({ v, ts: Date.now() }));
+  // Expire the row server-side too (≈2× the logical TTL, KV's 60s floor): the
+  // staleness check above governs reads, this just reaps dead keys so per-tenant
+  // caches (r:owner/name:*) don't grow unbounded. CF KV requires ≥60s.
+  if (kv)
+    await kv.put(key, JSON.stringify({ v, ts: Date.now() }), {
+      expirationTtl: Math.max(60, Math.ceil((ttlMs / 1000) * 2)),
+    });
   return v;
 }
 

@@ -57,19 +57,14 @@ export async function tag(
   if (!SHA_RE.test(sha)) throw new HttpError(400, "Invalid revision.");
   if (!TAG_RE.test(label)) throw new HttpError(400, "Invalid tag.");
   const writer = await requireMaintainer(env, request, "Tagging");
-  await addTag(env, sha, label);
+  const tags = await addTag(env, sha, label);
   // Durable record of the full tag set so manual tags survive a restart (M11.3).
-  const raw = await env.RATE_LIMIT?.get(`tag:${sha}`);
-  if (raw) {
+  if (tags.length)
     await appendModLog(
       env,
-      { type: "tag", sha, tags: JSON.parse(raw) as string[] },
-      {
-        name: writer.name,
-        email: writer.email,
-      },
+      { type: "tag", sha, tags },
+      { name: writer.name, email: writer.email },
     );
-  }
   await appendAudit(
     env,
     `${env.REPO_OWNER}/${env.REPO_NAME}`,

@@ -1,6 +1,5 @@
-import { gh } from "./github";
 import { HttpError } from "./http";
-import { getCurrentFile } from "./repo";
+import { appendJsonl, getCurrentFile } from "./repo";
 import type { Env } from "./types";
 
 // The tenant registry: the name→repo map that lets one shared frontend + one
@@ -258,16 +257,6 @@ async function appendTenant(
   message: string,
 ): Promise<void> {
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
-  const prefix = current?.raw ? current.raw.replace(/\n*$/, "\n") : "";
-  await gh(env, `/repos/${repo}/contents/${TENANTS_PATH}`, {
-    method: "PUT",
-    body: JSON.stringify({
-      message,
-      content: btoa(`${prefix}${JSON.stringify(t)}\n`),
-      branch: env.BRANCH,
-      sha: current?.sha,
-      author: by,
-    }),
-  });
+  await appendJsonl(env, repo, TENANTS_PATH, t, message, by, current);
   if (env.RATE_LIMIT) await env.RATE_LIMIT.delete(CACHE_KEY);
 }

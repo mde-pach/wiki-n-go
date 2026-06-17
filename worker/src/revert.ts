@@ -40,8 +40,10 @@ export async function revertCommit(
   const restored: string[] = [];
   for (const path of paths) {
     const slug = path.slice(prefix.length, -3);
-    const before = parentSha ? await getCurrentFile(env, repo, path, parentSha) : null;
-    const onBranch = await getCurrentFile(env, repo, path);
+    const [before, onBranch] = await Promise.all([
+      parentSha ? getCurrentFile(env, repo, path, parentSha) : Promise.resolve(null),
+      getCurrentFile(env, repo, path),
+    ]);
     if (before) {
       const res = await gh<{ commit: { sha: string } }>(
         env,

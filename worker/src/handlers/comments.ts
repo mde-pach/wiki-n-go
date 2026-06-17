@@ -351,15 +351,22 @@ export async function postComment(
   return { ok: true };
 }
 
-const REPLY_RECIPIENT_QUERY = `query($id:ID!){
-  node(id:$id){ ... on Discussion {
-    url body comments(first:100){ nodes{ id body } }
-  } }
+// Top-level comment: the recipient is the topic author (its body), and we need
+// the discussion url for the email link.
+const TOPIC_QUERY = `query($id:ID!){
+  node(id:$id){ ... on Discussion { url body } }
+}`;
+// Reply: fetch only the parent comment's body (not the whole thread) plus the
+// discussion url — two aliased node lookups in one round-trip.
+const REPLY_QUERY = `query($topic:ID!,$reply:ID!){
+  topic: node(id:$topic){ ... on Discussion { url } }
+  reply: node(id:$reply){ ... on DiscussionComment { body } }
 }`;
 
 // The identity to notify for a new comment: the replied-to comment's author, or
 // the topic author for a top-level comment. Never the replier themselves, and
-// never throws — a lookup miss just means no notification.
+// never throws — a lookup miss just means no notification. Targets the one node
+// it needs, so it doesn't scale with (or get capped by) thread size.
 async function replyRecipient(
   env: Env,
   topicId: string,
@@ -367,20 +374,26 @@ async function replyRecipient(
   selfKey: string,
 ): Promise<{ key: string | null; url: string }> {
   try {
-    const data = await ghGraphQL<{
-      node: {
-        url: string;
-        body: string;
-        comments: { nodes: { id: string; body: string }[] };
-      } | null;
-    }>(env, REPLY_RECIPIENT_QUERY, { id: topicId });
-    const d = data.node;
-    if (!d) return { key: null, url: "" };
-    const targetBody = replyTo
-      ? d.comments.nodes.find((c) => c.id === replyTo)?.body
-      : d.body;
+    let url = "";
+    let targetBody: string | undefined;
+    if (replyTo) {
+      const d = await ghGraphQL<{
+        topic: { url: string } | null;
+        reply: { body: string } | null;
+      }>(env, REPLY_QUERY, { topic: topicId, reply: replyTo });
+      url = d.topic?.url ?? "";
+      targetBody = d.reply?.body;
+    } else {
+      const d = await ghGraphQL<{ node: { url: string; body: string } | null }>(
+        env,
+        TOPIC_QUERY,
+        { id: topicId },
+      );
+      url = d.node?.url ?? "";
+      targetBody = d.node?.body;
+    }
     const key = targetBody ? participantKeyOf(targetBody) : null;
-    return { key: key && key !== selfKey ? key : null, url: d.url };
+    return { key: key && key !== selfKey ? key : null, url };
   } catch {
     return { key: null, url: "" };
   }

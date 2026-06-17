@@ -42,15 +42,6 @@ async function platformToken(env: Env): Promise<string> {
   return cached.token;
 }
 
-function ghHeaders(token: string, env: Env): Record<string, string> {
-  return {
-    Authorization: `Bearer ${token}`,
-    Accept: "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
-    "User-Agent": `${env.REPO_NAME}-worker`,
-  };
-}
-
 async function seedFile(
   env: Env,
   token: string,
@@ -61,7 +52,7 @@ async function seedFile(
 ): Promise<void> {
   const res = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
     method: "PUT",
-    headers: ghHeaders(token, env),
+    headers: appHeaders(token, env),
     body: JSON.stringify({ message, content: btoa(content), branch: env.BRANCH }),
   });
   if (!res.ok) throw new HttpError(502, `Seed ${path} failed (${res.status})`);
@@ -87,7 +78,7 @@ export async function transferRepo(
   const org = env.PLATFORM_ORG as string;
   const res = await fetch(`https://api.github.com/repos/${org}/${name}/transfer`, {
     method: "POST",
-    headers: ghHeaders(token, env),
+    headers: appHeaders(token, env),
     body: JSON.stringify({ new_owner: newOwner }),
   });
   if (res.status === 404) throw new HttpError(404, "That managed wiki doesn't exist.");
@@ -108,7 +99,7 @@ export async function provisionRepo(env: Env, name: string): Promise<string> {
 
   const created = await fetch(`https://api.github.com/orgs/${org}/repos`, {
     method: "POST",
-    headers: ghHeaders(token, env),
+    headers: appHeaders(token, env),
     body: JSON.stringify({
       name,
       private: false,

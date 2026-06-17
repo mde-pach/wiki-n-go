@@ -39,5 +39,7 @@ export async function putConfig(
       author: { name: writer.name, email: writer.email },
     }),
   });
+  // The settings form can change the maintainer list → drop its cached set.
+  await env.RATE_LIMIT?.delete("maintainers:set");
   return { ok: true, config };
 }

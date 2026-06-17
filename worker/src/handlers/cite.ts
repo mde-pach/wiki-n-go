@@ -14,10 +14,25 @@ import type { Env } from "../types";
 
 const CITE_TTL_MS = 86_400_000;
 
-export function cite(env: Env, input: string) {
+// A user URL can exceed KV's 512-byte key limit, so key the cache by a short
+// hash of the value rather than the raw value (DOI/ISBN are bounded + readable).
+async function cacheValue(query: CiteQuery): Promise<string> {
+  if (query.kind !== "url") return query.value;
+  const buf = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(query.value),
+  );
+  return [...new Uint8Array(buf)]
+    .slice(0, 12)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+export async function cite(env: Env, input: string) {
   const query = classify(input);
   if (!query) throw new HttpError(400, "Enter a URL, DOI, or ISBN.");
-  return cached(env, `cite:${query.kind}:${query.value}`, CITE_TTL_MS, async () => {
+  const key = `cite:${query.kind}:${await cacheValue(query)}`;
+  return cached(env, key, CITE_TTL_MS, async () => {
     const citation = await lookupCitation(env, query);
     return { citation, markdown: formatMarkdown(citation) };
   });
@@ -41,6 +56,7 @@ async function lookupCitation(env: Env, query: CiteQuery): Promise<Citation> {
       `https://openlibrary.org/api/books?bibkeys=ISBN:${query.value}&format=json&jscmd=data`,
       { headers: { "User-Agent": ua } },
     );
+    if (!res.ok) throw new HttpError(404, "Couldn't find that ISBN.");
     const json = (await res.json()) as Record<
       string,
       Parameters<typeof openLibraryCitation>[0]

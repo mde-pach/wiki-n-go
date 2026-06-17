@@ -1,5 +1,4 @@
-import { gh } from "./github";
-import { commitPayload, getCurrentFile } from "./repo";
+import { appendJsonl, getCurrentFile } from "./repo";
 import type { Env } from "./types";
 
 export interface AuditEntry {
@@ -31,17 +30,9 @@ export async function appendAudit(
     target,
     ...(detail ? { detail } : {}),
   };
-  const current = await getCurrentFile(env, repo, AUDIT_PATH);
-  const prefix = current?.raw ? current.raw.replace(/\n*$/, "\n") : "";
-  await gh(env, `/repos/${repo}/contents/${AUDIT_PATH}`, {
-    method: "PUT",
-    body: commitPayload(env, {
-      message: `audit: ${action} ${target}`,
-      content: `${prefix}${JSON.stringify(entry)}\n`,
-      branch: env.BRANCH,
-      sha: current?.sha,
-      author: { name: by, email },
-    }),
+  await appendJsonl(env, repo, AUDIT_PATH, entry, `audit: ${action} ${target}`, {
+    name: by,
+    email,
   });
 }
 
