@@ -45,7 +45,14 @@ export async function gh<T = unknown>(
   });
   if (res.status === 404 && init.allow404) return undefined as T;
   if (res.status === 422 && init.allow422) return undefined as T;
-  if (!res.ok) throw new HttpError(502, `GitHub ${res.status}: ${await res.text()}`);
+  if (!res.ok) {
+    // The body can carry repo paths, the App slug, and token/rate-limit hints —
+    // log it server-side but never relay it to the (possibly anonymous) caller.
+    console.error(
+      `GitHub ${init.method ?? "GET"} ${path} → ${res.status}: ${await res.text()}`,
+    );
+    throw new HttpError(502, `GitHub error ${res.status}.`);
+  }
   if (res.status === 204) return undefined as T; // e.g. DELETE a ref → no body
   const text = await res.text();
   return (text ? JSON.parse(text) : undefined) as T;

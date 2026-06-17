@@ -8,12 +8,6 @@ import { type PageMeta, splitFrontmatter, withFrontmatter } from "../lib/frontma
 import { infoboxHtml } from "../lib/infobox";
 import { pageSet } from "../lib/manifest";
 import {
-  decorateHeadingsHtml,
-  emphasizeLeadHtml,
-  renderMarkdown,
-  splitTitle,
-} from "../lib/markdown";
-import {
   BASE,
   categoryHref,
   langOf,
@@ -29,6 +23,17 @@ import { Icons } from "./Icons";
 // a reader clicks a heading's [edit], so keep it off the read-path island bundle
 // and load it on demand — the read path stays light. Mermaid uses the same trick.
 const FocusedEditor = lazy(() => import("./editor/FocusedEditor"));
+
+// The markdown engine (markdown-it + plugins + DOMPurify) is the heaviest chunk
+// on the read path, yet it's only needed to client-render a page: never on the
+// edge-SSR path (the server already rendered `initialHtml`), and on the static
+// path it loads in parallel with the content fetch. Keep it out of the island's
+// hydration chunk and pull it on demand. Memoized so it downloads once.
+let mdModule: Promise<typeof import("../lib/markdown")> | undefined;
+const loadMarkdown = () => {
+  mdModule ??= import("../lib/markdown");
+  return mdModule;
+};
 
 // A section `[edit]` that's been opened in place: the editor is portaled into
 // `mountEl` (inserted right after the heading) so it edits the section without
@@ -90,6 +95,8 @@ export default function WikiPage(props: {
   // Render markdown with red links already resolved, so missing-target links
   // paint red on first frame instead of flashing blue until `decorate` runs.
   async function renderResolved(raw: string) {
+    const { splitTitle, renderMarkdown, decorateHeadingsHtml, emphasizeLeadHtml } =
+      await loadMarkdown();
     const { title, body, meta } = splitTitle(raw);
     const html = emphasizeLeadHtml(
       decorateHeadingsHtml(
@@ -158,6 +165,7 @@ export default function WikiPage(props: {
   }
 
   async function revalidate() {
+    void loadMarkdown(); // download the renderer alongside the content fetch
     try {
       const latest = await fetchMarkdown(slug());
       const { title, html, meta } = await renderResolved(latest);

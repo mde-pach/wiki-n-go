@@ -4,6 +4,7 @@ import { MemoryStorage } from "@openauthjs/openauth/storage/memory";
 import { CodeUI } from "@openauthjs/openauth/ui/code";
 import type { WikigitUser } from "../../shared/wikigit-identity";
 import { sendCode, sendNotification } from "./email";
+import { isAllowedRedirect } from "./redirect";
 import { subjects } from "./subjects";
 
 // File-backed store on a persistent volume: OpenAuth's signing/encryption keys,
@@ -83,17 +84,12 @@ const app = issuer({
       }),
     ),
   },
-  // Any https instance (or localhost) may complete a sign-in — safe without
-  // per-instance registration because the code is bound to the caller's
-  // redirect_uri and each Engine only finishes a flow it started. Consent screen: TODO.
-  allow: async (info) => {
-    try {
-      const u = new URL(info.redirectURI);
-      return u.protocol === "https:" || u.hostname === "localhost";
-    } catch {
-      return false;
-    }
-  },
+  // Only our own federation may complete a sign-in. The authorization code is
+  // delivered to redirect_uri, so an unrestricted allowlist is an open redirect:
+  // any site could harvest a victim's code and take over the account (PKCE does
+  // not help — the attacker is the flow initiator). Restrict to the apex + its
+  // subdomains (the `*.wikigit.org` federation), plus localhost for dev.
+  allow: async (info) => isAllowedRedirect(info.redirectURI),
   success: async (response, value) => {
     if (value.provider !== "code") throw new Error("Unsupported provider");
     const email = String(value.claims.email).toLowerCase();
