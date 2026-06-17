@@ -52,19 +52,28 @@ describe("GET /pending redaction", () => {
       const url = String(input);
       const s = supp(url);
       if (s) return s;
-      if (url.includes("/pulls?state=open"))
-        return Response.json([
-          {
-            number: 5,
-            title: "Edit to coffee",
-            created_at: "2026-06-01T00:00:00Z",
-            head: { ref: "anon-vandal/coffee" },
+      if (url.includes("/graphql"))
+        return Response.json({
+          data: {
+            repository: {
+              pullRequests: {
+                nodes: [
+                  {
+                    number: 5,
+                    title: "Edit to coffee",
+                    createdAt: "2026-06-01T00:00:00Z",
+                    headRefName: "anon-vandal/coffee",
+                    files: {
+                      nodes: [
+                        { path: "content/coffee.md", additions: 3, deletions: 1 },
+                      ],
+                    },
+                  },
+                ],
+              },
+            },
           },
-        ]);
-      if (url.includes("/pulls/5/files"))
-        return Response.json([
-          { filename: "content/coffee.md", additions: 3, deletions: 1, patch: "@@" },
-        ]);
+        });
       if (url.includes("raw.githubusercontent.com"))
         return new Response("", { status: 404 });
       throw new Error(`unexpected fetch: ${url}`);

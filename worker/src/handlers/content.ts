@@ -7,7 +7,7 @@ import {
   decideAutoRevert,
 } from "../automod";
 import { utf8Bytes } from "../crypto";
-import { type CommitItem, gh, ghHeaders } from "../github";
+import { type CommitItem, gh, ghGraphQL, ghHeaders } from "../github";
 import { HttpError } from "../http";
 import { resolve, type Writer } from "../identity";
 import { invalidateContent, kvGetJson, kvPutJson } from "../kv";
@@ -173,13 +173,6 @@ interface OutPending {
   deletions: number;
 }
 
-interface PrItem {
-  number: number;
-  title: string;
-  created_at: string;
-  head: { ref: string };
-}
-
 interface PrFile {
   filename: string;
   additions: number;
@@ -212,33 +205,61 @@ async function prContentFiles(env: Env, number: number): Promise<PrFile[]> {
   );
 }
 
+// One GraphQL call for the open PRs *and* their files, instead of a REST list
+// plus one `/pulls/{n}/files` per PR (which tripped GitHub's secondary rate
+// limit on a busy queue).
+const PENDING_QUERY = `
+  query($owner: String!, $name: String!, $base: String!) {
+    repository(owner: $owner, name: $name) {
+      pullRequests(states: OPEN, baseRefName: $base, first: 50, orderBy: { field: CREATED_AT, direction: DESC }) {
+        nodes {
+          number
+          title
+          createdAt
+          headRefName
+          files(first: 100) { nodes { path additions deletions } }
+        }
+      }
+    }
+  }`;
+
+interface PrNode {
+  number: number;
+  title: string;
+  createdAt: string;
+  headRefName: string;
+  files: { nodes: { path: string; additions: number; deletions: number }[] };
+}
+
 export async function listPending(env: Env): Promise<{ pending: OutPending[] }> {
-  const [prs, suppressions] = await Promise.all([
-    gh<PrItem[]>(
-      env,
-      `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/pulls?state=open&base=${env.BRANCH}&per_page=50`,
-    ),
+  const [data, suppressions] = await Promise.all([
+    ghGraphQL<{ repository: { pullRequests: { nodes: PrNode[] } } }>(env, PENDING_QUERY, {
+      owner: env.REPO_OWNER,
+      name: env.REPO_NAME,
+      base: env.BRANCH,
+    }),
     loadSuppressions(env),
   ]);
   const redact = makeRedactor(suppressions);
-  const inSite = prs.filter((p) => isInSiteRef(p.head.ref));
   const prefix = `${env.CONTENT_DIR}/`;
-  const pending = await Promise.all(
-    inSite.map(async (p) => {
-      const files = await prContentFiles(env, p.number);
-      const { author, isAnon } = refIdentity(p.head.ref);
+  const pending = data.repository.pullRequests.nodes
+    .filter((p) => isInSiteRef(p.headRefName))
+    .map((p) => {
+      const files = p.files.nodes.filter(
+        (f) => f.path.startsWith(prefix) && f.path.endsWith(".md"),
+      );
+      const { author, isAnon } = refIdentity(p.headRefName);
       return {
         number: p.number,
         author: redact.author(author),
         isAnon,
-        slug: files[0] ? files[0].filename.slice(prefix.length, -3) : "",
+        slug: files[0] ? files[0].path.slice(prefix.length, -3) : "",
         title: p.title,
-        createdAt: p.created_at,
+        createdAt: p.createdAt,
         additions: files.reduce((a, f) => a + f.additions, 0),
         deletions: files.reduce((a, f) => a + f.deletions, 0),
       };
-    }),
-  );
+    });
   return { pending };
 }
 
