@@ -14,6 +14,7 @@ import { contentSlugs, rawPage } from "../lib/pages";
 import {
   BASE,
   contentSlugForRoute,
+  isAnonName,
   isLangHome,
   prettify,
   readHref,
@@ -87,8 +88,7 @@ if (ssr) {
 
 // A built `user/<login>` page also gets the auto-rendered contributions panel.
 const profileLogin = userLogin(pageSlug);
-const contributor =
-  profileLogin && !profileLogin.startsWith("anon-") ? profileLogin : null;
+const contributor = profileLogin && !isAnonName(profileLogin) ? profileLogin : null;
 ---
 
 <PageShell slug={pageSlug} view="read" title={parsed?.title || prettify(pageSlug)} categories={parsed?.meta?.tags} description={parsed?.meta?.description} appearance={parsed?.meta?.appearance} ssr={ssr} noindex={noindex} titlePending={!ssr}>

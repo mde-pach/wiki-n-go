@@ -1,24 +1,18 @@
 import { createMemo, createResource, createSignal, For, Show } from "solid-js";
-import { isServer } from "solid-js/web";
 import { allLanguages } from "../lib/languages";
-import { BASE, prettify, readHref, slugifyPath } from "../lib/paths";
+import { BASE, prettify, queryParam, readHref, slugifyPath } from "../lib/paths";
 import { getSearchDocs } from "../lib/search";
 import { PAGE_TEMPLATES } from "../lib/templates";
 import DraftList from "./DraftList";
 import { ViewHead } from "./ui";
 
-function param(name: string) {
-  if (isServer) return "";
-  return new URLSearchParams(location.search).get(name) ?? "";
-}
-
 export default function NewPage() {
-  const [title, setTitle] = createSignal(param("title"));
+  const [title, setTitle] = createSignal(queryParam("title"));
   const [template, setTemplate] = createSignal(PAGE_TEMPLATES[0].id);
   // Set when arriving from the language switcher's "translate this page": the new
   // page joins that translation group, and we collect a language code to prefix
   // the slug (the switcher never pre-picks a language — W5).
-  const translationKey = param("translationKey");
+  const translationKey = queryParam("translationKey");
   const [lang, setLang] = createSignal("");
   const [existing] = createResource(async () => {
     const docs = await getSearchDocs();

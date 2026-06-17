@@ -1,13 +1,12 @@
 import { createMemo, createSignal } from "solid-js";
-import { isServer } from "solid-js/web";
 import { fetchMarkdown } from "../lib/content";
 import { composeMerge, mergePages } from "../lib/lifecycle";
-import { prettify, readHref, slugifyPath } from "../lib/paths";
+import { prettify, queryParam, readHref, slugifyPath } from "../lib/paths";
 import { useSubmit } from "../lib/solid";
 import { ErrorNote, PageOp } from "./ui";
 
 export default function MergePage() {
-  const from = isServer ? "" : (new URLSearchParams(location.search).get("page") ?? "");
+  const from = queryParam("page");
   const [target, setTarget] = createSignal("");
   const [summary, setSummary] = createSignal("");
   const [done, setDone] = createSignal<string>();

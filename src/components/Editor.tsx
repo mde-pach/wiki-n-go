@@ -17,7 +17,14 @@ import {
 import { findSection } from "../lib/editor-section";
 import { splitFrontmatter, withFrontmatter } from "../lib/frontmatter";
 import { renderMarkdown } from "../lib/markdown";
-import { BASE, prettify, readHref, slugFromLocation, userLogin } from "../lib/paths";
+import {
+  BASE,
+  prettify,
+  queryParam,
+  readHref,
+  slugFromLocation,
+  userLogin,
+} from "../lib/paths";
 import { createDebounced, useSubmit, useWhoami } from "../lib/solid";
 import { templateById } from "../lib/templates";
 import { errMessage } from "../lib/util";
@@ -114,7 +121,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   // wins over a restored draft. `baseSha` stays the current blob.
   async function applyRevert() {
     if (isServer) return;
-    const sha = new URLSearchParams(window.location.search).get("revert");
+    const sha = queryParam("revert");
     if (!sha) return;
     try {
       applyDocument(await fetchMarkdownAt(slug(), sha));
@@ -131,9 +138,8 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   // A restored draft still wins over both.
   function seedTemplate() {
     if (isServer) return;
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get("template");
-    const tkey = params.get("translationKey");
+    const id = queryParam("template");
+    const tkey = queryParam("translationKey");
     if (!id && !tkey) return;
     let doc = id ? templateById(id).build(prettify(slug())) : content();
     if (tkey) {
@@ -155,7 +161,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   // Wins over the scratch autosave; an explicit `?revert=` still wins over it.
   function applyNamedDraft() {
     if (isServer) return;
-    const id = new URLSearchParams(window.location.search).get("draft");
+    const id = queryParam("draft");
     if (!id) return;
     const draft = getNamedDraft(id);
     if (!draft) return;
@@ -195,7 +201,7 @@ export default function Editor(props: { slug?: string; initialContent?: string }
   // Deep-link from a heading's `[edit]`: select that section and seed a summary.
   function focusSection() {
     if (isServer || !ta) return;
-    const section = new URLSearchParams(window.location.search).get("section");
+    const section = queryParam("section");
     if (!section) return;
     const span = findSection(body(), section);
     if (!span) return;

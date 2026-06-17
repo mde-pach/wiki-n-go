@@ -2,7 +2,7 @@ import { config } from "../config";
 import type { Tier } from "./api";
 import { engineUrl } from "./engine";
 import { fetchFirstOk } from "./net";
-import { BASE } from "./paths";
+import { BASE, isAnonName } from "./paths";
 import { bootTenant } from "./tenant";
 
 export interface Contribution {
@@ -41,7 +41,7 @@ export async function getContributions(login: string): Promise<Contributions> {
   return {
     login,
     tier: "open",
-    isAnon: login.startsWith("anon-"),
+    isAnon: isAnonName(login),
     contributions: all?.[login] ?? [],
   };
 }

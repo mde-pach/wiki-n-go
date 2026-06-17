@@ -5,7 +5,7 @@ import { type DLine, parseDiff } from "../lib/diff";
 import { repoWebUrl } from "../lib/engine";
 import { isoDateTime } from "../lib/format";
 import { getDiff, getHistory, type Revision } from "../lib/history";
-import { readHref, slugFromLocation, viewHref } from "../lib/paths";
+import { isAnonName, readHref, slugFromLocation, viewHref } from "../lib/paths";
 import { clientResource, useWhoami } from "../lib/solid";
 import { errMessage } from "../lib/util";
 import DiffView from "./DiffView";
@@ -184,10 +184,8 @@ export default function History(props: { slug?: string }) {
                     >
                       {isoDateTime(r.date)}
                     </a>
-                    <span
-                      class={`rev-author${r.author.startsWith("anon-") ? " is-anon" : ""}`}
-                    >
-                      {r.author.startsWith("anon-") ? (
+                    <span class={`rev-author${isAnonName(r.author) ? " is-anon" : ""}`}>
+                      {isAnonName(r.author) ? (
                         <span class="mono">{r.author}</span>
                       ) : (
                         r.author

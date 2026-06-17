@@ -6,6 +6,7 @@ import {
   BASE,
   changesHref,
   createHref,
+  isAnonName,
   parseRoute,
   prettify,
   readHref,
@@ -216,7 +217,7 @@ function ProfileBody(props: { slug: string }) {
   return (
     <Show when={login()} fallback={<NoProfile />}>
       {(l) => (
-        <Show when={!l().startsWith("anon-")} fallback={<NoProfile anon={l()} />}>
+        <Show when={!isAnonName(l())} fallback={<NoProfile anon={l()} />}>
           <WikiPage slug={props.slug} noCreate={!canEdit(l())} />
           <Contributions login={l()} />
         </Show>

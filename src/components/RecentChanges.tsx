@@ -4,7 +4,7 @@ import { config } from "../config";
 import { rollbackCommit } from "../lib/admin";
 import { type Change, listChanges, markPatrolled, RISK_HIGH } from "../lib/changes";
 import { timeAgo } from "../lib/format";
-import { changesHref, prettify, readHref } from "../lib/paths";
+import { changesHref, isAnonName, prettify, readHref } from "../lib/paths";
 import { clientResource, useWhoami } from "../lib/solid";
 import { errMessage } from "../lib/util";
 import { ConfirmDialog } from "./editor/ConfirmDialog";
@@ -77,7 +77,7 @@ export default function RecentChanges(props: { admin?: boolean }) {
         {(a) => (
           <div class="rc-contrib">
             Showing contributions by{" "}
-            <span class="rc-author" classList={{ anon: a().startsWith("anon-") }}>
+            <span class="rc-author" classList={{ anon: isAnonName(a()) }}>
               {a()}
             </span>
             <a class="rc-clear" href={changesHref}>

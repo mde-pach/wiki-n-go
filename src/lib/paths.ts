@@ -142,3 +142,17 @@ export function parseRoute(): {
 export function slugFromLocation(): string {
   return parseRoute().slug;
 }
+
+// SSR-safe read of one query-string param (empty during SSR, where there's no
+// URL). One helper so islands stop re-spelling the URLSearchParams read with
+// their own isServer guard.
+export function queryParam(name: string): string {
+  if (typeof window === "undefined") return "";
+  return new URLSearchParams(window.location.search).get(name) ?? "";
+}
+
+// Anonymous authors are the derived `anon-<ip_hash>` pseudonym; everyone else is
+// a real login. One predicate so the display components don't each test the prefix.
+export function isAnonName(name: string): boolean {
+  return name.startsWith("anon-");
+}
