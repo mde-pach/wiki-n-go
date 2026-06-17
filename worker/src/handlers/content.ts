@@ -233,11 +233,15 @@ interface PrNode {
 
 export async function listPending(env: Env): Promise<{ pending: OutPending[] }> {
   const [data, suppressions] = await Promise.all([
-    ghGraphQL<{ repository: { pullRequests: { nodes: PrNode[] } } }>(env, PENDING_QUERY, {
-      owner: env.REPO_OWNER,
-      name: env.REPO_NAME,
-      base: env.BRANCH,
-    }),
+    ghGraphQL<{ repository: { pullRequests: { nodes: PrNode[] } } }>(
+      env,
+      PENDING_QUERY,
+      {
+        owner: env.REPO_OWNER,
+        name: env.REPO_NAME,
+        base: env.BRANCH,
+      },
+    ),
     loadSuppressions(env),
   ]);
   const redact = makeRedactor(suppressions);

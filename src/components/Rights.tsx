@@ -54,20 +54,15 @@ export default function Rights() {
 
       <Show when={data()} fallback={<Status>Loading editors…</Status>}>
         <ul class="ban-list">
-          <li class="ban-row">
+          <li class="rights-row">
             <span class="ban-key">{data()?.owner}</span>
             <span class="ban-scope">owner</span>
-            <span />
-            <span />
-            <span />
           </li>
           <For each={data()?.editors}>
             {(ed) => (
-              <li class="ban-row">
+              <li class="rights-row">
                 <span class="ban-key">{ed}</span>
                 <span class="ban-scope partial">maintainer</span>
-                <span />
-                <span />
                 <button
                   type="button"
                   class="link-btn ban-unblock"

@@ -1829,6 +1829,20 @@ a.preview-body:focus-visible .pv-foot {
   padding: 0.5rem 0;
   border-top: var(--border-w) solid var(--color-border);
 }
+/* Rights reuses the ban-key/ban-scope cells but has only an identity, a tier and
+ * an action — its own 3-column grid (action right-aligned) instead of padding the
+ * 5-column ban grid with empty spacer spans. */
+.rights-row {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 0.65rem;
+  align-items: baseline;
+  padding: 0.5rem 0;
+  border-top: var(--border-w) solid var(--color-border);
+}
+.rights-row .ban-unblock {
+  justify-self: end;
+}
 .ban-key {
   font-family: var(--font-mono);
   font-size: 0.9em;
