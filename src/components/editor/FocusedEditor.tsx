@@ -1,4 +1,4 @@
-import { createMemo, createSignal, Show } from "solid-js";
+import { createMemo, createSignal, Match, Show, Switch } from "solid-js";
 import { isServer } from "solid-js/web";
 import { config } from "../../config";
 import { type EditResult, type Progress, submitEdit } from "../../lib/api";
@@ -162,44 +162,39 @@ export default function FocusedEditor(props: {
 }
 
 function FocusedResult(props: { result: EditResult | undefined; onClose: () => void }) {
+  const pending = () => (props.result?.kind === "pending" ? props.result : undefined);
   return (
     <Show when={props.result}>
-      {(r) => (
-        <div class="fe-publish">
-          <Show
-            when={!r().autoReverted}
-            fallback={
-              <p class="editor-ok editor-reverted" role="alert">
-                This edit was automatically reverted as likely vandalism. If that's
-                wrong, re-edit the page or raise it on the talk page — a maintainer can
-                restore it.
-              </p>
-            }
-          >
-            <p class="editor-ok">
-              <Show
-                when={r().live}
-                fallback={
-                  <>
-                    Submitted for review —{" "}
-                    <a href={r().prUrl} target="_blank" rel="noreferrer">
-                      track its status
-                    </a>
-                    .
-                  </>
-                }
-              >
-                Published live.
-              </Show>
+      <div class="fe-publish">
+        <Switch>
+          <Match when={props.result?.kind === "reverted"}>
+            <p class="editor-ok editor-reverted" role="alert">
+              This edit was automatically reverted as likely vandalism. If that's wrong,
+              re-edit the page or raise it on the talk page — a maintainer can restore
+              it.
             </p>
-          </Show>
-          <div class="editor-actions">
-            <button type="button" class="btn btn-ghost" onClick={props.onClose}>
-              Close
-            </button>
-          </div>
+          </Match>
+          <Match when={pending()}>
+            {(r) => (
+              <p class="editor-ok">
+                Submitted for review —{" "}
+                <a href={r().prUrl} target="_blank" rel="noreferrer">
+                  track its status
+                </a>
+                .
+              </p>
+            )}
+          </Match>
+          <Match when={props.result?.kind === "live"}>
+            <p class="editor-ok">Published live.</p>
+          </Match>
+        </Switch>
+        <div class="editor-actions">
+          <button type="button" class="btn btn-ghost" onClick={props.onClose}>
+            Close
+          </button>
         </div>
-      )}
+      </div>
     </Show>
   );
 }

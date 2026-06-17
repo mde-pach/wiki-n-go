@@ -1,12 +1,25 @@
 import { authHeaders } from "./auth";
 import { engineFetch } from "./tenant";
 
-export interface EditResult {
+// The terminal outcome of a submit, as a tagged union so every case is handled
+// explicitly. Normalized at this boundary from the Worker's flag-bag wire shape.
+export type EditResult =
+  | { kind: "live"; author: string; url?: string } // published to the live branch
+  | { kind: "reverted"; author: string; url?: string } // published, then auto-reverted
+  | { kind: "pending"; author: string; prUrl: string }; // opened a PR for review
+
+interface WireEditResult {
   author: string;
-  live: boolean; // true → published straight to the live branch; false → opened a PR
-  prUrl?: string; // present when live === false
-  url?: string; // commit URL when live === true
-  autoReverted?: boolean; // published, then the automoderator reverted it as vandalism
+  live: boolean;
+  prUrl?: string;
+  url?: string;
+  autoReverted?: boolean;
+}
+
+function toEditResult(w: WireEditResult): EditResult {
+  if (w.autoReverted) return { kind: "reverted", author: w.author, url: w.url };
+  if (w.live) return { kind: "live", author: w.author, url: w.url };
+  return { kind: "pending", author: w.author, prUrl: w.prUrl ?? "" };
 }
 
 export type Tier = "open" | "auto" | "extended" | "maintainer";
@@ -88,7 +101,8 @@ export async function submitEdit(
   });
   // Pre-stream rejection, or the no-op fast path: both come back as plain JSON.
   const streamed = res.headers.get("Content-Type")?.includes("ndjson");
-  if (!res.ok || !streamed || !res.body) return readJson<EditResult>(res);
+  if (!res.ok || !streamed || !res.body)
+    return toEditResult(await readJson<WireEditResult>(res));
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
@@ -105,13 +119,14 @@ export async function submitEdit(
         type: "progress" | "done" | "error";
         progress?: number;
         label?: string;
-        result?: EditResult;
+        result?: WireEditResult;
         status?: number;
         error?: string;
       };
       if (event.type === "progress")
         onProgress?.({ progress: event.progress ?? 0, label: event.label ?? "" });
-      else if (event.type === "done") return event.result as EditResult;
+      else if (event.type === "done")
+        return toEditResult(event.result as WireEditResult);
       else if (event.type === "error")
         throw new ApiError(event.status ?? 500, event.error ?? "Publish failed.");
     }

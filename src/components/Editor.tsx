@@ -1,4 +1,12 @@
-import { createEffect, createMemo, createSignal, onMount, Show } from "solid-js";
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  Match,
+  onMount,
+  Show,
+  Switch,
+} from "solid-js";
 import { createStore } from "solid-js/store";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
@@ -236,6 +244,12 @@ export default function Editor(props: { slug?: string; initialContent?: string }
 
   const cancelHref = () => readHref(slug());
 
+  // Narrow the result union per case so each branch sees only its own fields.
+  const resultOf = <K extends EditResult["kind"]>(kind: K) => {
+    const r = result();
+    return r?.kind === kind ? (r as Extract<EditResult, { kind: K }>) : undefined;
+  };
+
   // Computed only while the confirm dialog is open, so it never costs anything
   // per keystroke. Empty (no net change) → null, so DiffView shows its
   // no-change fallback.
@@ -388,45 +402,41 @@ export default function Editor(props: { slug?: string; initialContent?: string }
           </div>
           <PublishProgress busy={busy()} progress={progress()} />
           <ErrorNote msg={error()} />
-          <Show when={result()}>
-            {(r) => (
-              <Show
-                when={!r().autoReverted}
-                fallback={
-                  <p class="editor-ok editor-reverted" role="alert">
-                    This edit was automatically reverted as likely vandalism. If that's
-                    wrong, re-edit the page or raise it on the talk page — a maintainer
-                    can restore it.
-                  </p>
-                }
-              >
+          <Switch>
+            <Match when={resultOf("reverted")}>
+              <p class="editor-ok editor-reverted" role="alert">
+                This edit was automatically reverted as likely vandalism. If that's
+                wrong, re-edit the page or raise it on the talk page — a maintainer can
+                restore it.
+              </p>
+            </Match>
+            <Match when={resultOf("pending")}>
+              {(r) => (
                 <p class="editor-ok">
-                  <Show
-                    when={r().live}
-                    fallback={
-                      <>
-                        Submitted for review —{" "}
-                        <a href={r().prUrl} target="_blank" rel="noreferrer">
-                          track its status
-                        </a>
-                        .
-                      </>
-                    }
-                  >
-                    Published live — <a href={cancelHref()}>view the page</a>
-                    <Show when={r().url}>
-                      {" "}
-                      ·{" "}
-                      <a href={r().url} target="_blank" rel="noreferrer">
-                        see the change
-                      </a>
-                    </Show>
-                    .
-                  </Show>
+                  Submitted for review —{" "}
+                  <a href={r().prUrl} target="_blank" rel="noreferrer">
+                    track its status
+                  </a>
+                  .
                 </p>
-              </Show>
-            )}
-          </Show>
+              )}
+            </Match>
+            <Match when={resultOf("live")}>
+              {(r) => (
+                <p class="editor-ok">
+                  Published live — <a href={cancelHref()}>view the page</a>
+                  <Show when={r().url}>
+                    {" "}
+                    ·{" "}
+                    <a href={r().url} target="_blank" rel="noreferrer">
+                      see the change
+                    </a>
+                  </Show>
+                  .
+                </p>
+              )}
+            </Match>
+          </Switch>
         </div>
 
         <DraftList
