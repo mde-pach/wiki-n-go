@@ -18,3 +18,6 @@ dist/
 # Working/audit notes + stray screenshots — not product, kept out of the repo.
 analysis/
 setup-page.png
+
+# test coverage output
+coverage/

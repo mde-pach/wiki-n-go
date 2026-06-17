@@ -8,5 +8,11 @@ export default defineConfig({
     // accounts/ (the IdP) runs on Bun and uses `bun:test`, which vitest can't
     // load — it has its own `bun test` runner (see accounts/package.json).
     exclude: [...defaultExclude, "**/.claude/**", "**/accounts/**"],
+    coverage: {
+      provider: "v8",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/**/*.test.{ts,tsx}", "src/**/*.d.ts"],
+      reporter: ["text", "html"],
+    },
   },
 });
