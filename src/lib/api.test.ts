@@ -33,7 +33,8 @@ describe("submitEdit streaming", () => {
     const result = await submitEdit("foo", "# Foo", undefined, "", (p) => seen.push(p));
     expect(seen.map((p) => p.label)).toEqual(["Opening pull request", "Going live"]);
     expect(seen.at(-1)?.progress).toBe(0.9);
-    expect(result).toEqual({ live: true, sha: "abc", author: "anon-x" });
+    // The flag-bag wire shape is normalized into the tagged union at this boundary.
+    expect(result).toEqual({ kind: "live", author: "anon-x", url: undefined });
   });
 
   it("throws an ApiError carrying the in-band status on a mid-publish failure", async () => {
@@ -64,7 +65,7 @@ describe("submitEdit streaming", () => {
     );
     const onProgress = vi.fn();
     const result = await submitEdit("foo", "# Foo", undefined, "", onProgress);
-    expect(result).toEqual({ live: true, author: "anon-x" });
+    expect(result).toEqual({ kind: "live", author: "anon-x", url: undefined });
     expect(onProgress).not.toHaveBeenCalled();
   });
 });
