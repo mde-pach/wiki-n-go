@@ -1,5 +1,9 @@
 import { repoJson } from "./github";
+import { cached } from "./kv";
 import type { Env } from "./types";
+
+const SUPPRESSIONS_CACHE_KEY = "meta:suppressions";
+const SUPPRESSIONS_TTL_MS = 60_000;
 
 // Oversight: hide a vandal's pseudonym or a specific revision from the
 // public-facing feeds (Recent changes, History) at render time. The Worker
@@ -13,26 +17,37 @@ export interface Suppression {
   at?: string;
 }
 
+function isSuppression(s: unknown): s is Suppression {
+  return (
+    !!s &&
+    ((s as Suppression).type === "author" || (s as Suppression).type === "revision") &&
+    typeof (s as Suppression).value === "string"
+  );
+}
+
 export function parseSuppressions(raw: string | undefined): Suppression[] {
   if (!raw) return [];
   try {
     const list = JSON.parse(raw) as unknown;
-    if (!Array.isArray(list)) return [];
-    return list.filter(
-      (s): s is Suppression =>
-        !!s &&
-        ((s as Suppression).type === "author" ||
-          (s as Suppression).type === "revision") &&
-        typeof (s as Suppression).value === "string",
-    );
+    return Array.isArray(list) ? list.filter(isSuppression) : [];
   } catch {
     return [];
   }
 }
 
+// Read by every public feed (Recent changes, History, pending, contributions),
+// so cache it briefly and filter the parsed array in place rather than re-fetch +
+// re-stringify + re-parse on each request. The 60s window matches `s-maxage` on
+// those routes; the suppress/unsuppress handlers bust it for promptness.
 export async function loadSuppressions(env: Env): Promise<Suppression[]> {
-  const list = await repoJson<unknown>(env, "suppressed.json");
-  return parseSuppressions(Array.isArray(list) ? JSON.stringify(list) : undefined);
+  return cached(env, SUPPRESSIONS_CACHE_KEY, SUPPRESSIONS_TTL_MS, async () => {
+    const list = await repoJson<unknown>(env, "suppressed.json");
+    return Array.isArray(list) ? list.filter(isSuppression) : [];
+  });
+}
+
+export async function invalidateSuppressions(env: Env): Promise<void> {
+  await env.RATE_LIMIT?.delete(SUPPRESSIONS_CACHE_KEY);
 }
 
 export interface Redactor {

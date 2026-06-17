@@ -2,6 +2,8 @@ import { toBase64 } from "./crypto";
 import { gh } from "./github";
 import type { Env } from "./types";
 
+export const repoSlug = (env: Env): string => `${env.REPO_OWNER}/${env.REPO_NAME}`;
+
 const BOT_COMMITTER_EMAIL = "bot@anon.invalid";
 export const botCommitter = (env: Env) => ({
   name: `${env.REPO_NAME} bot`,
@@ -77,6 +79,36 @@ export async function appendJsonl(
       author,
     }),
   });
+}
+
+// A repo-root JSON list (bans / trusted-editors / suppressions): captures its
+// path + (de)serialization once so the moderation handlers don't each re-spell
+// the read (getCurrentFile + parse) and write (commitJson + serialize) pair.
+export interface RepoList<T> {
+  read(env: Env): Promise<{ list: T[]; sha: string | undefined }>;
+  write(
+    env: Env,
+    sha: string | undefined,
+    list: T[],
+    message: string,
+    by: { name: string; email: string },
+  ): Promise<void>;
+}
+
+export function defineRepoList<T>(
+  path: string,
+  parse: (raw: string | undefined) => T[],
+  serialize: (list: T[]) => unknown[] = (list) => list as unknown[],
+): RepoList<T> {
+  return {
+    async read(env) {
+      const current = await getCurrentFile(env, repoSlug(env), path);
+      return { list: parse(current?.raw), sha: current?.sha };
+    },
+    write(env, sha, list, message, by) {
+      return commitJson(env, path, serialize(list), message, by, sha);
+    },
+  };
 }
 
 // Current file on the live branch: blob sha (for the next commit) + raw text
