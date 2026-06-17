@@ -148,10 +148,10 @@ describe("ipHash", () => {
     const b = await ipHash("secret", "203.0.113.7");
     expect(a).toBe(b);
   });
-  it("returns 8 hex chars and changes with the secret", async () => {
+  it("returns 16 hex chars and changes with the secret", async () => {
     const a = await ipHash("secret-1", "203.0.113.7");
     const b = await ipHash("secret-2", "203.0.113.7");
-    expect(a).toMatch(/^[0-9a-f]{8}$/);
+    expect(a).toMatch(/^[0-9a-f]{16}$/);
     expect(a).not.toBe(b);
   });
 });

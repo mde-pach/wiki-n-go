@@ -11,12 +11,16 @@ export async function hmacSign(secret: string, data: string): Promise<Uint8Array
   );
 }
 
+// 64 bits of the HMAC: enough that distinct IPs effectively never collide into a
+// shared ban / rate-limit bucket (32 bits birthday-collided at ~65k addresses),
+// while staying short enough for a readable `anon-<hash>` pseudonym. Still a
+// one-way derivation — the raw IP is never stored (privacy invariant).
 export async function ipHash(secret: string, ip: string): Promise<string> {
   const sig = await hmacSign(secret, ip);
   return [...sig]
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("")
-    .slice(0, 8);
+    .slice(0, 16);
 }
 
 export function b64urlEncode(bytes: Uint8Array): string {
