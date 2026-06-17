@@ -49,7 +49,7 @@ async function resolveLatestShaUncached(): Promise<string> {
   return (await res.text()).trim();
 }
 
-export function cdnUrl(sha: string, slug: string): string {
+function cdnUrl(sha: string, slug: string): string {
   const path = `${config.contentDir}/${slug}.md`;
   const { owner, name } = activeRepo();
   return `https://cdn.jsdelivr.net/gh/${owner}/${name}@${sha}/${path}`;

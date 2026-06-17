@@ -93,7 +93,7 @@ export async function maintainerKeys(env: Env): Promise<string[]> {
 // changes, so cache it briefly to spare two CDN reads per call. Grant/revoke
 // busts "maintainers:set" so a change still takes effect promptly.
 const MAINTAINER_SET_TTL_MS = 60_000;
-export function cachedMaintainerKeys(env: Env): Promise<string[]> {
+function cachedMaintainerKeys(env: Env): Promise<string[]> {
   return cached(env, "maintainers:set", MAINTAINER_SET_TTL_MS, () =>
     maintainerKeys(env),
   );

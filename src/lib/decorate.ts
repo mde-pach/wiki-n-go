@@ -117,7 +117,7 @@ export async function renderMermaid(root: HTMLElement): Promise<void> {
 
 // Append a per-section `edit` link to each heading → opens the editor scoped
 // to that section (Wikipedia's `[edit]` affordance).
-export function addSectionEditLinks(root: HTMLElement, slug: string): void {
+function addSectionEditLinks(root: HTMLElement, slug: string): void {
   const heads = root.querySelectorAll<HTMLElement>(":is(h2, h3)[id]");
   for (const h of heads) {
     if (h.querySelector(".section-edit")) continue;
@@ -134,7 +134,7 @@ export function addSectionEditLinks(root: HTMLElement, slug: string): void {
 // section; visibility is recomputed from the full collapsed set each time so
 // nesting works (collapsing an h2 also hides its h3s, independently of their
 // own state). Sections start open so the TOC and anchor links keep working.
-export function makeSectionsCollapsible(root: HTMLElement): void {
+function makeSectionsCollapsible(root: HTMLElement): void {
   const heads = root.querySelectorAll<HTMLElement>(":is(h2, h3, h4)[id]");
   if (heads.length === 0) return;
   const collapsed = new Set<string>();
@@ -186,7 +186,7 @@ export function headingLevel(el: HTMLElement): number {
 }
 
 // Hover popover over a `[N]` citation marker showing the reference text.
-export function attachCiteTooltips(root: HTMLElement): void {
+function attachCiteTooltips(root: HTMLElement): void {
   const refs = root.querySelectorAll<HTMLAnchorElement>("a.cite-ref");
   if (refs.length === 0) return;
   root.querySelector(".cite-tip")?.remove();
@@ -235,7 +235,7 @@ export function attachCiteTooltips(root: HTMLElement): void {
   tip.addEventListener("mouseleave", scheduleHide);
 }
 
-export async function markRedLinks(root: HTMLElement, lang: string): Promise<void> {
+async function markRedLinks(root: HTMLElement, lang: string): Promise<void> {
   const links = root.querySelectorAll<HTMLAnchorElement>("a.wikilink[data-slug]");
   if (links.length === 0) return;
   const pages = await pageSet();

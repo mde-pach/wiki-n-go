@@ -5,7 +5,7 @@ export interface Draft {
   summary: string;
 }
 
-export function draftKey(slug: string): string {
+function draftKey(slug: string): string {
   return `wng-draft:${slug}`;
 }
 

@@ -79,6 +79,7 @@ export const CACHE_CONTROL: Record<string, string> = {
   "GET /diff": "public, s-maxage=300, stale-while-revalidate=3600",
   "GET /cite": "public, s-maxage=3600, stale-while-revalidate=86400",
   "GET /changes": "public, s-maxage=15, stale-while-revalidate=120",
+  "GET /pending": "public, s-maxage=15, stale-while-revalidate=120",
   "GET /resolve": "public, s-maxage=30, stale-while-revalidate=300",
   "GET /config": "public, s-maxage=30, stale-while-revalidate=300",
 };

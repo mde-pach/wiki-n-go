@@ -100,7 +100,7 @@ export async function signAppJwt(
   return `${signingInput}.${b64urlEncode(new Uint8Array(sig))}`;
 }
 
-export function appJwt(env: Env, nowSec: number): Promise<string> {
+function appJwt(env: Env, nowSec: number): Promise<string> {
   return signAppJwt(
     env.GITHUB_APP_ID as string,
     env.GITHUB_APP_PRIVATE_KEY as string,
