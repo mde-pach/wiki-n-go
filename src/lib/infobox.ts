@@ -1,5 +1,12 @@
-import { normalizeRow, type PageMeta } from "./frontmatter";
+import type { InfoboxRow, PageMeta } from "./frontmatter";
 import { prettify } from "./paths";
+
+// Type-only import of frontmatter above (no `yaml`): defining normalizeRow here,
+// instead of importing the value, keeps the read island's eager bundle off the
+// frontmatter/yaml chunk, which only the lazy markdown path needs.
+function normalizeRow(value: string | InfoboxRow): InfoboxRow {
+  return typeof value === "string" ? { v: value } : value;
+}
 
 const esc = (s: string) =>
   s.replace(

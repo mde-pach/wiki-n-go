@@ -4,12 +4,7 @@ import { classifyTags } from "../lib/categories";
 import { fetchMarkdown, fetchMarkdownAt, PageNotFoundError } from "../lib/content";
 import { decorate as decorateArticle } from "../lib/decorate";
 import { findSection, type SectionSpan } from "../lib/editor-section";
-import {
-  type PageMeta,
-  splitFrontmatter,
-  splitTitle,
-  withFrontmatter,
-} from "../lib/frontmatter";
+import type { PageMeta } from "../lib/frontmatter";
 import { infoboxHtml } from "../lib/infobox";
 import { pageSet } from "../lib/manifest";
 import {
@@ -46,7 +41,9 @@ const loadMarkdown = () => {
 interface SectionEdit {
   mountEl: HTMLElement;
   doc: string;
-  data: Record<string, unknown>;
+  // Rebuilds the full document from an edited body, re-attaching the page's
+  // frontmatter — captured here so withFrontmatter stays in the lazy chunk.
+  reconstruct: (body: string) => string;
   body: string;
   span: SectionSpan;
   // The rendered nodes of the section being edited, hidden while the editor is
@@ -100,7 +97,7 @@ export default function WikiPage(props: {
   // Render markdown with red links already resolved, so missing-target links
   // paint red on first frame instead of flashing blue until `decorate` runs.
   async function renderResolved(raw: string) {
-    const { renderMarkdown, decorateHeadingsHtml, emphasizeLeadHtml } =
+    const { renderMarkdown, decorateHeadingsHtml, emphasizeLeadHtml, splitTitle } =
       await loadMarkdown();
     const { title, body, meta } = splitTitle(raw);
     const html = emphasizeLeadHtml(
@@ -210,12 +207,18 @@ export default function WikiPage(props: {
     if (revOf()) return; // editing targets the live page, not a historic revision
     const id = new URL(link.href, location.href).searchParams.get("section");
     const doc = raw();
-    if (!id || !doc) return; // nothing in hand → let the link navigate to /edit
+    const heading = link.closest<HTMLElement>("h2, h3");
+    if (!id || !doc || !heading) return; // nothing in hand → let the link navigate
+    // We're handling it in-place; parsing the frontmatter needs the lazy chunk.
+    e.preventDefault();
+    void openSectionEdit(doc, id, heading);
+  }
+
+  async function openSectionEdit(doc: string, id: string, heading: HTMLElement) {
+    const { splitFrontmatter, withFrontmatter } = await loadMarkdown();
     const { data, body: md } = splitFrontmatter(doc);
     const span = findSection(md, id);
-    const heading = link.closest<HTMLElement>("h2, h3");
-    if (!span || !heading) return;
-    e.preventDefault();
+    if (!span) return;
     closeSectionEdit();
     const mountEl = document.createElement("div");
     mountEl.className = "section-edit-host";
@@ -223,7 +226,7 @@ export default function WikiPage(props: {
     setSectionEdit({
       mountEl,
       doc,
-      data,
+      reconstruct: (b) => withFrontmatter(data, b),
       body: md,
       span,
       hidden: hideSection(mountEl),
@@ -320,10 +323,10 @@ export default function WikiPage(props: {
                   original={s().doc}
                   source={s().body}
                   span={s().span}
-                  reconstruct={(b) => withFrontmatter(s().data, b)}
+                  reconstruct={s().reconstruct}
                   onClose={closeSectionEdit}
                   onPublished={(r, doc) => {
-                    if (r.live) publishedDoc = doc;
+                    if (r.kind === "live") publishedDoc = doc;
                   }}
                 />
               </Suspense>

@@ -1,5 +1,4 @@
 import { fetchMarkdown, PageNotFoundError } from "./content";
-import { splitTitle } from "./frontmatter";
 import { pageSet } from "./manifest";
 import { BASE, langOf, prettify, readHref, resolveWikiSlug, viewHref } from "./paths";
 import { attachPagePreviews } from "./previews";
@@ -54,10 +53,11 @@ async function fillTransclude(node: HTMLElement, pageSlug: string): Promise<void
     return;
   }
   try {
+    // Only a page that actually transcludes needs the markdown engine (and the
+    // frontmatter parser it re-exports) on the client — pull both on demand via
+    // one dynamic import so the read path doesn't ship them eagerly.
+    const { renderMarkdown, splitTitle } = await import("./markdown");
     const { body } = splitTitle(await loadTransclude(slug));
-    // Only a page that actually transcludes needs the markdown engine on the
-    // client — pull it on demand so the read path doesn't ship it eagerly.
-    const { renderMarkdown } = await import("./markdown");
     node.innerHTML = renderMarkdown(body);
   } catch (e) {
     node.innerHTML =

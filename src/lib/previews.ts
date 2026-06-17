@@ -1,6 +1,5 @@
 import { onSwapReset } from "./cache-reset";
 import { fetchMarkdown, PageNotFoundError } from "./content";
-import { splitTitle } from "./frontmatter";
 import { BASE, prettify, readHref } from "./paths";
 
 type Card =
@@ -58,7 +57,9 @@ function load(slug: string): Promise<Card> {
   let p = cache.get(slug);
   if (!p) {
     p = fetchMarkdown(slug)
-      .then((raw): Card => {
+      .then(async (raw): Promise<Card> => {
+        // Lazy so the frontmatter parser (yaml) isn't in the read hydration chunk.
+        const { splitTitle } = await import("./frontmatter");
         const { title, body, meta } = splitTitle(raw);
         return {
           kind: "page",

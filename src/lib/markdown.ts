@@ -11,6 +11,11 @@ import { transclusion } from "./transclude";
 import { escapeRegExp } from "./util";
 import { markRedLinksHtml, mention, wikilink } from "./wikilink";
 
+// Re-exported (splitTitle already is, below) so the read island can reach the
+// frontmatter parser/serializer through this already-lazy chunk, keeping `yaml`
+// out of its hydration bundle.
+export { splitFrontmatter, withFrontmatter } from "./frontmatter";
+
 // Shared markdown-it instance (no DOMPurify, so it runs at build/SSR too).
 //
 // XSS invariant — read before adding a plugin. The SSR/static paths inject
