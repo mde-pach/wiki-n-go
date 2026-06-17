@@ -49,6 +49,12 @@ function getIndex(env: Env): Promise<IndexMap> {
   return cached(env, "meta:index", INDEX_TTL_MS, () => buildIndex(env));
 }
 
+// Cold-cache rebuild: a parallel per-slug blob read. Deliberately the
+// authenticated contents API, not a jsDelivr/raw batch — the index drives
+// search/link-graph and is rebuilt right after a merge, where the CDN can still
+// be serving the pre-merge content (stale index). If the fan-out ever trips
+// GitHub's secondary rate limit on a very large wiki, batch via the GraphQL
+// `object(expression:"<sha>:<path>")` blobs API (one round-trip), not the CDN.
 async function buildIndex(env: Env): Promise<IndexMap> {
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
   const { pages } = await listPages(env);
