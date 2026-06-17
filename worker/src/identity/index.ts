@@ -24,11 +24,16 @@ function anonWriter(hash: string): Writer {
   return { name, email: `${name}@anon.invalid`, avatar: null, isAnon: true, key: name };
 }
 
+// An avatar URL ends up in an <img src> on comments/profiles; constrain it to
+// https so a forged session can't smuggle a javascript:/data:/tracking URL.
+const safeAvatar = (url: string | null | undefined): string | null =>
+  url && /^https:\/\//i.test(url) ? url : null;
+
 function githubWriter(s: Session): Writer {
   return {
     name: s.login,
     email: ghNoreplyEmail(s.id, s.login),
-    avatar: s.avatar ?? null,
+    avatar: safeAvatar(s.avatar),
     isAnon: false,
     key: `gh:${s.login}`,
   };
@@ -42,7 +47,7 @@ function wikigitWriter(s: Session): Writer {
   return {
     name: s.login,
     email: `wg-${id}@users.wikigit.invalid`,
-    avatar: s.avatar ?? null,
+    avatar: safeAvatar(s.avatar),
     isAnon: false,
     key: `wg:${id}`,
   };
@@ -86,6 +91,9 @@ export async function resolve(
 
 // Shared maintainer gate for the in-UI moderation actions. Works for an
 // anonymous maintainer (by ip_hash) or a signed-in one (by GitHub login).
+// Deliberately uses the un-gated resolve() (no PoW/rate-limit/ban): maintainer
+// status is owner-granted via trusted-editors.json and supersedes a ban — to
+// revoke a rogue maintainer, remove them from that list, don't ban the key.
 export async function requireMaintainer(
   env: Env,
   request: Request,

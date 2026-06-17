@@ -20,16 +20,48 @@ describe("writerFor", () => {
 
   it("maps a Wikigit session to a wg: key off the stable sub (handle is display only)", () => {
     const w = writerFor(
-      { provider: "wikigit", login: "alice", id: 0, avatar: "p", sub: "u_123", exp: 0 },
+      {
+        provider: "wikigit",
+        login: "alice",
+        id: 0,
+        avatar: "https://avatars.example/p.png",
+        sub: "u_123",
+        exp: 0,
+      },
       "x",
     );
     expect(w).toMatchObject({
       name: "alice", // display handle
       key: "wg:u_123", // keyed off the stable id, not the handle
       isAnon: false,
-      avatar: "p",
+      avatar: "https://avatars.example/p.png",
     });
     expect(w.email).toBe("wg-u_123@users.wikigit.invalid");
+  });
+
+  it("drops a non-https avatar (a forged session can't smuggle javascript:/data:)", () => {
+    const bad = writerFor(
+      {
+        provider: "github",
+        login: "octocat",
+        id: 1,
+        avatar: "javascript:alert(1)",
+        exp: 0,
+      },
+      "x",
+    );
+    expect(bad.avatar).toBeNull();
+    const ok = writerFor(
+      {
+        provider: "github",
+        login: "octocat",
+        id: 1,
+        avatar: "https://a/o.png",
+        exp: 0,
+      },
+      "x",
+    );
+    expect(ok.avatar).toBe("https://a/o.png");
   });
 
   it("treats a legacy session without a provider as GitHub", () => {

@@ -107,4 +107,9 @@ describe("parseBans", () => {
       { key: "b", paths: ["x"], reason: undefined, by: undefined, at: undefined },
     ]);
   });
+  it("drops keyless/corrupted entries instead of keeping a fail-open ban", () => {
+    expect(parseBans('[{"paths":["x"]}, {"key":"","reason":"r"}, "ok"]')).toEqual([
+      { key: "ok", paths: [] },
+    ]);
+  });
 });

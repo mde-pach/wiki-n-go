@@ -42,6 +42,10 @@ export async function ban(
     : [];
   const reason = body.reason ? String(body.reason).slice(0, 280) : undefined;
   const expires = body.expires ? parseExpiry(String(body.expires)) : undefined;
+  // A past (or "0m") expiry would create a ban that lists as active but is
+  // treated as already-lifted everywhere — fail-open. Reject it up front.
+  if (expires && Date.parse(expires) <= Date.now())
+    throw new HttpError(400, "Ban expiry must be in the future.");
 
   const writer = await requireMaintainer(env, request, "Banning");
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;

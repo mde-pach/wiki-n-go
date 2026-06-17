@@ -109,7 +109,11 @@ export async function review(
       method: "PUT",
       body: JSON.stringify({ merge_method: "squash", commit_title: pr.title }),
     });
-    await invalidateContent(env, refIdentity(pr.head.ref).author);
+    // Bust the merged author's trust cache (their accepted-edit count just rose).
+    // The branch ref carries the author; map it to the trust key (`gh:` for a
+    // signed-in login, the bare pseudonym for anon).
+    const merged = refIdentity(pr.head.ref);
+    await invalidateContent(env, merged.isAnon ? merged.author : `gh:${merged.author}`);
   } else {
     await gh(env, `/repos/${repo}/pulls/${number}`, {
       method: "PATCH",
@@ -191,7 +195,7 @@ export async function restore(
       }),
     },
   );
-  await invalidateContent(env, writer.name, { keepIndex: true });
+  await invalidateContent(env, writer.key, { keepIndex: true });
   await updateIndexEntry(env, slug, at.raw);
   await autopatrol(env, "maintainer", res.commit.sha);
   await appendAudit(
@@ -255,7 +259,7 @@ export async function deletePage(
       }),
     },
   );
-  await invalidateContent(env, writer.name, { keepIndex: true });
+  await invalidateContent(env, writer.key, { keepIndex: true });
   await removeIndexEntry(env, slug);
   await autopatrol(env, "maintainer", res.commit.sha);
   await appendAudit(env, repo, writer.name, writer.email, "delete", slug);

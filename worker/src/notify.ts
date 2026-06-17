@@ -23,7 +23,9 @@ export interface MailNote {
 export function keyFromCommitEmail(email: string): string | null {
   const wg = email.match(/^wg-(.+)@users\.wikigit\.invalid$/);
   if (wg) return `wg:${wg[1]}`;
-  const gh = email.match(/^\d+\+([^@]+)@users\.noreply\.github\.com$/);
+  // The `id+` prefix is GitHub's modern form; older accounts use a bare
+  // `login@users.noreply.github.com`, so the numeric prefix is optional.
+  const gh = email.match(/^(?:\d+\+)?([^@]+)@users\.noreply\.github\.com$/);
   if (gh) return `gh:${gh[1]}`;
   return null; // anon / bot / unknown → unreachable
 }

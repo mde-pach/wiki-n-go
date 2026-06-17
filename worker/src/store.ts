@@ -79,12 +79,21 @@ export class MemoryKV implements KV {
     cursor?: string;
   }> {
     const prefix = opts?.prefix ?? "";
-    const keys: { name: string }[] = [];
+    const all: { name: string }[] = [];
     for (const key of this.map.keys()) {
-      if (key.startsWith(prefix) && this.live(key)) keys.push({ name: key });
+      if (key.startsWith(prefix) && this.live(key)) all.push({ name: key });
     }
-    const limited = opts?.limit != null ? keys.slice(0, opts.limit) : keys;
-    return Promise.resolve({ keys: limited, list_complete: true });
+    // Offset-based paging so a caller that follows the cursor terminates (the
+    // real CF KV paginates; the old shim returned everything + list_complete).
+    const start = opts?.cursor ? Number(opts.cursor) || 0 : 0;
+    const end = opts?.limit != null ? start + opts.limit : all.length;
+    const keys = all.slice(start, end);
+    const complete = end >= all.length;
+    return Promise.resolve({
+      keys,
+      list_complete: complete,
+      ...(complete ? {} : { cursor: String(end) }),
+    });
   }
 
   // Test/ops helper: drop everything (e.g. between test cases).

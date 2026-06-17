@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import worker from "./index";
+import worker, { ipHash } from "./index";
 
 type Env = Parameters<typeof worker.fetch>[1];
 
@@ -144,5 +144,31 @@ describe("POST /split", () => {
       makeEnv(),
     );
     expect(res.status).toBe(404);
+  });
+});
+
+describe("partial-ban enforcement on the source page", () => {
+  it("blocks merging away a page in a banned subtree (gate is not just the target)", async () => {
+    const anon = `anon-${await ipHash("s", "0.0.0.0")}`;
+    vi.stubGlobal("fetch", async (input: string | URL, init: RequestInit = {}) => {
+      const url = String(input);
+      const method = init.method ?? "GET";
+      if (url.includes("/contents/") && method === "PUT")
+        return Response.json({ commit: { sha: "x", html_url: "u" } });
+      const m = url.match(/\/contents\/content\/(.+?)\.md\?/);
+      if (m) return Response.json({ sha: "srcsha", content: btoa(`# ${m[1]}`) });
+      // Partial ban scoped to "a" — the source — but NOT the target "b".
+      if (url.includes("raw.githubusercontent.com") && url.includes("bans.json"))
+        return Response.json([{ key: anon, paths: ["a"] }]);
+      if (url.includes("raw.githubusercontent.com"))
+        return new Response("", { status: 404 });
+      if (url.includes("/commits")) return new Response("[]");
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+    const res = await worker.fetch(
+      post("/merge", { from: "a", to: "b", content: "x" }),
+      makeEnv(),
+    );
+    expect(res.status).toBe(403);
   });
 });

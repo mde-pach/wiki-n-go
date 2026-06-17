@@ -1,7 +1,8 @@
+import { isBanned } from "../bans";
 import { utf8Bytes } from "../crypto";
 import { gh } from "../github";
 import { HttpError } from "../http";
-import { resolve } from "../identity";
+import { resolve, type Writer } from "../identity";
 import { invalidateContent } from "../kv";
 import { commitPayload, getCurrentFile } from "../repo";
 import { editorTier, frontmatter, pageTier, TIER_RANK, type Tier } from "../trust";
@@ -43,6 +44,14 @@ function redirectStub(to: string): string {
   return `---\nredirect: ${to}\n---\n\n#REDIRECT [[${to}]]\n`;
 }
 
+async function assertUnbannedSource(env: Env, writer: Writer, from: string) {
+  if (await isBanned(env, writer.key, from))
+    throw new HttpError(
+      403,
+      writer.isAnon ? "This source is blocked." : "This account is blocked.",
+    );
+}
+
 // Fold `from` into `to`: write the composed merged content to `to`, then leave a
 // redirect at `from` so inbound links keep working. `to` is committed first so a
 // mid-operation failure can never lose the folded-in content.
@@ -57,6 +66,9 @@ export async function mergePages(env: Env, request: Request, body: MergeBody) {
   assertSize(content);
 
   const writer = await resolve(env, request, { token: body.token, path: to });
+  // resolve() gates the ban on the target; merge also mutates the source, so a
+  // partial ban on the `from` subtree must block folding it away too.
+  await assertUnbannedSource(env, writer, from);
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
   const fromPath = `${env.CONTENT_DIR}/${from}.md`;
   const toPath = `${env.CONTENT_DIR}/${to}.md`;
@@ -99,7 +111,7 @@ export async function mergePages(env: Env, request: Request, body: MergeBody) {
     }),
   });
 
-  await invalidateContent(env, writer.name);
+  await invalidateContent(env, writer.key);
   return { ok: true, from, to };
 }
 
@@ -119,6 +131,9 @@ export async function splitPage(env: Env, request: Request, body: SplitBody) {
   assertSize(toContent);
 
   const writer = await resolve(env, request, { token: body.token, path: to });
+  // resolve() gates the ban on the target; split also trims the source, so a
+  // partial ban on the `from` subtree must block carving content out of it.
+  await assertUnbannedSource(env, writer, from);
   const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
   const fromPath = `${env.CONTENT_DIR}/${from}.md`;
   const toPath = `${env.CONTENT_DIR}/${to}.md`;
@@ -159,6 +174,6 @@ export async function splitPage(env: Env, request: Request, body: SplitBody) {
     }),
   });
 
-  await invalidateContent(env, writer.name);
+  await invalidateContent(env, writer.key);
   return { ok: true, from, to };
 }

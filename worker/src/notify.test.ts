@@ -19,6 +19,9 @@ describe("keyFromCommitEmail", () => {
       "gh:octocat",
     );
   });
+  it("recovers a gh identity from the legacy (prefix-less) noreply email", () => {
+    expect(keyFromCommitEmail("octocat@users.noreply.github.com")).toBe("gh:octocat");
+  });
   it("returns null for anon / bot / unknown", () => {
     expect(keyFromCommitEmail("anon-deadbeef@anon.invalid")).toBeNull();
     expect(keyFromCommitEmail("bot@anon.invalid")).toBeNull();

@@ -47,7 +47,7 @@ export async function protect(
       }),
     },
   );
-  await invalidateContent(env, writer.name, { keepIndex: true });
+  await invalidateContent(env, writer.key, { keepIndex: true });
   await updateIndexEntry(env, slug, next);
   await autopatrol(env, "maintainer", res.commit.sha);
   await appendAudit(env, repo, writer.name, writer.email, "protect", slug, tier);

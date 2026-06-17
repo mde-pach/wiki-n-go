@@ -316,7 +316,7 @@ export async function prepareEdit(
   // any leftover branch, and report success without opening an empty PR. Fast
   // enough to skip the progress stream.
   if (current && current.raw === content) {
-    await invalidateContent(env, writer.name, { keepIndex: true });
+    await invalidateContent(env, writer.key, { keepIndex: true });
     await updateIndexEntry(env, slug, content);
     await deleteBranch(env, repo, editBranch(writer, slug));
     return { done: { live: true, author: writer.name } };
@@ -524,7 +524,7 @@ async function finishPublish(
   branch: string,
   sha: string,
 ): Promise<void> {
-  await invalidateContent(env, ctx.writer.name, { keepIndex: true });
+  await invalidateContent(env, ctx.writer.key, { keepIndex: true });
   await updateIndexEntry(env, ctx.slug, ctx.content);
   await autopatrol(env, ctx.tier, sha);
   if (ctx.tags.length)
@@ -671,6 +671,6 @@ export async function movePage(env: Env, request: Request, body: MoveBody) {
     }),
   });
 
-  await invalidateContent(env, writer.name);
+  await invalidateContent(env, writer.key);
   return { ok: true, from, to };
 }

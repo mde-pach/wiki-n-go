@@ -120,6 +120,16 @@ describe("POST /ban", () => {
     const res = await worker.fetch(post("/ban", { key: "" }), makeEnv());
     expect(res.status).toBe(400);
   });
+
+  it("rejects an expiry in the past (would create an already-lifted ban)", async () => {
+    stubGitHub({ maintainer: await anonName(), bans: [] });
+    const res = await worker.fetch(
+      post("/ban", { key: "anon-bad", expires: "2000-01-01T00:00:00Z" }),
+      makeEnv(),
+    );
+    expect(res.status).toBe(400);
+    expect(puts.some((p) => p.url.includes("/contents/bans.json"))).toBe(false);
+  });
 });
 
 describe("POST /unban", () => {

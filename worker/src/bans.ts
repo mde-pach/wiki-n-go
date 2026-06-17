@@ -102,7 +102,12 @@ export function parseBans(raw: string | undefined): NormalBan[] {
   if (!raw) return [];
   try {
     const list = JSON.parse(raw) as unknown;
-    return Array.isArray(list) ? list.map((e) => normalizeBan(e as RawBan)) : [];
+    if (!Array.isArray(list)) return [];
+    // Drop entries with no usable key: a corrupted object would normalize to a
+    // keyless ban that silently matches nothing (fail-open) — better to ignore it.
+    return list
+      .map((e) => normalizeBan(e as RawBan))
+      .filter((b) => typeof b.key === "string" && b.key.length > 0);
   } catch {
     return [];
   }

@@ -45,7 +45,10 @@ export async function cached<T>(
 // path keeps `meta:index` (it patches that entry in place via updateIndexEntry).
 export async function invalidateContent(
   env: Env,
-  author?: string,
+  // The provider-qualified identity key (writer.key: `gh:`/`wg:`/`anon-…`), NOT
+  // the bare display name — the trust cache is keyed by `key`, so passing `name`
+  // would never bust it for a signed-in editor.
+  idKey?: string,
   opts: { keepIndex?: boolean } = {},
 ): Promise<void> {
   const kv = env.RATE_LIMIT;
@@ -53,5 +56,5 @@ export async function invalidateContent(
   await kv.delete("meta:latest-sha");
   await kv.delete("meta:pages");
   if (!opts.keepIndex) await kv.delete("meta:index");
-  if (author) await kv.delete(`trust:${author}`);
+  if (idKey) await kv.delete(`trust:${idKey}`);
 }

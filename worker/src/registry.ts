@@ -102,6 +102,9 @@ export function ownerWikiCount(latest: Map<string, Tenant>, owner: string): numb
 }
 
 async function readRaw(env: Env): Promise<string | undefined> {
+  // The registry is operator-global, so this MUST read/write the base KV, never
+  // a per-tenant namespaced one — call readRegistry before resolveTenant wraps
+  // the binding, or every tenant would cache its own stale copy under `r:…`.
   const kv = env.RATE_LIMIT;
   if (kv) {
     const hit = await kv.get(CACHE_KEY);

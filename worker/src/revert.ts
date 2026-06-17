@@ -79,6 +79,8 @@ export async function revertCommit(
     }
     restored.push(slug);
   }
-  await invalidateContent(env, by.name, { keepIndex: true });
+  // Bust the *reverted* author's trust cache — their accepted-edit count just
+  // dropped. `revertedKey` is already provider-qualified; `by` is the committer.
+  await invalidateContent(env, revertedKey ?? undefined, { keepIndex: true });
   return { restored, revertedKey };
 }
