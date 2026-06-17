@@ -1,5 +1,16 @@
-import { batch, createSignal, lazy, onMount, Show, Suspense } from "solid-js";
+import {
+  batch,
+  createSignal,
+  lazy,
+  Match,
+  onCleanup,
+  onMount,
+  Show,
+  Suspense,
+  Switch,
+} from "solid-js";
 import { Portal } from "solid-js/web";
+import type { EditResult } from "../lib/api";
 import { classifyTags } from "../lib/categories";
 import { fetchMarkdown, fetchMarkdownAt, PageNotFoundError } from "../lib/content";
 import { decorate as decorateArticle } from "../lib/decorate";
@@ -93,6 +104,17 @@ export default function WikiPage(props: {
   // (or the CDN) to catch up to a commit we already hold.
   let publishedDoc: string | undefined;
   let body: HTMLDivElement | undefined;
+  // A publish result is announced as a self-dismissing toast rather than a box
+  // the reader must close before the edited section reappears.
+  const [toast, setToast] = createSignal<EditResult>();
+  let toastTimer: ReturnType<typeof setTimeout> | undefined;
+  function announce(r: EditResult) {
+    clearTimeout(toastTimer);
+    setToast(r);
+    const ms = r.kind === "live" ? 3500 : 9000;
+    toastTimer = setTimeout(() => setToast(undefined), ms);
+  }
+  onCleanup(() => clearTimeout(toastTimer));
 
   // Render markdown with red links already resolved, so missing-target links
   // paint red on first frame instead of flashing blue until `decorate` runs.
@@ -327,6 +349,8 @@ export default function WikiPage(props: {
                   onClose={closeSectionEdit}
                   onPublished={(r, doc) => {
                     if (r.kind === "live") publishedDoc = doc;
+                    closeSectionEdit();
+                    announce(r);
                   }}
                 />
               </Suspense>
@@ -334,7 +358,54 @@ export default function WikiPage(props: {
           )}
         </Show>
       </Show>
+      <Show when={toast()}>
+        {(r) => (
+          <Portal mount={document.body}>
+            <div class="toast-wrap">
+              <ResultToast result={r()} />
+            </div>
+          </Portal>
+        )}
+      </Show>
     </article>
+  );
+}
+
+function ResultToast(props: { result: EditResult }) {
+  const kind = () => props.result.kind;
+  return (
+    <div
+      class={kind() === "reverted" ? "toast toast-warn" : "toast"}
+      role={kind() === "reverted" ? "alert" : "status"}
+      aria-live={kind() === "reverted" ? "assertive" : "polite"}
+    >
+      <Switch>
+        <Match when={kind() === "live"}>
+          <Icons.Check />
+          <span>Published live.</span>
+        </Match>
+        <Match when={props.result.kind === "pending" && props.result}>
+          {(r) => (
+            <>
+              <Icons.Info />
+              <span>
+                Submitted for review —{" "}
+                <a href={r().prUrl} target="_blank" rel="noreferrer">
+                  track its status
+                </a>
+                .
+              </span>
+            </>
+          )}
+        </Match>
+        <Match when={kind() === "reverted"}>
+          <Icons.Warn />
+          <span>
+            Edit reverted as likely vandalism. Re-edit or raise it on the talk page.
+          </span>
+        </Match>
+      </Switch>
+    </div>
   );
 }
 

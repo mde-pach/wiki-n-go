@@ -1451,6 +1451,7 @@ a.preview-body:focus-visible .pv-foot {
   display: flex;
   align-items: center;
   gap: 0.7rem;
+  max-width: min(92vw, 32rem);
   font-family: var(--font-ui);
   font-size: var(--text-ui);
   background: var(--color-ink);
@@ -1463,7 +1464,11 @@ a.preview-body:focus-visible .pv-foot {
 .toast svg {
   width: 17px;
   height: 17px;
+  flex-shrink: 0;
   color: var(--color-add-strong);
+}
+.toast-warn svg {
+  color: var(--color-remove-strong);
 }
 .toast a {
   color: var(--color-accent);

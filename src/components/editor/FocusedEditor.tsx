@@ -1,4 +1,4 @@
-import { createMemo, createSignal, Match, Show, Switch } from "solid-js";
+import { createMemo, createSignal, Show } from "solid-js";
 import { isServer } from "solid-js/web";
 import { config } from "../../config";
 import { type EditResult, type Progress, submitEdit } from "../../lib/api";
@@ -42,7 +42,6 @@ export default function FocusedEditor(props: {
   const initial = props.source.slice(props.span.start, props.span.end);
   const [slice, setSlice] = createSignal(initial);
   const [summary, setSummary] = createSignal(`Edit ${props.span.heading} section`);
-  const [result, setResult] = createSignal<EditResult>();
   const [progress, setProgress] = createSignal<Progress>();
   const [modal, setModal] = createSignal(false);
   const { who } = useWhoami();
@@ -71,7 +70,6 @@ export default function FocusedEditor(props: {
     run(async (tok) => {
       const doc = content();
       const r = await submitEdit(props.slug, doc, tok, summary(), setProgress);
-      setResult(r);
       props.onPublished?.(r, doc);
     });
   }
@@ -89,61 +87,56 @@ export default function FocusedEditor(props: {
         </a>
       </div>
 
-      <Show
-        when={!result()}
-        fallback={<FocusedResult result={result()} onClose={props.onClose} />}
-      >
-        <div class="editor-pane">
-          <div class="pane-bar">
-            <span class="pane-name">Markdown</span>
-            <MarkdownToolbar wrap={wrap} prefixLine={prefixLine} />
-          </div>
-          <textarea
-            ref={ta}
-            class="editor-textarea"
-            rows={rows}
-            // `prop:value` so the seeded section text survives SSR/hydration —
-            // see the note in Editor.tsx. (Client-created today, but kept robust.)
-            prop:value={slice()}
-            placeholder="Write Markdown…"
-            onInput={(e) => setSlice(e.currentTarget.value)}
-          />
+      <div class="editor-pane">
+        <div class="pane-bar">
+          <span class="pane-name">Markdown</span>
+          <MarkdownToolbar wrap={wrap} prefixLine={prefixLine} />
         </div>
+        <textarea
+          ref={ta}
+          class="editor-textarea"
+          rows={rows}
+          // `prop:value` so the seeded section text survives SSR/hydration —
+          // see the note in Editor.tsx. (Client-created today, but kept robust.)
+          prop:value={slice()}
+          placeholder="Write Markdown…"
+          onInput={(e) => setSlice(e.currentTarget.value)}
+        />
+      </div>
 
-        <div class="fe-preview">
-          <span class="fe-preview-label">Live preview</span>
-          <div class="preview-scroll prose" innerHTML={preview()} />
-        </div>
+      <div class="fe-preview">
+        <span class="fe-preview-label">Live preview</span>
+        <div class="preview-scroll prose" innerHTML={preview()} />
+      </div>
 
-        <div class="fe-publish">
-          <input
-            class="input"
-            value={summary()}
-            placeholder="Briefly describe your change"
-            aria-label="Edit summary"
-            onInput={(e) => setSummary(e.currentTarget.value)}
-          />
-          <AttributionRow who={who()} />
-          <div class="editor-actions">
-            <button
-              type="button"
-              class="btn btn-primary"
-              disabled={busy() || !slice().trim()}
-              onClick={() => {
-                setError(undefined);
-                setModal(true);
-              }}
-            >
-              Publish…
-            </button>
-            <button type="button" class="btn btn-ghost" onClick={props.onClose}>
-              Cancel
-            </button>
-          </div>
-          <PublishProgress busy={busy()} progress={progress()} />
-          <ErrorNote msg={error()} />
+      <div class="fe-publish">
+        <input
+          class="input"
+          value={summary()}
+          placeholder="Briefly describe your change"
+          aria-label="Edit summary"
+          onInput={(e) => setSummary(e.currentTarget.value)}
+        />
+        <AttributionRow who={who()} />
+        <div class="editor-actions">
+          <button
+            type="button"
+            class="btn btn-primary"
+            disabled={busy() || !slice().trim()}
+            onClick={() => {
+              setError(undefined);
+              setModal(true);
+            }}
+          >
+            Publish…
+          </button>
+          <button type="button" class="btn btn-ghost" onClick={props.onClose}>
+            Cancel
+          </button>
         </div>
-      </Show>
+        <PublishProgress busy={busy()} progress={progress()} />
+        <ErrorNote msg={error()} />
+      </div>
 
       <Show when={modal()}>
         <SubmitConfirm
@@ -158,43 +151,5 @@ export default function FocusedEditor(props: {
         />
       </Show>
     </div>
-  );
-}
-
-function FocusedResult(props: { result: EditResult | undefined; onClose: () => void }) {
-  const pending = () => (props.result?.kind === "pending" ? props.result : undefined);
-  return (
-    <Show when={props.result}>
-      <div class="fe-publish">
-        <Switch>
-          <Match when={props.result?.kind === "reverted"}>
-            <p class="editor-ok editor-reverted" role="alert">
-              This edit was automatically reverted as likely vandalism. If that's wrong,
-              re-edit the page or raise it on the talk page — a maintainer can restore
-              it.
-            </p>
-          </Match>
-          <Match when={pending()}>
-            {(r) => (
-              <p class="editor-ok">
-                Submitted for review —{" "}
-                <a href={r().prUrl} target="_blank" rel="noreferrer">
-                  track its status
-                </a>
-                .
-              </p>
-            )}
-          </Match>
-          <Match when={props.result?.kind === "live"}>
-            <p class="editor-ok">Published live.</p>
-          </Match>
-        </Switch>
-        <div class="editor-actions">
-          <button type="button" class="btn btn-ghost" onClick={props.onClose}>
-            Close
-          </button>
-        </div>
-      </div>
-    </Show>
   );
 }
