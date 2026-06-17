@@ -1,10 +1,10 @@
-import { createMemo, createSignal, Show } from "solid-js";
+import { createMemo, createSignal } from "solid-js";
 import { isServer } from "solid-js/web";
 import { fetchMarkdown } from "../lib/content";
 import { composeMerge, mergePages } from "../lib/lifecycle";
 import { prettify, readHref, slugifyPath } from "../lib/paths";
 import { useSubmit } from "../lib/solid";
-import { ErrorNote, Status, ViewHead } from "./ui";
+import { ErrorNote, PageOp } from "./ui";
 
 export default function MergePage() {
   const from = isServer ? "" : (new URLSearchParams(location.search).get("page") ?? "");
@@ -35,71 +35,60 @@ export default function MergePage() {
   }
 
   return (
-    <div class="merge-page">
-      <ViewHead
-        title="Merge a page"
-        sub="Fold this page's content into another. The other page keeps both, and this one becomes a redirect so existing links keep working."
-      />
-
-      <Show
-        when={from}
-        fallback={
-          <Status>No page specified — open this from a page's “Merge” link.</Status>
-        }
-      >
-        <Show
-          when={done()}
-          fallback={
-            <div class="merge-form">
-              <label class="field-label">
-                Merge this page
-                <input class="input mono" value={from} disabled />
-              </label>
-              <label class="field-label">
-                Into
-                <input
-                  class="input"
-                  value={target()}
-                  placeholder="Target page title or slug"
-                  onInput={(e) => setTarget(e.currentTarget.value)}
-                />
-              </label>
-              <p class="field-hint">
-                Target: <span class="mono">{toSlug() || "…"}</span>
-              </p>
-              <label class="field-label">
-                Reason (optional)
-                <input
-                  class="input"
-                  value={summary()}
-                  onInput={(e) => setSummary(e.currentTarget.value)}
-                />
-              </label>
-              <div class="editor-actions">
-                <button
-                  type="button"
-                  class="btn btn-primary"
-                  disabled={busy()}
-                  onClick={submit}
-                >
-                  {busy() ? "Merging…" : "Merge page"}
-                </button>
-                <a class="btn btn-ghost" href={readHref(from)}>
-                  Cancel
-                </a>
-              </div>
-              <ErrorNote msg={error()} />
-            </div>
-          }
-        >
-          {(to) => (
-            <p class="editor-ok">
-              Merged into <a href={readHref(to())}>{prettify(to())}</a>. A redirect was
-              left at <span class="mono">{from}</span>.
-            </p>
-          )}
-        </Show>
-      </Show>
-    </div>
+    <PageOp
+      cls="merge-page"
+      title="Merge a page"
+      sub="Fold this page's content into another. The other page keeps both, and this one becomes a redirect so existing links keep working."
+      from={from}
+      action="Merge"
+      done={done()}
+      success={(to) => (
+        <p class="editor-ok">
+          Merged into <a href={readHref(to)}>{prettify(to)}</a>. A redirect was left at{" "}
+          <span class="mono">{from}</span>.
+        </p>
+      )}
+    >
+      <div class="merge-form">
+        <label class="field-label">
+          Merge this page
+          <input class="input mono" value={from} disabled />
+        </label>
+        <label class="field-label">
+          Into
+          <input
+            class="input"
+            value={target()}
+            placeholder="Target page title or slug"
+            onInput={(e) => setTarget(e.currentTarget.value)}
+          />
+        </label>
+        <p class="field-hint">
+          Target: <span class="mono">{toSlug() || "…"}</span>
+        </p>
+        <label class="field-label">
+          Reason (optional)
+          <input
+            class="input"
+            value={summary()}
+            onInput={(e) => setSummary(e.currentTarget.value)}
+          />
+        </label>
+        <div class="editor-actions">
+          <button
+            type="button"
+            class="btn btn-primary"
+            disabled={busy()}
+            onClick={submit}
+          >
+            {busy() ? "Merging…" : "Merge page"}
+          </button>
+          <a class="btn btn-ghost" href={readHref(from)}>
+            Cancel
+          </a>
+        </div>
+        <ErrorNote msg={error()} />
+      </div>
+    </PageOp>
   );
 }

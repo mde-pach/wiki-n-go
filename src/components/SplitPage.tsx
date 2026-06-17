@@ -6,7 +6,7 @@ import { splitFrontmatter } from "../lib/frontmatter";
 import { composeSplit, splitPage } from "../lib/lifecycle";
 import { prettify, readHref, slugifyPath } from "../lib/paths";
 import { useSubmit } from "../lib/solid";
-import { ErrorNote, Status, ViewHead } from "./ui";
+import { ErrorNote, PageOp, Status } from "./ui";
 
 export default function SplitPage() {
   const from = isServer ? "" : (new URLSearchParams(location.search).get("page") ?? "");
@@ -49,92 +49,81 @@ export default function SplitPage() {
   }
 
   return (
-    <div class="split-page">
-      <ViewHead
-        title="Split a page"
-        sub="Carve a section of this page into a new page of its own. The section is moved over and removed from here."
-      />
-
+    <PageOp
+      cls="split-page"
+      title="Split a page"
+      sub="Carve a section of this page into a new page of its own. The section is moved over and removed from here."
+      from={from}
+      action="Split"
+      done={done()}
+      success={(to) => (
+        <p class="editor-ok">
+          Split into <a href={readHref(to)}>{prettify(to)}</a>. The section was removed
+          from <span class="mono">{from}</span>.
+        </p>
+      )}
+    >
       <Show
-        when={from}
+        when={sections().length}
         fallback={
-          <Status>No page specified — open this from a page's “Split” link.</Status>
+          <Status>
+            This page has no <span class="mono">##</span> sections to split out.
+          </Status>
         }
       >
-        <Show
-          when={done()}
-          fallback={
-            <Show
-              when={sections().length}
-              fallback={
-                <Status>
-                  This page has no <span class="mono">##</span> sections to split out.
-                </Status>
-              }
+        <div class="split-form">
+          <label class="field-label">
+            Split from
+            <input class="input mono" value={from} disabled />
+          </label>
+          <label class="field-label">
+            Section
+            <select
+              class="input"
+              value={chosen()}
+              onChange={(e) => setSection(e.currentTarget.value)}
             >
-              <div class="split-form">
-                <label class="field-label">
-                  Split from
-                  <input class="input mono" value={from} disabled />
-                </label>
-                <label class="field-label">
-                  Section
-                  <select
-                    class="input"
-                    value={chosen()}
-                    onChange={(e) => setSection(e.currentTarget.value)}
-                  >
-                    <For each={sections()}>
-                      {(s) => <option value={s.slug}>{s.heading}</option>}
-                    </For>
-                  </select>
-                </label>
-                <label class="field-label">
-                  New page name
-                  <input
-                    class="input"
-                    value={title()}
-                    placeholder="New page title or slug"
-                    onInput={(e) => setTitle(e.currentTarget.value)}
-                  />
-                </label>
-                <p class="field-hint">
-                  New address: <span class="mono">{toSlug() || "…"}</span>
-                </p>
-                <label class="field-label">
-                  Reason (optional)
-                  <input
-                    class="input"
-                    value={summary()}
-                    onInput={(e) => setSummary(e.currentTarget.value)}
-                  />
-                </label>
-                <div class="editor-actions">
-                  <button
-                    type="button"
-                    class="btn btn-primary"
-                    disabled={busy()}
-                    onClick={submit}
-                  >
-                    {busy() ? "Splitting…" : "Split section"}
-                  </button>
-                  <a class="btn btn-ghost" href={readHref(from)}>
-                    Cancel
-                  </a>
-                </div>
-                <ErrorNote msg={error()} />
-              </div>
-            </Show>
-          }
-        >
-          {(to) => (
-            <p class="editor-ok">
-              Split into <a href={readHref(to())}>{prettify(to())}</a>. The section was
-              removed from <span class="mono">{from}</span>.
-            </p>
-          )}
-        </Show>
+              <For each={sections()}>
+                {(s) => <option value={s.slug}>{s.heading}</option>}
+              </For>
+            </select>
+          </label>
+          <label class="field-label">
+            New page name
+            <input
+              class="input"
+              value={title()}
+              placeholder="New page title or slug"
+              onInput={(e) => setTitle(e.currentTarget.value)}
+            />
+          </label>
+          <p class="field-hint">
+            New address: <span class="mono">{toSlug() || "…"}</span>
+          </p>
+          <label class="field-label">
+            Reason (optional)
+            <input
+              class="input"
+              value={summary()}
+              onInput={(e) => setSummary(e.currentTarget.value)}
+            />
+          </label>
+          <div class="editor-actions">
+            <button
+              type="button"
+              class="btn btn-primary"
+              disabled={busy()}
+              onClick={submit}
+            >
+              {busy() ? "Splitting…" : "Split section"}
+            </button>
+            <a class="btn btn-ghost" href={readHref(from)}>
+              Cancel
+            </a>
+          </div>
+          <ErrorNote msg={error()} />
+        </div>
       </Show>
-    </div>
+    </PageOp>
   );
 }

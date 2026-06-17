@@ -32,3 +32,37 @@ export function ErrorNote(props: { msg?: string }) {
 export function Status(props: { children: JSX.Element }) {
   return <p class="wiki-status">{props.children}</p>;
 }
+
+// The shared scaffold for the page-lifecycle ops (move/merge/split): a titled
+// view that needs a source `page` query param, switching between the operation
+// form (children) and a success message once `done` is set. Each op supplies only
+// its copy, its form, and its success render.
+export function PageOp(props: {
+  cls: string;
+  title: string;
+  sub: string;
+  from: string;
+  // The link label in the "open this from a page's …" hint when no page is given.
+  action: string;
+  done: string | undefined;
+  success: (to: string) => JSX.Element;
+  children: JSX.Element;
+}) {
+  return (
+    <div class={props.cls}>
+      <ViewHead title={props.title} sub={props.sub} />
+      <Show
+        when={props.from}
+        fallback={
+          <Status>
+            No page specified — open this from a page's “{props.action}” link.
+          </Status>
+        }
+      >
+        <Show when={props.done} fallback={props.children}>
+          {(to) => props.success(to())}
+        </Show>
+      </Show>
+    </div>
+  );
+}
