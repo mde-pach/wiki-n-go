@@ -1,4 +1,4 @@
-import { createResource, createSignal, For, Show } from "solid-js";
+import { createMemo, createResource, createSignal, For, Show } from "solid-js";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
 import { rollbackCommit } from "../lib/admin";
@@ -28,13 +28,13 @@ export default function RecentChanges(props: { admin?: boolean }) {
     ? null
     : new URLSearchParams(window.location.search).get("author");
 
-  const rows = () => {
+  const rows = createMemo(() => {
     let all = changes() ?? [];
     if (author) all = all.filter((c) => c.author === author);
     if (unreviewedOnly()) all = all.filter((c) => !c.patrolled);
     if (highRiskOnly()) all = all.filter((c) => c.risk >= RISK_HIGH);
     return all;
-  };
+  });
 
   async function patrol(sha: string) {
     mutate((prev) => prev?.map((c) => (c.sha === sha ? { ...c, patrolled: true } : c)));

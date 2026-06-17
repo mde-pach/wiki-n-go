@@ -8,6 +8,9 @@ import { BASE } from "../lib/paths";
 
 const home = `${BASE}/`;
 
+// A dev-only style guide — don't ship it (or its live Appearance island) to prod.
+if (import.meta.env.PROD) return Astro.redirect(home);
+
 const colorRoles: { name: string; role: string }[] = [
   { name: "--color-canvas", role: "Page surround behind the article" },
   { name: "--color-surface", role: "Article / card surface" },

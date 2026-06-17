@@ -13,3 +13,11 @@ export function timeAgo(iso: string): string {
     if (s >= sec) return `${Math.floor(s / sec)}${label} ago`;
   return "just now";
 }
+
+// `YYYY-MM-DD HH:MM` straight from the ISO (UTC) string — locale- and timezone-
+// independent, unlike toLocaleString, so it renders identically everywhere and
+// never flips on hydration.
+export function isoDateTime(iso: string): string {
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  return m ? `${m[1]}-${m[2]}-${m[3]} ${m[4]}:${m[5]}` : iso;
+}

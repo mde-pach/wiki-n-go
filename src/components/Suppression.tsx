@@ -67,12 +67,16 @@ export default function Suppression() {
         </select>
         <input
           class="ban-input"
+          aria-label={
+            type() === "author" ? "Author to suppress" : "Revision sha to suppress"
+          }
           placeholder={type() === "author" ? "anon-… or login" : "commit sha"}
           value={value()}
           onInput={(e) => setValue(e.currentTarget.value)}
         />
         <input
           class="ban-input"
+          aria-label="Reason (optional)"
           placeholder="reason — optional"
           value={reason()}
           onInput={(e) => setReason(e.currentTarget.value)}

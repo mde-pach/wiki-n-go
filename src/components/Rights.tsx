@@ -50,6 +50,7 @@ export default function Rights() {
       <form class="ban-form" onSubmit={grant}>
         <input
           class="ban-input"
+          aria-label="Editor to grant or revoke (anon hash or GitHub login)"
           placeholder="anon-… hash or GitHub login"
           value={key()}
           onInput={(e) => setKey(e.currentTarget.value)}

@@ -3,6 +3,7 @@ import { config } from "../config";
 import { restoreRevision } from "../lib/admin";
 import { type DLine, parseDiff } from "../lib/diff";
 import { repoWebUrl } from "../lib/engine";
+import { isoDateTime } from "../lib/format";
 import { getDiff, getHistory, type Revision } from "../lib/history";
 import { readHref, slugFromLocation, viewHref } from "../lib/paths";
 import { clientResource, useWhoami } from "../lib/solid";
@@ -181,7 +182,7 @@ export default function History(props: { slug?: string }) {
                       target="_blank"
                       rel="noreferrer"
                     >
-                      {new Date(r.date).toLocaleString()}
+                      {isoDateTime(r.date)}
                     </a>
                     <span
                       class={`rev-author${r.author.startsWith("anon-") ? " is-anon" : ""}`}

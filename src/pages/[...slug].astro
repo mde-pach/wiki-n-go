@@ -107,12 +107,12 @@ const contributor =
     <div class="col-main">
       <TocMobile initialItems={ssr ? (parsed?.headings ?? []) : []} client:load />
       <CurationBoot />
-      <PageCuration slug={pageSlug} bar client:load />
+      <PageCuration slug={pageSlug} bar client:idle />
       <WikiPage slug={pageSlug} initialHtml={ssr ? html : undefined} initialRaw={ssr ? raw : undefined} meta={ssr ? parsed?.meta : undefined} fresh={ssr} missing={ssr && !parsed} client:load />
       {contributor && <Contributions login={contributor} client:load />}
     </div>
     <div class="col-info">
-      <Appearance client:load />
+      <Appearance client:idle />
     </div>
   </main>
 </PageShell>

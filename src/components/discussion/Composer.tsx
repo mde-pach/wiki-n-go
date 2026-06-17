@@ -44,7 +44,7 @@ export function Composer(props: {
         <button
           type="button"
           class="btn btn-primary btn-sm"
-          disabled={busy()}
+          disabled={busy() || !draft().trim()}
           onClick={submit}
         >
           {busy() ? "Posting…" : props.submitLabel}

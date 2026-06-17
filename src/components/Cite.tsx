@@ -53,6 +53,7 @@ export default function Cite() {
         <input
           class="input"
           value={query()}
+          aria-label="URL, DOI, or ISBN to cite"
           placeholder="https://… · 10.1038/… · 978-0-13-468599-1"
           onInput={(e) => setQuery(e.currentTarget.value)}
         />

@@ -41,6 +41,7 @@ export default function Protection() {
       <form class="ban-form" onSubmit={submit}>
         <input
           class="ban-input"
+          aria-label="Page slug to protect"
           placeholder="page slug, e.g. docs/install"
           value={slug()}
           onInput={(e) => setSlug(e.currentTarget.value)}

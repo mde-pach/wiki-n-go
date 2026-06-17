@@ -67,24 +67,28 @@ export default function Bans() {
       <form class="ban-form" onSubmit={submit}>
         <input
           class="ban-input"
+          aria-label="Editor to ban (anon hash or GitHub login)"
           placeholder="anon-… hash or GitHub login"
           value={key()}
           onInput={(e) => setKey(e.currentTarget.value)}
         />
         <input
           class="ban-input"
+          aria-label="Path scope (optional, comma-separated)"
           placeholder="path scope — optional, comma-separated"
           value={paths()}
           onInput={(e) => setPaths(e.currentTarget.value)}
         />
         <input
           class="ban-input"
+          aria-label="Reason (optional)"
           placeholder="reason — optional"
           value={reason()}
           onInput={(e) => setReason(e.currentTarget.value)}
         />
         <input
           class="ban-input"
+          aria-label="Expiry (optional, e.g. 24h, 7d)"
           placeholder="expires — e.g. 24h, 7d (optional)"
           value={expires()}
           onInput={(e) => setExpires(e.currentTarget.value)}
