@@ -6,7 +6,7 @@ import { diffLines } from "../../lib/diff";
 import { type SectionSpan, spliceSection } from "../../lib/editor-section";
 import { renderMarkdown } from "../../lib/markdown";
 import { viewHref } from "../../lib/paths";
-import { useSubmit, useWhoami } from "../../lib/solid";
+import { createDebounced, useSubmit, useWhoami } from "../../lib/solid";
 import { ErrorNote } from "../ui";
 import { MarkdownToolbar } from "./MarkdownToolbar";
 import {
@@ -51,8 +51,11 @@ export default function FocusedEditor(props: {
 
   const content = () =>
     props.reconstruct(spliceSection(props.source, props.span, slice()));
-  const preview = () =>
-    isServer ? "" : renderMarkdown(slice() || "_Nothing to preview yet._");
+  // Debounced so the markdown re-render stays off the per-keystroke path.
+  const debouncedSlice = createDebounced(slice, 150);
+  const preview = createMemo(() =>
+    isServer ? "" : renderMarkdown(debouncedSlice() || "_Nothing to preview yet._"),
+  );
 
   const previewDiff = createMemo(() => {
     if (!modal()) return null;

@@ -1,8 +1,29 @@
-import { type Accessor, createResource, createSignal, type Resource } from "solid-js";
+import {
+  type Accessor,
+  createEffect,
+  createResource,
+  createSignal,
+  onCleanup,
+  type Resource,
+} from "solid-js";
 import { isServer } from "solid-js/web";
 import { getWhoami, type Tier, type WhoAmI } from "./api";
 import { solvePow } from "./pow";
 import { errMessage } from "./util";
+
+// Trailing-debounced mirror of a reactive value: re-emits `source` only after it
+// has stayed unchanged for `ms`. Keeps expensive per-keystroke work (markdown
+// re-render, draft autosave) off the hot path. Effects don't run during SSR, so
+// the debounced value stays at the initial `source()` there.
+export function createDebounced<T>(source: Accessor<T>, ms: number): Accessor<T> {
+  const [value, setValue] = createSignal(source());
+  createEffect(() => {
+    const next = source();
+    const id = setTimeout(() => setValue(() => next), ms);
+    onCleanup(() => clearTimeout(id));
+  });
+  return value;
+}
 
 // createResource that never runs during SSR. Pass a source accessor for resources
 // keyed on reactive input (refetched when it changes); omit it to fetch once on

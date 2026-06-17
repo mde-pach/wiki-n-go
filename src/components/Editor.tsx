@@ -18,7 +18,7 @@ import { findSection } from "../lib/editor-section";
 import { splitFrontmatter, withFrontmatter } from "../lib/frontmatter";
 import { renderMarkdown } from "../lib/markdown";
 import { BASE, prettify, readHref, slugFromLocation, userLogin } from "../lib/paths";
-import { useSubmit, useWhoami } from "../lib/solid";
+import { createDebounced, useSubmit, useWhoami } from "../lib/solid";
 import { templateById } from "../lib/templates";
 import { errMessage } from "../lib/util";
 import DraftList from "./DraftList";
@@ -183,9 +183,11 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     setDraftSaved((n) => n + 1);
   }
 
+  // Autosave is debounced so a fast typist doesn't reserialize the whole document
+  // to localStorage on every keystroke.
+  const draftSnapshot = createDebounced(() => ({ c: content(), s: summary() }), 800);
   createEffect(() => {
-    const c = content();
-    const s = summary();
+    const { c, s } = draftSnapshot();
     if (!ready()) return;
     persistDraft(slug(), c, s, original());
   });
@@ -203,8 +205,12 @@ export default function Editor(props: { slug?: string; initialContent?: string }
     ta.scrollTop = (span.start / Math.max(1, body().length)) * ta.scrollHeight;
   }
 
-  const preview = () =>
-    isServer ? "" : renderMarkdown(body() || "_Nothing to preview yet._");
+  // Debounced so full markdown-it + DOMPurify re-render doesn't run synchronously
+  // on every keystroke; the mermaid pass downstream is debounced separately.
+  const debouncedBody = createDebounced(body, 150);
+  const preview = createMemo(() =>
+    isServer ? "" : renderMarkdown(debouncedBody() || "_Nothing to preview yet._"),
+  );
 
   // The published page renders ```mermaid fences via a client pass; mirror just
   // that pass on the preview so diagrams (and other client-rendered extensions)
