@@ -1295,9 +1295,13 @@ a.preview-body:focus-visible .pv-foot {
   grid-template-columns: auto 1fr;
   gap: 0.6rem;
   padding: 0.5rem 0;
-  border-top: var(--border-w) solid var(--color-border);
   color: var(--color-ink-muted);
   line-height: 1.5;
+}
+/* Rule between entries only — the `## References` heading underline is the top
+   divider, so a border above the first item would double it. */
+.ref-list li + li {
+  border-top: var(--border-w) solid var(--color-border);
 }
 .ref-list li::before {
   content: counter(ref) ".";
