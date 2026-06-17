@@ -46,9 +46,22 @@ const NOTIFY_TOKEN = process.env.NOTIFY_TOKEN;
 
 // The Engine pushes a wg: notification here — it never holds the address. We
 // verify the bearer, resolve sub → account, and send via the same SMTP as sign-in.
+// Constant-time bearer check so the shared notify token can't be recovered by
+// timing a `!==` comparison byte by byte.
+function tokenOk(header: string | null): boolean {
+  if (!NOTIFY_TOKEN || !header) return false;
+  const expected = `Bearer ${NOTIFY_TOKEN}`;
+  const a = new TextEncoder().encode(header);
+  const b = new TextEncoder().encode(expected);
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+
 async function handleNotify(req: Request): Promise<Response> {
   if (!NOTIFY_TOKEN) return new Response("notifications disabled", { status: 404 });
-  if (req.headers.get("authorization") !== `Bearer ${NOTIFY_TOKEN}`)
+  if (!tokenOk(req.headers.get("authorization")))
     return new Response("unauthorized", { status: 401 });
   let data: { sub?: unknown; subject?: unknown; body?: unknown; link?: unknown };
   try {

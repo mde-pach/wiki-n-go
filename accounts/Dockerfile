@@ -14,4 +14,6 @@ ENV PORT=3000 STORE_PATH=/data/auth-store.json
 VOLUME ["/data"]
 EXPOSE 3000
 
-CMD ["bun", "run", "src/index.ts"]
+# umask 077 so the persisted store — which holds OpenAuth's RSA *private* signing
+# key (the federation's root of trust) — is created 0600, not world-readable.
+CMD ["sh", "-c", "umask 077 && exec bun run src/index.ts"]

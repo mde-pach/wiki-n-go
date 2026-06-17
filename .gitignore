@@ -14,3 +14,7 @@ dist/
 .dev.vars
 
 .playwright-mcp/
+
+# Working/audit notes + stray screenshots — not product, kept out of the repo.
+analysis/
+setup-page.png

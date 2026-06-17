@@ -18,9 +18,29 @@ export async function sendCode(email: string, code: string): Promise<void> {
   await transport.sendMail({
     from: FROM,
     to: email,
-    subject: `Your Wikigit sign-in code: ${code}`,
+    // Keep the code out of the subject line (it lingers in notification previews
+    // and mailbox lists) — body only.
+    subject: "Your Wikigit sign-in code",
     text: `Your Wikigit sign-in code is ${code}.\n\nIt expires shortly. If you didn't request it, you can ignore this email.`,
   });
+}
+
+// Collapse to one line + cap length: the subject becomes a mail header, so a CR/LF
+// would be header injection, and unbounded length is abuse.
+const headerSafe = (s: string) =>
+  s
+    .replace(/[\r\n]+/g, " ")
+    .trim()
+    .slice(0, 200);
+
+// Only embed an https link — never a javascript:/data:/other scheme handed in by
+// a caller (the Engine, or anything that obtained NOTIFY_TOKEN).
+function safeLink(link: string): string {
+  try {
+    return new URL(link).protocol === "https:" ? link : "";
+  } catch {
+    return "";
+  }
 }
 
 // A wiki notification (reverted / pending review / reply), delivered for the
@@ -32,10 +52,12 @@ export async function sendNotification(
   body: string,
   link: string,
 ): Promise<void> {
+  const url = safeLink(link);
+  const text = `${body.slice(0, 4000)}${url ? `\n\n${url}` : ""}`;
   await transport.sendMail({
     from: FROM,
     to: email,
-    subject,
-    text: link ? `${body}\n\n${link}` : body,
+    subject: headerSafe(subject),
+    text,
   });
 }
