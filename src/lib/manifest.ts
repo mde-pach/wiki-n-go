@@ -19,7 +19,7 @@ onSwapReset(() => {
 async function load(): Promise<Set<string>> {
   if (!config.workerUrl) return new Set();
   try {
-    const res = await engineFetch("/pages", { cache: "no-store" });
+    const res = await engineFetch("/pages");
     if (!res.ok) return new Set();
     return new Set(((await res.json()) as { pages: string[] }).pages);
   } catch {

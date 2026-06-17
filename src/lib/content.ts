@@ -1,4 +1,5 @@
 import { config } from "../config";
+import { onSwapReset } from "./cache-reset";
 import { activeRepo, engineUrl } from "./engine";
 import { bootTenant } from "./tenant";
 
@@ -9,9 +10,27 @@ export class PageNotFoundError extends Error {
   }
 }
 
-// Resolve via the Worker (edge + KV cached, authenticated quota) when set, else
-// the GitHub API. `no-store` stops the browser pinning a stale SHA after a merge.
-export async function resolveLatestSha(): Promise<string> {
+// One SHA resolution per page view, shared by the article, every transclusion and
+// every hovercard (they'd otherwise each re-fetch `/latest`). Cleared on the router
+// swap that follows an in-site edit so the next view re-resolves the post-merge SHA.
+let shaCache: Promise<string> | undefined;
+onSwapReset(() => {
+  shaCache = undefined;
+});
+
+export function resolveLatestSha(): Promise<string> {
+  if (!shaCache) {
+    shaCache = resolveLatestShaUncached();
+    shaCache.catch(() => {
+      shaCache = undefined;
+    });
+  }
+  return shaCache;
+}
+
+// `no-store` stops the browser pinning a stale SHA after a merge; the in-flight
+// memo above, not the HTTP cache, is what coalesces the per-view fan-out.
+async function resolveLatestShaUncached(): Promise<string> {
   await bootTenant();
   if (config.workerUrl) {
     try {
