@@ -1,7 +1,7 @@
 import { createResource, createSignal, For, Show } from "solid-js";
 import { isServer } from "solid-js/web";
 import { grantEditor, listEditors, revokeEditor } from "../lib/admin";
-import { errMessage } from "../lib/util";
+import { useFormAction } from "../lib/solid";
 import { ErrorNote, Status, ViewHead } from "./ui";
 
 export default function Rights() {
@@ -10,34 +10,24 @@ export default function Rights() {
     listEditors,
   );
   const [key, setKey] = createSignal("");
-  const [busy, setBusy] = createSignal(false);
-  const [error, setError] = createSignal<string>();
+  const { busy, error, run } = useFormAction();
 
   async function grant(e: Event) {
     e.preventDefault();
     const k = key().trim();
     if (!k) return;
-    setBusy(true);
-    setError();
-    try {
+    await run(async () => {
       await grantEditor(k);
       setKey("");
       refetch();
-    } catch (e) {
-      setError(errMessage(e));
-    } finally {
-      setBusy(false);
-    }
+    });
   }
 
   async function revoke(k: string) {
-    setError();
-    try {
+    await run(async () => {
       await revokeEditor(k);
       refetch();
-    } catch (e) {
-      setError(errMessage(e));
-    }
+    });
   }
 
   return (

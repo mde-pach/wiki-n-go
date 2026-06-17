@@ -59,6 +59,33 @@ export function useSubmit(): Submit {
   return { busy, error, setError, run };
 }
 
+// The non-PoW sibling of useSubmit, for maintainer/admin forms (already proven
+// human via sign-in): same busy/error/run shape, no proof-of-work, and the action
+// takes no token. Lets the admin islands drop their hand-rolled try/finally.
+export interface FormAction {
+  busy: Accessor<boolean>;
+  error: Accessor<string | undefined>;
+  setError: (msg?: string) => void;
+  run: (action: () => Promise<void>) => Promise<void>;
+}
+
+export function useFormAction(): FormAction {
+  const [busy, setBusy] = createSignal(false);
+  const [error, setError] = createSignal<string>();
+  async function run(action: () => Promise<void>) {
+    setBusy(true);
+    setError(undefined);
+    try {
+      await action();
+    } catch (e) {
+      setError(errMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return { busy, error, setError, run };
+}
+
 // Identity is the same for every island on the page and stable across an in-site
 // navigation (the Worker reads it from the cookie). Share one in-flight request
 // so the curation bar, auth button, etc. don't each fetch it — and so the bar

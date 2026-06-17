@@ -2,6 +2,7 @@ import { createResource, createSignal, For, Show } from "solid-js";
 import { isServer } from "solid-js/web";
 import { addBan, type Ban, listBans, removeBan } from "../lib/admin";
 import { timeAgo } from "../lib/format";
+import { useFormAction } from "../lib/solid";
 import { errMessage } from "../lib/util";
 import { ErrorNote, Status, ViewHead } from "./ui";
 
@@ -14,16 +15,13 @@ export default function Bans() {
   const [paths, setPaths] = createSignal("");
   const [reason, setReason] = createSignal("");
   const [expires, setExpires] = createSignal("");
-  const [busy, setBusy] = createSignal(false);
-  const [error, setError] = createSignal<string>();
+  const { busy, error, setError, run } = useFormAction();
 
   async function submit(e: Event) {
     e.preventDefault();
     const k = key().trim();
     if (!k) return;
-    setBusy(true);
-    setError();
-    try {
+    await run(async () => {
       const scope = paths()
         .split(",")
         .map((p) => p.trim())
@@ -39,11 +37,7 @@ export default function Bans() {
       setReason("");
       setExpires("");
       refetch();
-    } catch (e) {
-      setError(errMessage(e));
-    } finally {
-      setBusy(false);
-    }
+    });
   }
 
   async function unban(k: string) {

@@ -7,7 +7,7 @@ import {
   unsuppress,
 } from "../lib/admin";
 import { timeAgo } from "../lib/format";
-import { errMessage } from "../lib/util";
+import { useFormAction } from "../lib/solid";
 import { ErrorNote, Status, ViewHead } from "./ui";
 
 export default function Suppression() {
@@ -18,35 +18,25 @@ export default function Suppression() {
   const [type, setType] = createSignal<"author" | "revision">("author");
   const [value, setValue] = createSignal("");
   const [reason, setReason] = createSignal("");
-  const [busy, setBusy] = createSignal(false);
-  const [error, setError] = createSignal<string>();
+  const { busy, error, run } = useFormAction();
 
   async function add(e: Event) {
     e.preventDefault();
     const v = value().trim();
     if (!v) return;
-    setBusy(true);
-    setError();
-    try {
+    await run(async () => {
       await suppress(type(), v, reason().trim() || undefined);
       setValue("");
       setReason("");
       refetch();
-    } catch (e) {
-      setError(errMessage(e));
-    } finally {
-      setBusy(false);
-    }
+    });
   }
 
   async function remove(s: S) {
-    setError();
-    try {
+    await run(async () => {
       await unsuppress(s.type, s.value);
       refetch();
-    } catch (e) {
-      setError(errMessage(e));
-    }
+    });
   }
 
   return (

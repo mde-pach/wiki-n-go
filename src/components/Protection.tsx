@@ -1,6 +1,6 @@
 import { createSignal, For, Show } from "solid-js";
 import { setProtection } from "../lib/admin";
-import { errMessage } from "../lib/util";
+import { useFormAction } from "../lib/solid";
 import { ErrorNote, ViewHead } from "./ui";
 
 const TIERS = ["default", "open", "auto", "extended", "maintainer"];
@@ -8,9 +8,8 @@ const TIERS = ["default", "open", "auto", "extended", "maintainer"];
 export default function Protection() {
   const [slug, setSlug] = createSignal("");
   const [tier, setTier] = createSignal("maintainer");
-  const [busy, setBusy] = createSignal(false);
-  const [error, setError] = createSignal<string>();
   const [done, setDone] = createSignal<string>();
+  const { busy, error, run } = useFormAction();
 
   async function submit(e: Event) {
     e.preventDefault();
@@ -18,17 +17,11 @@ export default function Protection() {
       .trim()
       .replace(/^\/+|\/+$/g, "");
     if (!s) return;
-    setBusy(true);
-    setError();
     setDone();
-    try {
+    await run(async () => {
       await setProtection(s, tier());
       setDone(`Set protection of ${s} to ${tier()}.`);
-    } catch (e) {
-      setError(errMessage(e));
-    } finally {
-      setBusy(false);
-    }
+    });
   }
 
   return (
