@@ -1,10 +1,10 @@
-import { createResource, createSignal, For, Show } from "solid-js";
-import { isServer } from "solid-js/web";
+import { createSignal, For, Show } from "solid-js";
 import { config } from "../config";
 import { rollbackCommit } from "../lib/admin";
 import { AUTOMOD_AUTHOR, type Change, listChanges } from "../lib/changes";
 import { timeAgo } from "../lib/format";
 import { prettify, readHref } from "../lib/paths";
+import { clientResource } from "../lib/solid";
 import { errMessage } from "../lib/util";
 import { ConfirmDialog } from "./editor/ConfirmDialog";
 import { ErrorNote, Status, ViewHead } from "./ui";
@@ -15,10 +15,7 @@ import { ErrorNote, Status, ViewHead } from "./ui";
 export default function Automoderator() {
   if (!config.workerUrl) return null;
 
-  const [changes, { refetch }] = createResource(
-    () => (isServer ? undefined : 50),
-    listChanges,
-  );
+  const [changes, { refetch }] = clientResource(() => 50, listChanges);
   const rows = () => (changes() ?? []).filter((c) => c.author === AUTOMOD_AUTHOR);
 
   const [confirm, setConfirm] = createSignal<Change>();

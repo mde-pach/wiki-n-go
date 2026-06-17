@@ -1,11 +1,11 @@
-import { createMemo, createResource, createSignal, For, Show } from "solid-js";
+import { createMemo, createSignal, For, Show } from "solid-js";
 import { isServer } from "solid-js/web";
 import { config } from "../config";
 import { rollbackCommit } from "../lib/admin";
 import { type Change, listChanges, markPatrolled, RISK_HIGH } from "../lib/changes";
 import { timeAgo } from "../lib/format";
 import { changesHref, prettify, readHref } from "../lib/paths";
-import { useWhoami } from "../lib/solid";
+import { clientResource, useWhoami } from "../lib/solid";
 import { errMessage } from "../lib/util";
 import { ConfirmDialog } from "./editor/ConfirmDialog";
 import { ErrorNote, Status, ViewHead } from "./ui";
@@ -13,10 +13,7 @@ import { ErrorNote, Status, ViewHead } from "./ui";
 export default function RecentChanges(props: { admin?: boolean }) {
   if (!config.workerUrl) return null;
 
-  const [changes, { mutate, refetch }] = createResource(
-    () => (isServer ? undefined : 30),
-    listChanges,
-  );
+  const [changes, { mutate, refetch }] = clientResource(() => 30, listChanges);
   const { isMaintainer } = useWhoami();
   const [unreviewedOnly, setUnreviewedOnly] = createSignal(false);
   const [highRiskOnly, setHighRiskOnly] = createSignal(false);

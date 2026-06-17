@@ -16,7 +16,7 @@ export default function History(props: { slug?: string }) {
   if (!config.workerUrl) return null;
 
   const slug = () => props.slug ?? slugFromLocation();
-  const revs = clientResource(slug, getHistory);
+  const [revs] = clientResource(slug, getHistory);
   const [diff, setDiff] = createSignal<{
     a: string;
     b: string;

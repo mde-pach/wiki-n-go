@@ -1,8 +1,8 @@
-import { createResource, For, Show } from "solid-js";
-import { isServer } from "solid-js/web";
+import { For, Show } from "solid-js";
 import { type Change, listChanges } from "../lib/changes";
 import { timeAgo } from "../lib/format";
 import { prettify, readHref } from "../lib/paths";
+import { clientResource } from "../lib/solid";
 import PageCuration from "./PageCuration";
 import { Status, ViewHead } from "./ui";
 
@@ -12,10 +12,7 @@ interface NewPage {
 }
 
 export default function NewPages() {
-  const [changes, { refetch }] = createResource(
-    () => (isServer ? undefined : 60),
-    listChanges,
-  );
+  const [changes, { refetch }] = clientResource(() => 60, listChanges);
 
   const pages = () => {
     const out: NewPage[] = [];

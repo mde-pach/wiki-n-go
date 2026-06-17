@@ -143,8 +143,8 @@ function buildItems(status: EngineStatus | null): Item[] {
 }
 
 export default function Setup() {
-  const status = clientResource(fetchEngineStatus);
-  const firstRun = clientResource(fetchFirstRunState);
+  const [status] = clientResource(fetchEngineStatus);
+  const [firstRun] = clientResource(fetchFirstRunState);
 
   return (
     <main id="main" class="view-wrap setup-page">

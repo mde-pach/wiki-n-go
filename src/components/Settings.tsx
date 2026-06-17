@@ -50,8 +50,8 @@ function parseLanguages(text: string): { code: string; name: string }[] {
 
 export default function Settings() {
   const { isMaintainer } = useWhoami();
-  const loaded = clientResource(loadSiteConfig);
-  const status = clientResource(fetchEngineStatus);
+  const [loaded] = clientResource(loadSiteConfig);
+  const [status] = clientResource(fetchEngineStatus);
 
   const [saved, setSaved] = createSignal(false);
   const [busy, setBusy] = createSignal(false);

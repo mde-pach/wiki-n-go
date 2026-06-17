@@ -1,11 +1,11 @@
-import { createResource, For, Show } from "solid-js";
-import { isServer } from "solid-js/web";
+import { For, Show } from "solid-js";
 import { type AuditEntry, listAudit } from "../lib/admin";
 import { timeAgo } from "../lib/format";
+import { clientResource } from "../lib/solid";
 import { Status, ViewHead } from "./ui";
 
 export default function AuditLog() {
-  const [entries] = createResource(() => (isServer ? undefined : 50), listAudit);
+  const [entries] = clientResource(() => 50, listAudit);
 
   return (
     <main id="main" class="view-wrap">

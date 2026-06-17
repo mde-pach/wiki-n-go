@@ -1,10 +1,10 @@
-import { createResource, For } from "solid-js";
-import { isServer } from "solid-js/web";
+import { For } from "solid-js";
 import { config } from "../config";
 import { languageName } from "../lib/languages";
 import { getLinkGraph } from "../lib/linkgraph";
 import { BASE, langOf, readHref } from "../lib/paths";
 import { loadSiteConfig } from "../lib/site-config";
+import { clientResource } from "../lib/solid";
 
 interface Entry {
   lang: string;
@@ -67,17 +67,11 @@ export default function LangBar(props: {
 }) {
   // The Worker index reflects pages + translations created since the last build
   // (no rebuild); merge them in on the client, SSR uses the build-time seeds.
-  const [graph] = createResource(
-    () => (isServer ? undefined : true),
-    () => getLinkGraph(),
-  );
+  const [graph] = clientResource(() => getLinkGraph());
   // The configured language order + default language come from the tenant's
   // wikigit.json at runtime (one shared build, many tenants); SSR uses the baked
   // config until the merged config loads on the client.
-  const [cfg] = createResource(
-    () => (isServer ? undefined : true),
-    () => loadSiteConfig(),
-  );
+  const [cfg] = clientResource(() => loadSiteConfig());
   const order = () => (cfg()?.languages ?? config.languages).map((l) => l.code);
   const defaultLang = () => cfg()?.defaultLang ?? config.defaultLang;
   const siblings = () =>

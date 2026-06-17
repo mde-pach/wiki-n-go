@@ -156,7 +156,7 @@ const REPORTS: Partial<Record<Tab, ReportConfig>> = {
 };
 
 export default function Special() {
-  const graph = clientResource(getLinkGraph);
+  const [graph] = clientResource(getLinkGraph);
   const q = isServer ? new URLSearchParams() : new URLSearchParams(location.search);
   const [tab, setTab] = createSignal<Tab>(
     TABS.some((t) => t.id === q.get("show")) ? (q.get("show") as Tab) : "backlinks",

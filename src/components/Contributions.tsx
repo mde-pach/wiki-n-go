@@ -23,7 +23,7 @@ const net = (c: Contribution) => c.additions - c.deletions;
 // history (direct commits + merged PRs) newest-first plus its trust tier. Mirrors
 // the Recent-changes data shape and markup; links out to the existing diff views.
 export default function Contributions(props: { login: string }) {
-  const data = clientResource(() => props.login, getContributions);
+  const [data] = clientResource(() => props.login, getContributions);
   const rows = () => data()?.contributions ?? [];
 
   return (

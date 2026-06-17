@@ -1,14 +1,10 @@
-import { createResource, createSignal, For, Show } from "solid-js";
-import { isServer } from "solid-js/web";
+import { createSignal, For, Show } from "solid-js";
 import { grantEditor, listEditors, revokeEditor } from "../lib/admin";
-import { useFormAction } from "../lib/solid";
+import { clientResource, useFormAction } from "../lib/solid";
 import { ErrorNote, Status, ViewHead } from "./ui";
 
 export default function Rights() {
-  const [data, { refetch }] = createResource(
-    () => (isServer ? undefined : true),
-    listEditors,
-  );
+  const [data, { refetch }] = clientResource(listEditors);
   const [key, setKey] = createSignal("");
   const { busy, error, run } = useFormAction();
 

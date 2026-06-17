@@ -1,11 +1,10 @@
 import { createResource, createSignal, For, Show } from "solid-js";
-import { isServer } from "solid-js/web";
 import { config } from "../config";
 import { parseDiff } from "../lib/diff";
 import { timeAgo } from "../lib/format";
 import { prettify, readHref } from "../lib/paths";
 import { getPendingDiff, listPending, reviewPr } from "../lib/review";
-import { useWhoami } from "../lib/solid";
+import { clientResource, useWhoami } from "../lib/solid";
 import { errMessage } from "../lib/util";
 import DiffView from "./DiffView";
 import { Icons } from "./Icons";
@@ -14,10 +13,7 @@ import { ErrorNote, Status, ViewHead } from "./ui";
 export default function ReviewQueue() {
   if (!config.workerUrl) return null;
 
-  const [pending, { mutate, refetch }] = createResource(
-    () => (isServer ? undefined : true),
-    listPending,
-  );
+  const [pending, { mutate, refetch }] = clientResource(listPending);
   const { isMaintainer } = useWhoami();
 
   const [openNum, setOpenNum] = createSignal<number>();

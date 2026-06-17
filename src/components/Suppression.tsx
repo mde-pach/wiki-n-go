@@ -1,5 +1,4 @@
-import { createResource, createSignal, For, Show } from "solid-js";
-import { isServer } from "solid-js/web";
+import { createSignal, For, Show } from "solid-js";
 import {
   listSuppressed,
   type Suppression as S,
@@ -7,14 +6,11 @@ import {
   unsuppress,
 } from "../lib/admin";
 import { timeAgo } from "../lib/format";
-import { useFormAction } from "../lib/solid";
+import { clientResource, useFormAction } from "../lib/solid";
 import { ErrorNote, Status, ViewHead } from "./ui";
 
 export default function Suppression() {
-  const [list, { refetch }] = createResource(
-    () => (isServer ? undefined : true),
-    listSuppressed,
-  );
+  const [list, { refetch }] = clientResource(listSuppressed);
   const [type, setType] = createSignal<"author" | "revision">("author");
   const [value, setValue] = createSignal("");
   const [reason, setReason] = createSignal("");

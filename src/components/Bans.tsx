@@ -1,16 +1,12 @@
-import { createResource, createSignal, For, Show } from "solid-js";
-import { isServer } from "solid-js/web";
+import { createSignal, For, Show } from "solid-js";
 import { addBan, type Ban, listBans, removeBan } from "../lib/admin";
 import { timeAgo } from "../lib/format";
-import { useFormAction } from "../lib/solid";
+import { clientResource, useFormAction } from "../lib/solid";
 import { errMessage } from "../lib/util";
 import { ErrorNote, Status, ViewHead } from "./ui";
 
 export default function Bans() {
-  const [bans, { mutate, refetch }] = createResource(
-    () => (isServer ? undefined : true),
-    listBans,
-  );
+  const [bans, { mutate, refetch }] = clientResource(listBans);
   const [key, setKey] = createSignal("");
   const [paths, setPaths] = createSignal("");
   const [reason, setReason] = createSignal("");

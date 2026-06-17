@@ -5,6 +5,7 @@ import {
   createSignal,
   onCleanup,
   type Resource,
+  type ResourceReturn,
 } from "solid-js";
 import { isServer } from "solid-js/web";
 import { getWhoami, type Tier, type WhoAmI } from "./api";
@@ -25,28 +26,29 @@ export function createDebounced<T>(source: Accessor<T>, ms: number): Accessor<T>
   return value;
 }
 
-// createResource that never runs during SSR. Pass a source accessor for resources
-// keyed on reactive input (refetched when it changes); omit it to fetch once on
-// the client. `undefined` from the source suspends the fetch, as Solid expects.
-export function clientResource<T>(fetcher: () => Promise<T>): Resource<T>;
+// createResource that never runs during SSR — the one place the "no partial
+// SSR/hydration" rule is enforced, so islands never re-implement the isServer
+// guard. Same `[resource, { mutate, refetch }]` shape as createResource. Pass a
+// source accessor for resources keyed on reactive input (refetched when it
+// changes); omit it to fetch once on the client. `undefined` from the source
+// suspends the fetch, as Solid expects.
+export function clientResource<T>(fetcher: () => Promise<T>): ResourceReturn<T>;
 export function clientResource<S, T>(
   source: Accessor<S | undefined>,
   fetcher: (value: S) => Promise<T>,
-): Resource<T>;
+): ResourceReturn<T>;
 export function clientResource<S, T>(
   fetcherOrSource: (() => Promise<T>) | Accessor<S | undefined>,
   fetcher?: (value: S) => Promise<T>,
-): Resource<T> {
+): ResourceReturn<T> {
   if (fetcher) {
     const source = fetcherOrSource as Accessor<S | undefined>;
-    const [r] = createResource(() => (isServer ? undefined : source()), fetcher);
-    return r;
+    return createResource(() => (isServer ? undefined : source()), fetcher);
   }
-  const [r] = createResource(
+  return createResource(
     () => (isServer ? undefined : true),
     fetcherOrSource as () => Promise<T>,
   );
-  return r;
 }
 
 export interface Submit {
@@ -127,7 +129,7 @@ export function useWhoami(): {
   who: Resource<WhoAmI>;
   isMaintainer: Accessor<boolean>;
 } {
-  const who = clientResource(() => {
+  const [who] = clientResource(() => {
     whoamiOnce ??= getWhoami().then((w) => {
       if (typeof window !== "undefined") localStorage.setItem(TIER_KEY, w.tier);
       return w;

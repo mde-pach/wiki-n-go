@@ -9,7 +9,7 @@ import { Status, ViewHead } from "./ui";
 // intersections are all derived at read time from the link-graph index (the
 // Worker's live one, static `*.json` as fallback) — no rebuild on a tag change.
 export default function CategoryList(props: { cat?: string }) {
-  const graph = clientResource(getLinkGraph);
+  const [graph] = clientResource(getLinkGraph);
   const request = createMemo(() => parseCategoryQuery(props.cat ?? ""));
   const labels = () => request().map(prettify);
   const group = createMemo<CatGroup | null>(() => {
