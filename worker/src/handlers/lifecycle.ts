@@ -4,9 +4,9 @@ import { gh } from "../github";
 import { HttpError } from "../http";
 import { resolve, type Writer } from "../identity";
 import { invalidateContent } from "../kv";
-import { commitPayload, getCurrentFile } from "../repo";
+import { commitPayload, getCurrentFile, repoSlug } from "../repo";
 import { editorTier, frontmatter, pageTier, TIER_RANK, type Tier } from "../trust";
-import type { Env, MergeBody, SplitBody } from "../types";
+import type { Env, MergeBody, MoveBody, SplitBody } from "../types";
 import { MAX_CONTENT_BYTES, SLUG_RE } from "../types";
 import { userPageOwner } from "./content";
 
@@ -107,6 +107,58 @@ export async function mergePages(env: Env, request: Request, body: MergeBody) {
       content: redirectStub(to),
       branch: env.BRANCH,
       sha: source.sha,
+      author,
+    }),
+  });
+
+  await invalidateContent(env, writer.key);
+  return { ok: true, from, to };
+}
+
+// Move/rename a page: copy it to the new slug and leave a redirect stub behind,
+// so inbound links keep working (Wikipedia's move-leaves-a-redirect). Gated to
+// whoever may edit the source page; commits directly (no PR fallback).
+export async function movePage(env: Env, request: Request, body: MoveBody) {
+  const from = String(body.from ?? "");
+  const to = String(body.to ?? "");
+  const summary = body.summary ? String(body.summary) : "";
+  if (!SLUG_RE.test(from) || from.includes(".."))
+    throw new HttpError(400, "Invalid source slug.");
+  if (!SLUG_RE.test(to) || to.includes(".."))
+    throw new HttpError(400, "Invalid target slug.");
+  if (from === to) throw new HttpError(400, "Source and target are the same.");
+
+  const writer = await resolve(env, request, { token: body.token, path: from });
+  const repo = repoSlug(env);
+  const fromPath = `${env.CONTENT_DIR}/${from}.md`;
+  const toPath = `${env.CONTENT_DIR}/${to}.md`;
+
+  const [tier, current, target] = await Promise.all([
+    editorTier(env, writer.email, writer.key),
+    getCurrentFile(env, repo, fromPath),
+    getCurrentFile(env, repo, toPath),
+  ]);
+  if (!current) throw new HttpError(404, "Page not found.");
+  if (target) throw new HttpError(422, "A page already exists at the target.");
+  requireTier(tier, pageTier(env, frontmatter(current.raw)), "Moving this page");
+
+  const author = { name: writer.name, email: writer.email };
+  await gh(env, `/repos/${repo}/contents/${toPath}`, {
+    method: "PUT",
+    body: commitPayload(env, {
+      message: summary || `Move ${from} → ${to}`,
+      content: current.raw,
+      branch: env.BRANCH,
+      author,
+    }),
+  });
+  await gh(env, `/repos/${repo}/contents/${fromPath}`, {
+    method: "PUT",
+    body: commitPayload(env, {
+      message: `Redirect ${from} → ${to}`,
+      content: redirectStub(to),
+      branch: env.BRANCH,
+      sha: current.sha,
       author,
     }),
   });

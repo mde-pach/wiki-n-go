@@ -10,10 +10,7 @@ import {
 import type { Env, SuppressBody } from "../types";
 
 const SUPPRESSED_PATH = "suppressed.json";
-const suppressedStore = defineRepoList<Suppression>(
-  SUPPRESSED_PATH,
-  parseSuppressions,
-);
+const suppressedStore = defineRepoList<Suppression>(SUPPRESSED_PATH, parseSuppressions);
 
 export async function listSuppressed(
   env: Env,

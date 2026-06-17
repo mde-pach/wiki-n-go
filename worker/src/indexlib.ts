@@ -95,6 +95,12 @@ export function toPlainText(md: string): string {
     .trim();
 }
 
+// The whole index ships to the client for search, so bound each page's indexed
+// text: a pathological page can't blow up the payload, while the cap is far above
+// a normal article so it doesn't change ranking. (True scaling to thousands of
+// pages would move search server-side; this just stops one page running away.)
+const SEARCH_TEXT_CAP = 16_000;
+
 // Build one page's index entry from its raw markdown. `redirect` and
 // `translationKey` are resolved by the caller (which has the parsed frontmatter).
 export function buildNode(
@@ -112,7 +118,7 @@ export function buildNode(
     redirect: redirect || undefined,
     translationKey: translationKey || undefined,
     tags: tags?.length ? tags : undefined,
-    text: toPlainText(body),
+    text: toPlainText(body).slice(0, SEARCH_TEXT_CAP),
   };
 }
 

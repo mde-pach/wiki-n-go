@@ -26,13 +26,7 @@ import {
   type Tier,
 } from "../trust";
 import type { Env } from "../types";
-import {
-  type EditBody,
-  MAX_CONTENT_BYTES,
-  type MoveBody,
-  SHA_RE,
-  SLUG_RE,
-} from "../types";
+import { type EditBody, MAX_CONTENT_BYTES, SHA_RE, SLUG_RE } from "../types";
 import { updateIndexEntry } from "./index-cache";
 
 export async function history(env: Env, slug: string) {
@@ -621,59 +615,4 @@ async function mergePr(
   if (res.ok) return (await res.json()) as { sha: string };
   if (res.status === 405 || res.status === 409) return null;
   throw new HttpError(502, `GitHub ${res.status}: ${await res.text()}`);
-}
-
-// Move/rename a page: copy it to the new slug and leave a redirect stub behind,
-// so inbound links keep working (Wikipedia's move-leaves-a-redirect). Gated to
-// whoever may edit the source page; commits directly (no PR fallback).
-export async function movePage(env: Env, request: Request, body: MoveBody) {
-  const from = String(body.from ?? "");
-  const to = String(body.to ?? "");
-  const summary = body.summary ? String(body.summary) : "";
-  if (!SLUG_RE.test(from) || from.includes(".."))
-    throw new HttpError(400, "Invalid source slug.");
-  if (!SLUG_RE.test(to) || to.includes(".."))
-    throw new HttpError(400, "Invalid target slug.");
-  if (from === to) throw new HttpError(400, "Source and target are the same.");
-
-  const writer = await resolve(env, request, { token: body.token, path: from });
-  const repo = `${env.REPO_OWNER}/${env.REPO_NAME}`;
-  const fromPath = `${env.CONTENT_DIR}/${from}.md`;
-  const toPath = `${env.CONTENT_DIR}/${to}.md`;
-
-  const [tier, current, target] = await Promise.all([
-    editorTier(env, writer.email, writer.key),
-    getCurrentFile(env, repo, fromPath),
-    getCurrentFile(env, repo, toPath),
-  ]);
-  if (!current) throw new HttpError(404, "Page not found.");
-  if (target) throw new HttpError(422, "A page already exists at the target.");
-  const required = pageTier(env, frontmatter(current.raw));
-  if (TIER_RANK[tier] < TIER_RANK[required])
-    throw new HttpError(403, `Moving this page requires ${required} access.`);
-
-  const author = { name: writer.name, email: writer.email };
-  await gh(env, `/repos/${repo}/contents/${toPath}`, {
-    method: "PUT",
-    body: commitPayload(env, {
-      message: summary || `Move ${from} → ${to}`,
-      content: current.raw,
-      branch: env.BRANCH,
-      author,
-    }),
-  });
-  const stub = `---\nredirect: ${to}\n---\n\n#REDIRECT [[${to}]]\n`;
-  await gh(env, `/repos/${repo}/contents/${fromPath}`, {
-    method: "PUT",
-    body: commitPayload(env, {
-      message: `Redirect ${from} → ${to}`,
-      content: stub,
-      branch: env.BRANCH,
-      sha: current.sha,
-      author,
-    }),
-  });
-
-  await invalidateContent(env, writer.key);
-  return { ok: true, from, to };
 }
