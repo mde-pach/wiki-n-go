@@ -42,4 +42,5 @@ Wikigit doesn't run a media library of its own; an image is referenced by its we
 - [[anatomy-of-a-page|Anatomy of a page]] — the other visual parts of a page, like the infobox.
 - [[links-and-references|Links and references]] — linking, citing, and connecting pages.
 
+
 {{shared/concepts-navbox}}
