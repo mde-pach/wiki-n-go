@@ -31,7 +31,6 @@
     "yaml": "^2.9.0"
   },
   "devDependencies": {
-    "@astrojs/netlify": "^6.6.5",
     "@biomejs/biome": "^2.1.2",
     "@types/markdown-it": "^14.1.2",
     "@types/markdown-it-anchor": "^7.0.0",

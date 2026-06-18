@@ -235,13 +235,16 @@ costs; consider salt/epoch rotation to limit long-term linkability (M5).
 - **Hosting:** multi-host via **click-to-deploy** buttons (GitHub Pages /
   Cloudflare / Netlify / Vercel). **Start on GitHub Pages** (read-only phase
   needs no Worker). Avoid Vercel Hobby for production (non-commercial only).
-- **Optional (shipped):** an Astro edge-SSR adapter (Cloudflare/Netlify) behind
-  `EDGE_SSR`, **off by default** so GitHub Pages stays pure static. When on, only
-  the content route renders on demand at the edge — fetching from jsDelivr@sha at
-  request time (still no rebuild) — so crawlers get real HTML, the revision line +
-  `<meta description>`/OG tags are server-rendered, and `noindex`-until-patrolled
-  is resolved server-side (fail-open). The same Solid island hydrates without
-  re-fetching. See M4 + the 2026-06-07 edge-SSR Decision Log entry.
+- **Reads are pure static (no server renders HTML).** The content route is always
+  prerendered; HTML is rendered only at build or in the client, never by a server in
+  the request path. Each page bakes its rendered HTML into a `<noscript>` (real
+  content for non-JS crawlers) plus its **git blob sha**; the island fetches the live
+  per-page sha (`GET /version`) and **paints the baked HTML directly when unchanged**,
+  fetching from jsDelivr@sha only for genuinely-changed pages — no rebuild, no
+  stale-then-fresh flash. (The earlier optional `EDGE_SSR` edge-SSR adapter was
+  **removed 2026-06-18** — see the Decision Log; it conflicted with "the Worker is a
+  data plane, never a renderer" and was already dormant.) See M4 + the staleness-check
+  Decision Log entry.
 
 ---
 
@@ -293,16 +296,16 @@ costs; consider salt/epoch rotation to limit long-term linkability (M5).
 - [x] ✅ Discussion Stage B: signed-in users' topics & comments render under their
       GitHub login + avatar (via a `gh:<login>|<avatar>` body marker; bot still posts). Shares the M2 sign-in.
 - [x] ✅ Multi-host deploy buttons (Netlify / Vercel / Cloudflare) in README.
-- [x] ✅ (Optional) edge-SSR variant for SEO — an Astro adapter (Cloudflare/Netlify)
-      behind `EDGE_SSR`, **off by default** (GitHub Pages static path unchanged). When
-      on, **only the content route** renders on demand at the edge (config-only, via an
-      `astro:route:setup` hook — no `prerender` export in the page), fetching content +
-      slug set + revisions from jsDelivr@sha / the Worker **at request time** (no
-      rebuild). Crawlers get real HTML; the revision line, `<meta description>`, OG +
-      canonical tags are server-rendered; **`noindex`-until-patrolled is resolved
-      server-side** (queries `/patrol-status`, fail-open). The same Solid island
-      hydrates with `fresh` (no double-fetch); a missing slug returns a real 404 and a
-      `redirect:` page a server-side 301. Verified live with `wrangler pages dev`.
+- [x] ✅ SEO on the pure-static path via a **baked `<noscript>` + per-page staleness
+      check** (replaced the `EDGE_SSR` edge-SSR variant, removed 2026-06-18). Each page
+      bakes its rendered HTML into a `<noscript>` (non-JS crawlers get real content) plus
+      its **git blob sha**; the island fetches the live per-page sha (`GET /version`) and
+      **paints the baked HTML directly when unchanged** (no fetch, no markdown chunk),
+      else fetches jsDelivr@sha as before. Baked HTML reaches the DOM only once proven
+      current, so there's **no stale-then-fresh flash**, and HTML is never rendered by a
+      server in the request path (the Worker stays a data plane). Trade: non-JS crawlers
+      see build-time content until the next code deploy (JS crawlers get fresh). See the
+      staleness-check Decision Log entry.
 
 ### M4.5 — Wikipedia page features ✅
 - [x] ✅ References/footnotes + citation hover tooltips; captioned figures.
@@ -716,11 +719,14 @@ write credential); only the noun changes.
 - [ ] **`ip_hash` input:** full IP vs. coarsened (`/24` / geo) for extra safety.
 - [ ] **Auto-merge policy:** which (if any) signed-in contributors bypass review.
 - [x] ~~SHA resolution~~ → **Worker `/latest`** (KV-cached ~20s, authed quota) with
-      GitHub-API fallback; `no-store` so the browser never pins a stale SHA.
-- [x] ~~SSR-edge variant~~ → **shipped, opt-in via `EDGE_SSR`** (Cloudflare/Netlify);
-      content route on demand, server-side `noindex`, no rebuild. Off by default —
-      **on for the flagship CF Pages deploy** (`EDGE_SSR=cloudflare`) so its first
-      paint is request-time-fresh; forks/GitHub Pages stay static.
+      GitHub-API fallback; `no-store` so the browser never pins a stale SHA. Now also
+      **`/version`** (head sha + per-page blob shas, from the tree at head) drives the
+      staleness check below.
+- [x] ~~SSR-edge variant~~ → **removed 2026-06-18.** Replaced by a pure-static
+      **baked-`<noscript>` + per-page staleness check** (`GET /version`): no server
+      renders HTML, no stale-then-fresh flash, SEO for non-JS crawlers via the baked
+      `<noscript>`. The edge variant conflicted with the data-plane-only Worker and was
+      already dormant (no deploy set `EDGE_SSR`; `@astrojs/cloudflare` was never added).
 - [x] ~~**PKCE watch:** drop the OAuth half of the Worker once GitHub supports
       client-side PKCE~~ → **moot (M11)**. A portable Bun server holds the OAuth
       client secret fine, so there's nothing to wait on; the OAuth half stays
@@ -835,3 +841,4 @@ write credential); only the noun changes.
 | 2026-06-14 | **Managed lane gated by a per-identity quota + claim rate-limit + an env kill-switch before publicising** (Hub) | The self-serve lane was wide open: any signed-in identity could provision unlimited `wikigit-tenants/<name>` repos. Three coarse gates, all no-DB: a **per-owner ceiling** on managed wikis counted from the registry's `owner` (`ownerWikiCount`, platform-lane only — byo lives in the user's own repo, so it's uncapped; `MAX_WIKIS_PER_OWNER`, default 5), a **fixed-window claim limiter** per identity (reusing the in-memory `RATE_LIMIT` store, like the edit limiter), and a **kill-switch** (`PROVISION_PAUSED` → 503) so an operator can halt provisioning under abuse with an env flip, no redeploy. Quota/limiter are checked after name validation so typos don't burn the window; reads/edits of existing wikis are untouched |
 | 2026-06-14 | **Maintainers are declarable in `wikigit.json`, unioned with `trusted-editors.json` for tier resolution** (Hub) | The settings form is the owner-facing surface; making them edit a separate `trusted-editors.json` (the imperative `/grant` path) splits "who can edit" across two places a non-technical owner won't find. `editorTier` now reads **both** repo-root files and unions them before `isMaintainer`, so a login added in settings grants maintainer tier identically in both lanes (in-wiki, not GitHub collaborators) while the existing grant/revoke console path keeps working unchanged. Entries reuse the provider-qualified key rule (a bare login = `gh:<login>`), sanitized + capped like the rest of the config |
 | 2026-06-15 | **Floating images use the remark-directive *leaf-directive syntax* implemented as a markdown-it plugin, not the remark engine** (`::image[caption]{src= align= width= upright}`) | Wikipedia floats (text wrapping around a thumb) need a block directive markdown lacks; the two ecosystem options both have flaws — `markdown-it-attrs` `{...}` prints literal junk in plain CommonMark tools, and `remark-directive` only runs on remark/unified (adopting it = replacing the whole markdown-it pipeline + rewriting all 5 custom plugins). So we take remark-directive's *authoring syntax* (forward-compatible if we ever migrate) and implement it as a ~120-line markdown-it block rule (`src/lib/directiveimage.ts`) styled like the existing `figures` plugin. Borrows wikitext semantics: `align` floats left/right or blocks center/none, `width` is a *cap* never an upscale (CSS `max-width`, not a server-resized file — the no-rebuild invariant means images come full-res from the CDN), `upright` is a narrower portrait default; floats unwrap to full width under 640px. A missing `src` degrades to a plain paragraph. Tradeoff accepted: unlike the lone-`![]()` figure, a `::image` line shows as literal text in editors that don't know it — the plain `![]()` form stays the portable escape hatch |
+| 2026-06-18 | **Drop the `EDGE_SSR` edge-SSR variant; SEO + no-blink on the pure-static path via a baked `<noscript>` + a per-page staleness check (`GET /version`)** | Edge-SSR rendered the article HTML on a server in the request path, which contradicts the standing line that **HTML is rendered only at build or in the client; the Worker is a data plane, never a renderer** — and it was already dormant (no deploy set `EDGE_SSR`, `@astrojs/cloudflare` was never added, the frontend now deploys static-on-Coolify). The static replacement gives the same two wins without a render server: (1) **SEO** — each page bakes its rendered HTML into a `<noscript id="wiki-baked">`, so non-JS crawlers get real content (JS crawlers get the fresh client render anyway); (2) **no stale-then-fresh blink** — each page also carries its **git blob sha** (`gitBlobSha`, computed at build from the bytes = GitHub's tree sha), and the island calls the new `GET /version` (head sha + `slug→blob-sha`, from the git tree at head, cached by sha so it refetches ~once per commit) and **paints the baked HTML directly only when the live sha matches** (read out of the `<noscript>` via `textContent`, no fetch, no markdown chunk), else falls back to the existing jsDelivr@sha fetch. Baked HTML reaches the DOM only once proven current, so a stale page goes skeleton→fresh and never baked→swap. Correct even when a PR is merged on github.com outside the Worker (versions derive from the tree at head, not edit-patches); degrades cleanly with no Worker (empty version map → every page fetched, today's behavior). Trade accepted: non-JS crawlers see build-time content until the next code deploy ([[wiki-n-go-prerelease]]). Removed `src/lib/ssr.ts`, the `astro:route:setup` hook + `@astrojs/netlify`, and the `fresh`/`missing`/`ssr` props |

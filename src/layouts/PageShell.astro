@@ -32,7 +32,6 @@ import {
   type View,
   viewHref,
 } from "../lib/paths";
-import { fetchRevisions } from "../lib/ssr";
 
 interface Props {
   slug: string;
@@ -41,34 +40,17 @@ interface Props {
   categories?: string[];
   description?: string;
   appearance?: Partial<AppearanceDefaults>;
-  // Edge-SSR (off by default): the content route resolves patrol state
-  // server-side and passes `ssr` so this layout emits a real robots=noindex in
-  // the head (instead of the client PatrolMeta island) and OG/canonical tags.
-  ssr?: boolean;
-  noindex?: boolean;
-  // Static read view: the title and category chips are rendered client-side from
-  // the freshly fetched file (WikiPage), so render placeholders here instead of
-  // the possibly-stale build-time copy.
+  // The title and category chips render client-side from the file WikiPage shows
+  // (baked-when-current, fetched-when-stale), so render placeholders here instead
+  // of the possibly-stale build-time copy.
   titlePending?: boolean;
 }
-const {
-  slug,
-  view,
-  title,
-  categories,
-  description,
-  appearance,
-  ssr,
-  noindex,
-  titlePending,
-} = Astro.props;
+const { slug, view, title, categories, description, appearance, titlePending } =
+  Astro.props;
 
-// `gitRevisions` reads local git (build only, uses node:child_process); load it
-// lazily so it stays out of the edge bundle. The edge path fetches the same data
-// from the Worker so the "last edited" line is server-rendered there too.
-const revisions = ssr
-  ? await fetchRevisions(slug)
-  : await import("../lib/git").then((m) => m.gitRevisions(slug));
+// `gitRevisions` reads local git at build (uses node:child_process); load it
+// lazily so it stays out of the client bundle.
+const revisions = await import("../lib/git").then((m) => m.gitRevisions(slug));
 const read = readHref(slug);
 const href = {
   read,
@@ -113,7 +95,6 @@ const canonical = new URL(read, Astro.site).href;
     <link rel="icon" type="image/svg+xml" href={`${BASE}/favicon.svg`} />
     <link rel="preload" as="font" type="font/woff2" href={bodyFontUrl} crossorigin />
     {description && <meta name="description" content={description} />}
-    {noindex && <meta name="robots" content="noindex" />}
     <link rel="canonical" href={canonical} />
     <meta property="og:type" content="article" />
     <meta property="og:site_name" content="Wikigit" />
@@ -202,7 +183,7 @@ const canonical = new URL(read, Astro.site).href;
           <div class="page-meta-slot">
             <PageMeta slug={slug} initial={revisions} client:load />
           </div>
-          {view === "read" && !ssr && <PatrolMeta slug={slug} client:idle />}
+          {view === "read" && <PatrolMeta slug={slug} client:idle />}
           <nav class="tabbar" aria-label="Page navigation">
             <div class="tab-group tab-ns">
               <a class={`tab${namespace === "article" ? " is-active" : ""}`} href={read}>

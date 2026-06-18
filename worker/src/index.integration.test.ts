@@ -152,6 +152,33 @@ describe("GET /search-index", () => {
   });
 });
 
+describe("GET /version (per-page staleness map)", () => {
+  it("returns the head sha and a slug → blob-sha map (md only), no shared cache", async () => {
+    vi.stubGlobal("fetch", async (input: string | URL) => {
+      const url = String(input);
+      if (url.includes("/commits/")) return new Response("headsha123");
+      if (url.includes("/git/trees/")) {
+        return Response.json({
+          tree: [
+            { path: "content/index.md", type: "blob", sha: "blob-index" },
+            { path: "content/getting-started.md", type: "blob", sha: "blob-gs" },
+            { path: "content/logo.png", type: "blob", sha: "blob-img" },
+            { path: "content/sub", type: "tree", sha: "tree-sub" },
+          ],
+        });
+      }
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+    const res = await worker.fetch(req("/version"), makeEnv());
+    expect(res.status).toBe(200);
+    // Freshness endpoint: never a shared-cache hint (client sends no-store).
+    expect(res.headers.get("Cache-Control")).toBeNull();
+    const v = (await res.json()) as { sha: string; versions: Record<string, string> };
+    expect(v.sha).toBe("headsha123");
+    expect(v.versions).toEqual({ index: "blob-index", "getting-started": "blob-gs" });
+  });
+});
+
 describe("GET /config (owner-editable wiki config)", () => {
   it("reads wikigit.json from the repo and returns the sanitized config", async () => {
     vi.stubGlobal("fetch", async (input: string | URL) => {

@@ -40,6 +40,36 @@ export async function listPages(env: Env): Promise<{ pages: string[] }> {
   return { pages };
 }
 
+// Head sha + a `slug → git blob sha` map, so a build-time page can tell whether
+// its baked HTML is still current (paint it) or stale (fetch from the CDN). The
+// blob shas come from the git tree at the *resolved head sha* (immutable, so
+// cached hard by that sha — refetched only when head moves, ~once per commit).
+// Deriving from the tree at head (not from incremental edit-patches) keeps it
+// correct even when a PR is merged on github.com outside the Worker. Staleness is
+// bounded by `latestSha`'s 20s cache, matching the rest of the read path.
+const TREE_TTL_MS = 3_600_000;
+
+export async function pageVersions(
+  env: Env,
+): Promise<{ sha: string; versions: Record<string, string> }> {
+  const { sha } = await latestSha(env);
+  const versions = await cached(env, `meta:tree:${sha}`, TREE_TTL_MS, async () => {
+    const tree = await gh<{ tree: { path: string; type: string; sha: string }[] }>(
+      env,
+      `/repos/${env.REPO_OWNER}/${env.REPO_NAME}/git/trees/${sha}?recursive=1`,
+    );
+    const prefix = `${env.CONTENT_DIR}/`;
+    const map: Record<string, string> = {};
+    for (const n of tree.tree) {
+      if (n.type === "blob" && n.path.startsWith(prefix) && n.path.endsWith(".md")) {
+        map[n.path.slice(prefix.length, -3)] = n.sha;
+      }
+    }
+    return map;
+  });
+  return { sha, versions };
+}
+
 const INDEX_TTL_MS = 3_600_000; // safety rebuild for drift (PR merges, direct pushes)
 
 // Live link/search index: a per-slug map maintained incrementally on direct

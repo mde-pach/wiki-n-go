@@ -46,13 +46,14 @@ Point [`src/config.ts`](./src/config.ts) at your content repo (`repoOwner` /
 var). For a GitHub Pages project site, set `site` + `base` in
 [`astro.config.mjs`](./astro.config.mjs).
 
-### Optional: edge-SSR for SEO
+### Reading is pure static (no server renders HTML)
 
-By default the reader is **pure static**, so crawlers that don't run JS see an
-empty shell. To server-render the content route for SEO without giving up the
-no-rebuild model, build with `EDGE_SSR=netlify` (adds the Netlify adapter and
-renders **only** the article route on demand — still fetching from jsDelivr@sha at
-request time). Unset → byte-for-byte the static build.
+The reader is **pure static** — built HTML files on any dumb host, with no server
+in the request path. Each page bakes its rendered HTML into a `<noscript>` (so
+non-JS crawlers get real content) plus its git blob sha; on load the island asks
+the Engine for the live per-page sha (`GET /version`) and paints the baked HTML
+directly when it's unchanged, fetching from jsDelivr@sha only when the page
+actually changed since the build — no rebuild, and no stale-then-fresh flash.
 
 ## Enable editing — deploy the Engine backend
 

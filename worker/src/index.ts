@@ -16,7 +16,13 @@ import {
 import { contributions } from "./handlers/contributions";
 import type { DomainBody } from "./handlers/domain";
 import { addDomain } from "./handlers/domain";
-import { latestSha, linkGraph, listPages, searchIndex } from "./handlers/index-cache";
+import {
+  latestSha,
+  linkGraph,
+  listPages,
+  pageVersions,
+  searchIndex,
+} from "./handlers/index-cache";
 import { mergePages, movePage, splitPage } from "./handlers/lifecycle";
 import {
   deletePage,
@@ -146,6 +152,7 @@ export default {
     const q = url.searchParams;
     const routes: Record<string, () => Promise<unknown>> = {
       "GET /latest": () => latestSha(env),
+      "GET /version": () => pageVersions(env),
       "GET /pages": () => listPages(env),
       "GET /link-graph": () => linkGraph(env),
       "GET /search-index": () => searchIndex(env),

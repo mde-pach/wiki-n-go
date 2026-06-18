@@ -12,7 +12,12 @@ import {
 import { Portal } from "solid-js/web";
 import type { EditResult } from "../lib/api";
 import { classifyTags } from "../lib/categories";
-import { fetchMarkdown, fetchMarkdownAt, PageNotFoundError } from "../lib/content";
+import {
+  fetchMarkdown,
+  fetchMarkdownAt,
+  PageNotFoundError,
+  resolveVersions,
+} from "../lib/content";
 import { decorate as decorateArticle } from "../lib/decorate";
 import { findSection, type SectionSpan } from "../lib/editor-section";
 import type { PageMeta } from "../lib/frontmatter";
@@ -36,10 +41,10 @@ import { Icons } from "./Icons";
 const FocusedEditor = lazy(() => import("./editor/FocusedEditor"));
 
 // The markdown engine (markdown-it + plugins + DOMPurify) is the heaviest chunk
-// on the read path, yet it's only needed to client-render a page: never on the
-// edge-SSR path (the server already rendered `initialHtml`), and on the static
-// path it loads in parallel with the content fetch. Keep it out of the island's
-// hydration chunk and pull it on demand. Memoized so it downloads once.
+// on the read path, yet it's only needed to client-render a page when its baked
+// copy is stale. When the baked copy is current we paint the build-rendered HTML
+// directly and never load this. Keep it out of the island's hydration chunk and
+// pull it on demand. Memoized so it downloads once.
 let mdModule: Promise<typeof import("../lib/markdown")> | undefined;
 const loadMarkdown = () => {
   mdModule ??= import("../lib/markdown");
@@ -64,19 +69,15 @@ interface SectionEdit {
 
 export default function WikiPage(props: {
   slug?: string;
-  initialHtml?: string;
-  initialRaw?: string;
+  // Build-time page identity, used to decide whether the baked HTML is current:
+  // `bakedSha` is the page's git blob sha at build, `title` its build-time title.
+  // The rendered HTML itself is read from a sibling <noscript>, not passed here.
+  bakedSha?: string;
+  title?: string;
   meta?: PageMeta;
   // A profile page only the owner/maintainer may create → suppress the "Create
   // it →" invite for everyone else (they'd be refused anyway).
   noCreate?: boolean;
-  // Edge-SSR: initialHtml/initialRaw were fetched at request time, so skip the
-  // on-mount refetch (no double-fetch). The static path leaves this off and
-  // refetches the latest so a no-rebuild content edit shows without a deploy.
-  fresh?: boolean;
-  // Edge-SSR resolved that this slug has no page, so render the "not found"
-  // state server-side (the static path never renders a missing page here).
-  missing?: boolean;
   // The page chrome already set `.page-title` to a final value the fetched
   // content can't improve on (e.g. a profile's "User: <login>"). Leave it alone
   // so it never blinks from the owner's title to the slug/frontmatter one.
@@ -87,21 +88,19 @@ export default function WikiPage(props: {
   // inside the prose flow (text wraps around it instead of sliding under it).
   const withInfobox = (h: string | undefined, m: PageMeta | undefined) =>
     h === undefined ? h : infoboxHtml(slug(), m ?? {}) + h;
-  // Only show server-rendered content when it was fetched at request time
-  // (edge-SSR, `fresh`). On the static (GitHub Pages) build the baked snapshot
-  // can be stale — a no-rebuild content edit isn't in it — so start empty and
-  // render solely from the commit the client fetches on mount, all at once.
-  const [html, setHtml] = createSignal(
-    props.fresh ? withInfobox(props.initialHtml, props.meta) : undefined,
-  );
-  const [meta, setMeta] = createSignal<PageMeta>(props.fresh ? (props.meta ?? {}) : {});
-  const [notFound, setNotFound] = createSignal(props.missing ?? false);
+  // Start empty (skeleton). Content is committed to the DOM only once we know
+  // which copy is correct: the baked HTML when the staleness check confirms it's
+  // current, otherwise the file fetched from the CDN. We never paint baked then
+  // swap to latest — that flash is the thing this avoids.
+  const [html, setHtml] = createSignal<string>();
+  const [meta, setMeta] = createSignal<PageMeta>({});
+  const [notFound, setNotFound] = createSignal(false);
   const [err, setErr] = createSignal<string>();
   const [redirectedFrom, setRedirectedFrom] = createSignal<string>();
   const [revOf, setRevOf] = createSignal<string>();
-  // The latest raw markdown in hand, so a section `[edit]` can slice it without
-  // a refetch. Tracks the SSR content first, then whatever the client fetches.
-  const [raw, setRaw] = createSignal(props.fresh ? props.initialRaw : undefined);
+  // The raw markdown in hand, so a section `[edit]` can slice it. Populated by the
+  // stale path's fetch, or lazily fetched on the first section edit of a baked page.
+  const [raw, setRaw] = createSignal<string>();
   const [sectionEdit, setSectionEdit] = createSignal<SectionEdit>();
   // The exact document a live publish just committed. We render it straight from
   // hand on close — no refetch, so no waiting on the Worker's cached `/latest`
@@ -212,17 +211,54 @@ export default function WikiPage(props: {
     }
   }
 
+  // The build-rendered article HTML, baked into a sibling <noscript> (which also
+  // gives non-JS crawlers real content). When JS is on, <noscript> children are
+  // inert text, so `.textContent` returns the markup string to inject.
+  function bakedHtml(): string | undefined {
+    return document.getElementById("wiki-baked")?.textContent || undefined;
+  }
+
+  // Paint the baked copy directly — no content fetch, no markdown renderer. Red
+  // links are re-resolved against the live page set (cheap, no markdown chunk) so
+  // a target created since the build doesn't paint stale-coloured.
+  async function showBaked(built: string) {
+    const live = markRedLinksHtml(built, await pageSet(), langOf(slug()));
+    batch(() => {
+      setMeta(props.meta ?? {});
+      setHtml(withInfobox(live, props.meta));
+    });
+    if (!props.titleOwned) {
+      const heading = props.title || prettify(slug());
+      document.title = heading;
+      const el = document.querySelector(".page-title");
+      if (el) el.textContent = heading;
+    }
+    fillCategorySlot(props.meta?.tags);
+    queueMicrotask(decorate);
+  }
+
+  // Decide which copy to show before any content paints. The baked HTML reaches
+  // the DOM only when the per-page blob sha proves it current; anything else
+  // (stale, unknown, or a failed check) goes straight to the CDN fetch.
+  async function load() {
+    let current = false;
+    try {
+      const { versions } = await resolveVersions();
+      current = !!props.bakedSha && versions[slug()] === props.bakedSha;
+    } catch {
+      // Couldn't resolve versions → treat as stale and let revalidate() fetch.
+    }
+    const built = bakedHtml();
+    if (current && built) return void showBaked(built);
+    void revalidate();
+  }
+
   onMount(() => {
     const params = new URLSearchParams(window.location.search);
     setRedirectedFrom(params.get("redirectedfrom") ?? undefined);
-    if (html()) decorate(); // edge-SSR painted request-time-fresh content already
     const rev = params.get("rev");
     if (rev) return void showRevision(rev); // historical view; skip the latest fetch
-    if (props.fresh) return; // edge-SSR already rendered the fresh file
-    // Static build: the baked snapshot is never shown (the signals start empty
-    // when not fresh), so fetch the latest commit now and render only that — all
-    // at once. A fetch failure becomes an error, not stale content.
-    void revalidate();
+    void load();
   });
 
   // A section `[edit]` opens a focused editor in place rather than navigating
@@ -236,15 +272,17 @@ export default function WikiPage(props: {
     if (!link || !body?.contains(link)) return;
     if (revOf()) return; // editing targets the live page, not a historic revision
     const id = new URL(link.href, location.href).searchParams.get("section");
-    const doc = raw();
     const heading = link.closest<HTMLElement>("h2, h3");
-    if (!id || !doc || !heading) return; // nothing in hand → let the link navigate
+    if (!id || !heading) return; // nothing to anchor to → let the link navigate
     // We're handling it in-place; parsing the frontmatter needs the lazy chunk.
     e.preventDefault();
-    void openSectionEdit(doc, id, heading);
+    void openSectionEdit(id, heading);
   }
 
-  async function openSectionEdit(doc: string, id: string, heading: HTMLElement) {
+  async function openSectionEdit(id: string, heading: HTMLElement) {
+    // A baked page paints without its markdown in hand; fetch it on first edit.
+    const doc = raw() ?? (await fetchMarkdown(slug()));
+    setRaw(doc);
     const { splitFrontmatter, withFrontmatter } = await loadMarkdown();
     const { data, body: md } = splitFrontmatter(doc);
     const span = findSection(md, id);

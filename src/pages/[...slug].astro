@@ -8,7 +8,7 @@ import TocMobile from "../components/TocMobile.tsx";
 import WikiPage from "../components/WikiPage.tsx";
 import { config } from "../config";
 import PageShell from "../layouts/PageShell.astro";
-import { fetchMarkdown, PageNotFoundError } from "../lib/content";
+import { gitBlobSha } from "../lib/blobsha";
 import { decorateArticleHtml, parsePage } from "../lib/markdown";
 import { contentSlugs, rawPage } from "../lib/pages";
 import {
@@ -22,11 +22,8 @@ import {
   userLogin,
   viewHref,
 } from "../lib/paths";
-import { fetchPageSlugs, pageNoindex } from "../lib/ssr";
 
-// Prerendered (static) build only — ignored when EDGE_SSR makes this route
-// on demand (see astro.config.mjs). The edge path resolves any slug at request
-// time, so it needs no path list.
+// Static (prerendered) output: one route per page in the build-time content glob.
 export function getStaticPaths() {
   return [
     { params: { slug: undefined } },
@@ -39,52 +36,23 @@ export function getStaticPaths() {
 const { slug } = Astro.params;
 const pageSlug = contentSlugForRoute(slug);
 
-// Static path: render from the build-time content glob. Edge-SSR path: fetch the
-// latest content + slug set from the CDN/Worker at request time (no rebuild).
-// The decorate + render pipeline below is identical for both.
-const ssr = !Astro.isPrerendered;
-let raw: string | undefined;
-let slugs: Set<string>;
-if (ssr) {
-  slugs = await fetchPageSlugs();
-  try {
-    raw = await fetchMarkdown(pageSlug);
-  } catch (err) {
-    if (err instanceof PageNotFoundError) raw = undefined;
-    else raw = rawPage(pageSlug); // transient fetch error → build-time fallback
-  }
-} else {
-  raw = rawPage(pageSlug);
-  slugs = new Set(contentSlugs());
-}
-
+// Render from the build-time glob. The rendered HTML is baked into a <noscript>
+// below (real content for non-JS crawlers); `bakedSha` is the page's git blob sha,
+// which the island compares against the live per-page sha to decide whether the
+// baked copy is still current (paint it) or stale (fetch from the CDN).
+const raw = rawPage(pageSlug);
+const slugs = new Set(contentSlugs());
 const parsed = raw ? parsePage(raw) : null;
 const html = parsed
   ? decorateArticleHtml(parsed.html, slugs, pageSlug, parsed.title)
   : undefined;
+const bakedSha = raw ? gitBlobSha(raw) : undefined;
 
 const redirectTo = parsed?.meta?.redirect ? slugifyPath(parsed.meta.redirect) : null;
 const redirectUrl =
   redirectTo && redirectTo !== pageSlug
     ? `${readHref(redirectTo)}?redirectedfrom=${encodeURIComponent(pageSlug)}`
     : null;
-
-// On the edge path, finish request-time concerns before rendering: a real
-// server-side redirect for crawlers, a 404 status for missing pages, a real
-// noindex-until-patrolled, and a short edge cache (request-time fresh, so the
-// client island skips its refetch — no double-fetch).
-let noindex = false;
-if (ssr) {
-  if (redirectUrl && Astro.url.searchParams.get("redirect") !== "no") {
-    return Astro.redirect(redirectUrl, 301);
-  }
-  if (!parsed) Astro.response.status = 404;
-  noindex = parsed ? await pageNoindex(pageSlug) : true;
-  Astro.response.headers.set(
-    "Cache-Control",
-    "public, max-age=0, s-maxage=30, stale-while-revalidate=600",
-  );
-}
 
 // A built `user/<login>` page also gets the auto-rendered contributions panel.
 const profileLogin = userLogin(pageSlug);
@@ -97,7 +65,7 @@ const profileTitle = profileLogin ? `User: ${profileLogin}` : null;
 const displayTitle = profileTitle ?? (parsed?.title || prettify(pageSlug));
 ---
 
-<PageShell slug={pageSlug} view="read" title={displayTitle} categories={parsed?.meta?.tags} description={parsed?.meta?.description} appearance={parsed?.meta?.appearance} ssr={ssr} noindex={noindex} titlePending={!ssr && !profileTitle}>
+<PageShell slug={pageSlug} view="read" title={displayTitle} categories={parsed?.meta?.tags} description={parsed?.meta?.description} appearance={parsed?.meta?.appearance} titlePending={!profileTitle}>
   {
     redirectUrl && (
       <script
@@ -108,13 +76,14 @@ const displayTitle = profileTitle ?? (parsed?.title || prettify(pageSlug));
   }
   <main id="main" class="read-grid">
     <div class="col-toc">
-      <Toc editHref={viewHref("edit", pageSlug)} initialItems={ssr ? (parsed?.headings ?? []) : []} client:load />
+      <Toc editHref={viewHref("edit", pageSlug)} initialItems={[]} client:load />
     </div>
     <div class="col-main">
-      <TocMobile initialItems={ssr ? (parsed?.headings ?? []) : []} client:load />
+      <TocMobile initialItems={[]} client:load />
       <CurationBoot />
       <PageCuration slug={pageSlug} bar client:idle />
-      <WikiPage slug={pageSlug} initialHtml={ssr ? html : undefined} initialRaw={ssr ? raw : undefined} meta={ssr ? parsed?.meta : undefined} fresh={ssr} missing={ssr && !parsed} titleOwned={!!profileTitle} client:load />
+      {html && <noscript id="wiki-baked" set:html={html} />}
+      <WikiPage slug={pageSlug} bakedSha={bakedSha} title={parsed?.title} meta={parsed?.meta} titleOwned={!!profileTitle} client:load />
       {contributor && <Contributions login={contributor} client:load />}
     </div>
     <div class="col-info">

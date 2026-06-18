@@ -10,32 +10,47 @@ export class PageNotFoundError extends Error {
   }
 }
 
-// One SHA resolution per page view, shared by the article, every transclusion and
-// every hovercard (they'd otherwise each re-fetch `/latest`). Cleared on the router
-// swap that follows an in-site edit so the next view re-resolves the post-merge SHA.
-let shaCache: Promise<string> | undefined;
+// The head SHA plus a per-page content-version map (`slug → git blob sha`), so a
+// build-time page can tell whether its baked copy is still current without
+// fetching the file. The blob sha changes iff the page's bytes change.
+export interface Versions {
+  sha: string;
+  versions: Record<string, string>;
+}
+
+// One resolution per page view, shared by the article, every transclusion and
+// every hovercard (they'd otherwise each re-fetch). Cleared on the router swap
+// that follows an in-site edit so the next view re-resolves the post-merge state.
+let versionsCache: Promise<Versions> | undefined;
 onSwapReset(() => {
-  shaCache = undefined;
+  versionsCache = undefined;
 });
 
-export function resolveLatestSha(): Promise<string> {
-  if (!shaCache) {
-    shaCache = resolveLatestShaUncached();
-    shaCache.catch(() => {
-      shaCache = undefined;
+export function resolveVersions(): Promise<Versions> {
+  if (!versionsCache) {
+    versionsCache = resolveVersionsUncached();
+    versionsCache.catch(() => {
+      versionsCache = undefined;
     });
   }
-  return shaCache;
+  return versionsCache;
+}
+
+export function resolveLatestSha(): Promise<string> {
+  return resolveVersions().then((v) => v.sha);
 }
 
 // `no-store` stops the browser pinning a stale SHA after a merge; the in-flight
-// memo above, not the HTTP cache, is what coalesces the per-view fan-out.
-async function resolveLatestShaUncached(): Promise<string> {
+// memo above, not the HTTP cache, is what coalesces the per-view fan-out. Without
+// a Worker we can still resolve the head SHA from GitHub, but not per-page blob
+// shas — an empty map means every page is treated as stale (fetched), exactly the
+// pre-staleness-check behavior.
+async function resolveVersionsUncached(): Promise<Versions> {
   await bootTenant();
   if (config.workerUrl) {
     try {
-      const res = await fetch(engineUrl("/latest"), { cache: "no-store" });
-      if (res.ok) return ((await res.json()) as { sha: string }).sha;
+      const res = await fetch(engineUrl("/version"), { cache: "no-store" });
+      if (res.ok) return (await res.json()) as Versions;
     } catch {
       // fall back to the GitHub API below
     }
@@ -46,7 +61,7 @@ async function resolveLatestShaUncached(): Promise<string> {
     { headers: { Accept: "application/vnd.github.sha" }, cache: "no-store" },
   );
   if (!res.ok) throw new Error(`Could not resolve latest commit (HTTP ${res.status}).`);
-  return (await res.text()).trim();
+  return { sha: (await res.text()).trim(), versions: {} };
 }
 
 function cdnUrl(sha: string, slug: string): string {
