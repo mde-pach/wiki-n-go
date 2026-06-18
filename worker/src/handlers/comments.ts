@@ -107,7 +107,7 @@ const GET_THREAD = `query($id:ID!){
 }`;
 
 const CREATE_DISCUSSION = `mutation($repo:ID!,$cat:ID!,$title:String!,$body:String!){
-  createDiscussion(input:{repositoryId:$repo,categoryId:$cat,title:$title,body:$body}){ discussion{ id } }
+  createDiscussion(input:{repositoryId:$repo,categoryId:$cat,title:$title,body:$body}){ discussion{ id createdAt } }
 }`;
 
 const ADD_COMMENT = `mutation($d:ID!,$body:String!){
@@ -278,7 +278,7 @@ export async function createTopic(
   env: Env,
   request: Request,
   body: TopicBody,
-): Promise<{ id: string }> {
+): Promise<OutTopic> {
   const slug = String(body.slug ?? "");
   const title = String(body.title ?? "")
     .replace(/\s+/g, " ")
@@ -293,17 +293,36 @@ export async function createTopic(
 
   const writer = await resolve(env, request, { token: body.token });
   const { repoId, categoryId } = await discussionContext(env);
-  const created = await ghGraphQL<{ createDiscussion: { discussion: { id: string } } }>(
-    env,
-    CREATE_DISCUSSION,
+  // Return the real row (author resolved from the writer, redacted like the
+  // public feed) so the client lists it as-is — no fabricated "you" placeholder
+  // that then blinks to the real handle once the search index catches up.
+  const [created, suppressions] = await Promise.all([
+    ghGraphQL<{ createDiscussion: { discussion: { id: string; createdAt: string } } }>(
+      env,
+      CREATE_DISCUSSION,
+      {
+        repo: repoId,
+        cat: categoryId,
+        title: topicPrefix(slug) + title,
+        body: `${identityMarker(writer)}\n\n${text}`,
+      },
+    ),
+    loadSuppressions(env),
+  ]);
+  const { id, createdAt } = created.createDiscussion.discussion;
+  return redactAuthor(
     {
-      repo: repoId,
-      cat: categoryId,
-      title: topicPrefix(slug) + title,
-      body: `${identityMarker(writer)}\n\n${text}`,
+      id,
+      title,
+      author: writer.name,
+      isAnon: writer.isAnon,
+      avatarUrl: writer.isAnon ? null : writer.avatar,
+      createdAt,
+      replyCount: 0,
+      lastAt: createdAt,
     },
+    makeRedactor(suppressions),
   );
-  return { id: created.createDiscussion.discussion.id };
 }
 
 export async function postComment(

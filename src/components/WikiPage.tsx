@@ -77,6 +77,10 @@ export default function WikiPage(props: {
   // Edge-SSR resolved that this slug has no page, so render the "not found"
   // state server-side (the static path never renders a missing page here).
   missing?: boolean;
+  // The page chrome already set `.page-title` to a final value the fetched
+  // content can't improve on (e.g. a profile's "User: <login>"). Leave it alone
+  // so it never blinks from the owner's title to the slug/frontmatter one.
+  titleOwned?: boolean;
 }) {
   const slug = () => props.slug ?? slugFromLocation();
   // Bake the quick-facts card in as the article's first child so it floats
@@ -158,10 +162,12 @@ export default function WikiPage(props: {
       setMeta(m);
       setHtml(html);
     });
-    const heading = title || slug();
-    document.title = heading;
-    const el = document.querySelector(".page-title");
-    if (el) el.textContent = heading;
+    if (!props.titleOwned) {
+      const heading = title || slug();
+      document.title = heading;
+      const el = document.querySelector(".page-title");
+      if (el) el.textContent = heading;
+    }
     fillCategorySlot(m.tags);
     queueMicrotask(decorate);
   }
@@ -197,8 +203,10 @@ export default function WikiPage(props: {
     } catch (e) {
       // Only the freshly fetched file may be shown: on failure surface an error
       // rather than fall back to the (possibly stale) build-time snapshot.
-      const el = document.querySelector(".page-title");
-      if (el) el.textContent = prettify(slug());
+      if (!props.titleOwned) {
+        const el = document.querySelector(".page-title");
+        if (el) el.textContent = prettify(slug());
+      }
       if (e instanceof PageNotFoundError) setNotFound(true);
       else setErr(errMessage(e));
     }
