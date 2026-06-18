@@ -1,4 +1,4 @@
-import { For, Match, Show, Switch } from "solid-js";
+import { For, Match, onMount, Show, Switch } from "solid-js";
 import { config } from "../config";
 import { repoWebUrl } from "../lib/engine";
 import {
@@ -117,6 +117,9 @@ function PageHead(props: { slug: string; view: string }) {
   const namespace = props.view === "talk" ? "talk" : "article";
   const login = userLogin(props.slug);
   const title = login ? `User: ${login}` : prettify(props.slug);
+  // A profile's title is final from the slug alone; its WikiPage is `titleOwned`
+  // and leaves `.page-title` untouched, so set the tab title here to match the h1.
+  if (login) onMount(() => (document.title = title));
   const ref = encodeURIComponent(props.slug);
   const source = `${config.contentDir}/${props.slug}.md`;
   const toolLinks: { label: string; href: string; external?: boolean }[] = [
@@ -218,7 +221,7 @@ function ProfileBody(props: { slug: string }) {
     <Show when={login()} fallback={<NoProfile />}>
       {(l) => (
         <Show when={!isAnonName(l())} fallback={<NoProfile anon={l()} />}>
-          <WikiPage slug={props.slug} noCreate={!canEdit(l())} />
+          <WikiPage slug={props.slug} noCreate={!canEdit(l())} titleOwned />
           <Contributions login={l()} />
         </Show>
       )}

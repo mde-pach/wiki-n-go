@@ -63,8 +63,8 @@ export function createTopic(
   title: string,
   body: string,
   token?: string,
-): Promise<{ id: string }> {
-  return postJson<{ id: string }>("/topic", { slug, title, body, token });
+): Promise<Topic> {
+  return postJson<Topic>("/topic", { slug, title, body, token });
 }
 
 export async function postReply(

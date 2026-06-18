@@ -91,23 +91,10 @@ export function createThreadStore(slug: () => string): ThreadStore {
   }
 
   async function submitTopic(text: string, token: string | undefined, title: string) {
-    const { id } = await createTopic(slug(), title, text, token);
-    const now = new Date().toISOString();
-    setExtra((e) => [
-      {
-        id,
-        title,
-        author: "you",
-        isAnon: true,
-        avatarUrl: null,
-        createdAt: now,
-        replyCount: 0,
-        lastAt: now,
-      },
-      ...e,
-    ]);
+    const topic = await createTopic(slug(), title, text, token);
+    setExtra((e) => [topic, ...e]);
     refetchTopics();
-    setOpenId(id);
+    setOpenId(topic.id);
   }
 
   async function submitReply(
